@@ -24,7 +24,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "duration-input",
     name: "Duration input",
     summary:
-      "Hours and minutes (75 minutes becomes 1 h 15) and the usual lengths as one-click presets.",
+      "Hours and minutes (75 minutes becomes 1 h 15) and the usual lengths as one-click presets. Composed from parts, with a props shorthand.",
     imports: [
       "DurationInput",
       "DurationInputRow",
@@ -69,8 +69,22 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "timezone-picker",
     name: "Timezone picker",
     summary: "A time zone found by typing, each row with its offset and the time there.",
-    imports: ["TimezonePicker", "deviceTimezone", "convertTime", "timezoneOffset"],
+    imports: [
+      "TimezonePicker",
+      "TimezonePickerInput",
+      "TimezonePickerContent",
+      "TimezonePickerItem",
+      "deviceTimezone",
+      "convertTime",
+      "timezoneOffset",
+    ],
     props: [
+      {
+        name: "Timezone parts",
+        type: "TimezonePicker (no label; value / defaultValue / onChange, timezones, now, hour12, disabled), TimezonePickerInput, TimezonePickerContent emptyText, TimezonePickerItem zone",
+        description:
+          "TimezonePicker with a label is built on the Combobox; the parts are the same over the Combobox parts.",
+      },
       { name: "label", type: "string", description: "Names the field." },
       controlled("value", "string | null", "An IANA zone, e.g. Europe/Paris."),
       {
@@ -102,7 +116,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "address-field",
     name: "Address field",
     summary:
-      "A postal address: two lines, postcode, city, country. Typed, with the browser's autocomplete, no lookup and no network.",
+      "A postal address: two lines, postcode, city, country. Typed, with the browser's autocomplete, no lookup and no network. Composed from parts, with a props shorthand.",
     imports: ["AddressField", "AddressFieldPart"],
     props: [
       {
@@ -145,16 +159,16 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "secret-field",
     name: "Secret field",
     summary:
-      "A hidden value: fixed-length mask, reveal for a few seconds, copy, replace, remove; set or not set.",
+      "A hidden value: fixed-length mask, reveal for a few seconds, copy, replace, remove; set or not set. Composed from parts, with a props shorthand.",
     imports: [
       "SecretField",
       "SecretFieldHeader",
       "SecretFieldHint",
       "SecretFieldBody",
+      "SecretFieldConfirm",
       "SecretFieldValue",
       "SecretFieldActions",
       "SecretFieldForm",
-      "SecretFieldConfirm",
       "SECRET_MASK",
       "SECRET_REVEAL_MS",
       "secretProblem",
@@ -194,7 +208,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "expression-input",
     name: "Expression input",
     summary:
-      "Text that takes {{ references }} to earlier steps: picked as they are typed, shown as chips.",
+      "Text that takes {{ references }} to earlier steps: picked as they are typed, shown as chips. Composed from parts, with a props shorthand.",
     imports: [
       "ExpressionInput",
       "ExpressionInputBox",
@@ -230,7 +244,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "condition-builder",
     name: "Condition builder",
-    summary: "Field, operator and value rows joined by and / or, with groups; said in one line.",
+    summary:
+      "Field, operator and value rows joined by and / or, with groups; said in one line. Composed from parts, with a props shorthand.",
     imports: [
       "ConditionBuilder",
       "ConditionBuilderGroup",
@@ -271,7 +286,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "json-view",
     name: "JSON view",
-    summary: "Input or output data in mono, coloured by kind; scrolls, copies.",
+    summary:
+      "Input or output data in mono, coloured by kind; scrolls, copies. Composed from parts, with a props shorthand.",
     imports: ["JsonView", "JsonViewLabel", "JsonViewContent", "JsonViewCopy", "highlightJson"],
     props: [
       { name: "value", type: "unknown", description: "Any JSON value; undefined shows empty." },
@@ -295,7 +311,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "emoji-picker",
     name: "Emoji picker",
     summary:
-      "Search, categories, recents and a grid moved with the arrows. Emoji are user content.",
+      "Search, categories, recents and a grid moved with the arrows. Emoji are user content. Composed from parts, with a props shorthand.",
     imports: [
       "EmojiPicker",
       "EmojiPickerSearch",
@@ -335,15 +351,15 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "rich-composer",
     name: "Rich composer",
     summary:
-      "A box to write: @ and # pickers, a slash hook, markdown keys, files, preview, a reply bar, your send key.",
+      "A box to write: @ and # pickers, a slash hook, markdown keys, files, preview, a reply bar, your send key. Composed from parts, with a props shorthand.",
     imports: [
-      "RichComposer",
       "Composer",
-      "ComposerReplyBar",
       "ComposerToolbar",
       "ComposerField",
       "ComposerFiles",
       "ComposerFooter",
+      "RichComposer",
+      "ComposerReplyBar",
       "applyConversationFormat",
       "findMentionTrigger",
       "insertMention",
@@ -409,7 +425,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "drop-zone",
     name: "Drop zone",
-    summary: "Where files land: a framed area with its button, or an overlay over a whole view.",
+    summary:
+      "Where files land: a framed area with its button, or an overlay over a whole view. Composed from parts, with a props shorthand.",
     imports: [
       "DropZone",
       "DropZoneIcon",
@@ -449,14 +466,15 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "signature-pad",
     name: "Signature pad",
-    summary: "Draw, type or upload a signature; a PNG data URL out. A pen for the keyboard.",
+    summary:
+      "Draw, type or upload a signature; a PNG data URL out. A pen for the keyboard. Composed from parts, with a props shorthand.",
     imports: [
       "SignaturePad",
       "SignaturePadModes",
       "SignaturePadDraw",
       "SignaturePadType",
-      "SignaturePadUpload",
       "SignaturePadPreview",
+      "SignaturePadUpload",
       "signatureBlob",
       "SIGNATURE_FONTS",
     ],

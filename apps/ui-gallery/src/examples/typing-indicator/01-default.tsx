@@ -1,16 +1,28 @@
-import { PresenceDot, TypingIndicator } from "@forgeron/ui";
+import {
+  PresenceDot,
+  PresenceDotLabel,
+  PresenceDotMark,
+  TypingIndicator,
+  TypingIndicatorDots,
+  TypingIndicatorText,
+} from "@forgeron/ui";
 
-export default function Default() {
+export default function Composed() {
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <TypingIndicator names={["Léa"]} />
-      <TypingIndicator names={["Léa", "Karim"]} />
-      <TypingIndicator names={["Léa", "Karim", "Sam", "Jo"]} />
+      <TypingIndicator names={["Léa", "Karim"]}>
+        <TypingIndicatorText />
+        <TypingIndicatorDots />
+      </TypingIndicator>
       <div style={{ display: "flex", gap: 20 }}>
-        <PresenceDot status="online" showLabel />
-        <PresenceDot status="away" showLabel />
-        <PresenceDot status="busy" showLabel />
-        <PresenceDot status="offline" showLabel />
+        <PresenceDot status="online">
+          <PresenceDotMark decorative />
+          <PresenceDotLabel />
+        </PresenceDot>
+        <PresenceDot status="busy">
+          <PresenceDotLabel>Do not disturb</PresenceDotLabel>
+          <PresenceDotMark decorative />
+        </PresenceDot>
       </div>
     </div>
   );

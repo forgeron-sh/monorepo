@@ -6,8 +6,24 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "icon-picker",
     name: "Icon picker",
     summary: "An icon by name: search, Recent, sections, every drawn icon. Stores a string.",
-    imports: ["IconPicker", "IconByName"],
+    imports: [
+      "IconPicker",
+      "IconPickerTrigger",
+      "IconPickerContent",
+      "IconPickerHeader",
+      "IconPickerSearch",
+      "IconPickerTones",
+      "IconPickerGrid",
+      "IconPickerFooter",
+      "IconByName",
+    ],
     props: [
+      {
+        name: "IconPicker parts",
+        type: "IconPicker (children are parts; value / onChange, open, label, removable, random, recentsKey, tones, sections, columns, disabled), IconPickerTrigger (variant, size, placeholder), IconPickerContent, IconPickerHeader, IconPickerSearch, IconPickerTones, IconPickerGrid, IconPickerItem, IconPickerFooter",
+        description:
+          "The props form is built from them; compose your own as shadcn would. useIconPicker reads the state.",
+      },
       {
         name: "value / defaultValue",
         type: "string | null",

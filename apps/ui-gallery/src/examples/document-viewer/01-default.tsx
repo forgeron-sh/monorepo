@@ -1,4 +1,14 @@
-import { DocumentViewer } from "@forgeron/ui";
+import {
+  DocumentViewer,
+  DocumentViewerMain,
+  DocumentViewerPager,
+  DocumentViewerPages,
+  DocumentViewerSeparator,
+  DocumentViewerThumbs,
+  DocumentViewerThumbsToggle,
+  DocumentViewerToolbar,
+  DocumentViewerZoom,
+} from "@forgeron/ui";
 
 const page = (n: number) => ({
   id: `p${n}`,
@@ -11,10 +21,22 @@ const page = (n: number) => ({
 });
 const pages = [1, 2, 3].map(page);
 
-export default function Default() {
+export default function Composed() {
   return (
     <div style={{ width: "100%" }}>
-      <DocumentViewer label="Service agreement" pages={pages} height={460} />
+      <DocumentViewer label="Service agreement" pages={pages} height={460}>
+        <DocumentViewerToolbar>
+          <DocumentViewerThumbsToggle />
+          <DocumentViewerSeparator />
+          <DocumentViewerPager />
+          <DocumentViewerSeparator />
+          <DocumentViewerZoom />
+        </DocumentViewerToolbar>
+        <DocumentViewerMain>
+          <DocumentViewerThumbs />
+          <DocumentViewerPages />
+        </DocumentViewerMain>
+      </DocumentViewer>
     </div>
   );
 }

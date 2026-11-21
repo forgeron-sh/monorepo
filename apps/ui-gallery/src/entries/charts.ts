@@ -146,7 +146,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "kpi-row",
     name: "KPI row",
-    summary: "Key figures side by side: label, figure, change and trend, in glued cells.",
+    summary:
+      "Key figures side by side: label, figure, change and trend, in glued cells. Composed from parts, with a props shorthand.",
     imports: ["KpiRow", "KpiRowItem"],
     props: [
       {
@@ -233,7 +234,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "donut",
     name: "Donut",
     summary:
-      "A pixel ring cut into slices, each with its own pattern. The key gives value and share.",
+      "A pixel ring cut into slices, each with its own pattern. The key gives value and share. Composed from parts, with a props shorthand.",
     imports: ["Donut", "DonutRing", "DonutCenter", "DonutKey", "dashboardRing"],
     props: [
       title,
@@ -309,7 +310,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "stacked-bar",
     name: "Stacked bar",
-    summary: "Bars split into series, horizontal or vertical. The key turns a series on or off.",
+    summary:
+      "Bars split into series, horizontal or vertical. The key turns a series on or off. Composed from parts, with a props shorthand.",
     imports: ["StackedBar", "StackedBarKey", "StackedBarBars", "dashboardStack"],
     props: [
       title,
@@ -375,7 +377,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "waffle",
     name: "Waffle",
     summary:
-      "Shares as a grid of squares, one square a part of the whole, each slice in its own pattern. Easier to count than a ring.",
+      "Shares as a grid of squares, one square a part of the whole, each slice in its own pattern. Easier to count than a ring. Composed from parts, with a props shorthand.",
     imports: ["Waffle", "WaffleGrid", "WaffleKey", "WaffleNote", "dashboardWaffle"],
     props: [
       title,

@@ -1,40 +1,38 @@
-import { Folder01Icon, InboxIcon, Layers01Icon, UserCircleIcon } from "@forgeron/icons";
-import { Button, CommandPalette } from "@forgeron/ui";
-import { useEffect, useState } from "react";
+import {
+  Button,
+  CommandPalette,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@forgeron/ui";
+import { useState } from "react";
 
-export default function Default() {
+// Without `groups`, CommandPalette is the root of the Command parts, in a dialog.
+export default function Composed() {
   const [open, setOpen] = useState(false);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setOpen((was) => !was);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
   return (
     <>
-      <Button kbd="⌘K" onClick={() => setOpen(true)}>
-        Search
-      </Button>
-      <CommandPalette
-        open={open}
-        onOpenChange={setOpen}
-        onSelect={() => {}}
-        groups={[
-          {
-            label: "Go to",
-            items: [
-              { id: "inbox", label: "Inbox", icon: InboxIcon },
-              { id: "my", label: "My issues", icon: UserCircleIcon },
-              { id: "projects", label: "Projects", icon: Folder01Icon },
-              { id: "views", label: "Views", icon: Layers01Icon },
-            ],
-          },
-        ]}
-      />
+      <Button onClick={() => setOpen(true)}>Open palette</Button>
+      <CommandPalette open={open} onOpenChange={setOpen}>
+        <CommandInput placeholder="Type a command or search…" />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Suggestions">
+            <CommandItem onSelect={() => setOpen(false)}>Inbox</CommandItem>
+            <CommandItem onSelect={() => setOpen(false)}>My issues</CommandItem>
+          </CommandGroup>
+          <CommandSeparator />
+          <CommandGroup heading="Settings">
+            <CommandItem onSelect={() => setOpen(false)}>
+              Profile <CommandShortcut>⌘P</CommandShortcut>
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandPalette>
     </>
   );
 }

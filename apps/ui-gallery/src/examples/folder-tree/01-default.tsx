@@ -1,5 +1,5 @@
-import { Briefcase01Icon, Home01Icon, TruckIcon } from "@forgeron/icons";
-import { FolderTree, type FolderNode } from "@forgeron/ui";
+import { Briefcase01Icon, Home01Icon } from "@forgeron/icons";
+import { FolderTree, FolderTreeItem, type FolderNode } from "@forgeron/ui";
 
 const folders: FolderNode[] = [
   {
@@ -7,11 +7,7 @@ const folders: FolderNode[] = [
     name: "My files",
     icon: Home01Icon,
     children: [
-      {
-        id: "contracts",
-        name: "Contracts",
-        children: [{ id: "leases", name: "Leases", children: [] }],
-      },
+      { id: "contracts", name: "Contracts", children: [] },
       { id: "photos", name: "Photos", children: [] },
     ],
   },
@@ -21,17 +17,16 @@ const folders: FolderNode[] = [
     icon: Briefcase01Icon,
     children: [{ id: "quotes", name: "Quotes", children: [] }],
   },
-  { id: "ops", name: "Operations", icon: TruckIcon, children: [] },
 ];
 
-export default function Default() {
+export default function Composed() {
   return (
     <div style={{ width: 240 }}>
-      <FolderTree
-        folders={folders}
-        defaultExpanded={["my", "contracts"]}
-        defaultSelected="leases"
-      />
+      <FolderTree folders={folders} defaultExpanded={["my"]} defaultSelected="contracts">
+        {folders.map((node) => (
+          <FolderTreeItem key={node.id} node={node} />
+        ))}
+      </FolderTree>
     </div>
   );
 }

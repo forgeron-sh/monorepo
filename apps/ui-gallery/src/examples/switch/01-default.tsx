@@ -1,11 +1,10 @@
 import { Switch } from "@forgeron/ui";
 
-export default function Default() {
+export default function Composed() {
   return (
-    <div style={{ display: "grid" }}>
-      <Switch label="Email me when a deploy fails" defaultChecked />
-      <Switch label="Weekly digest" />
-      <Switch label="Managed by your admin" disabled />
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <Switch id="airplane-mode" />
+      <label htmlFor="airplane-mode">Airplane mode</label>
     </div>
   );
 }

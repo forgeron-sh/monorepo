@@ -61,8 +61,33 @@ export const entries: ReadonlyArray<Atom> = [
       "buildConversationRows",
       "conversationFirstUnread",
       "toggleConversationReaction",
+      "MessageListScroll",
+      "MessageListOlder",
+      "MessageListRows",
+      "MessageListDay",
+      "MessageListUnread",
+      "MessageListSystem",
+      "MessageListJump",
+      "MessageListStatus",
+      "MessageItemSide",
+      "MessageItemMain",
+      "MessageItemHeader",
+      "MessageItemQuote",
+      "MessageItemBody",
+      "MessageItemState",
+      "MessageItemAttachments",
+      "MessageItemReactions",
+      "MessageItemReplies",
+      "MessageItemActions",
+      "useMessageItem",
     ],
     props: [
+      {
+        name: "Parts",
+        type: "MessageListScroll, MessageListOlder, MessageListRows, MessageListDay, MessageListUnread, MessageListSystem, MessageListJump, MessageListStatus, MessageItemSide, MessageItemMain, MessageItemHeader, MessageItemQuote, MessageItemBody, MessageItemState, MessageItemAttachments, MessageItemReactions, MessageItemReplies, MessageItemActions, useMessageItem",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props. MessageItem takes ...rest (the list puts the collection's item props on it: a roving focus).",
+      },
       {
         name: "messages",
         type: "ConversationMessage[]",
@@ -147,8 +172,21 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Reaction bar",
     summary:
       "Emoji with their count, yours pressed, who reacted in a tooltip, and a button to add one.",
-    imports: ["ReactionBar", "toggleConversationReaction", "conversationReactionLabel"],
+    imports: [
+      "ReactionBar",
+      "toggleConversationReaction",
+      "conversationReactionLabel",
+      "ReactionBarChips",
+      "ReactionBarChip",
+      "ReactionBarAdd",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "ReactionBarChips, ReactionBarChip, ReactionBarAdd",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       {
         name: "reactions",
         type: "{ emoji, users: { id, name }[] }[]",
@@ -172,8 +210,24 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "thread-panel",
     name: "Thread panel",
     summary: "A side panel: the root message, its replies, a composer, close.",
-    imports: ["ThreadPanel"],
+    imports: [
+      "ThreadPanel",
+      "ThreadPanelHeader",
+      "ThreadPanelTitle",
+      "ThreadPanelCount",
+      "ThreadPanelClose",
+      "ThreadPanelMessage",
+      "ThreadPanelReplies",
+      "ThreadPanelTyping",
+      "ThreadPanelComposer",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "ThreadPanelHeader, ThreadPanelTitle, ThreadPanelCount, ThreadPanelClose, ThreadPanelMessage, ThreadPanelReplies, ThreadPanelTyping, ThreadPanelComposer",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       {
         name: "root / replies",
         type: "ConversationMessage; ConversationMessage[]",
@@ -200,8 +254,26 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Conversation list",
     summary:
       "Rows with avatars, presence, preview, time, unread, pinned and muted, under sections.",
-    imports: ["ConversationList", "groupConversationItems", "conversationListTime"],
+    imports: [
+      "ConversationList",
+      "groupConversationItems",
+      "conversationListTime",
+      "ConversationListGroups",
+      "ConversationListSection",
+      "ConversationListRow",
+      "ConversationListWho",
+      "ConversationListTitle",
+      "ConversationListTime",
+      "ConversationListPreview",
+      "ConversationListCount",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "ConversationListGroups, ConversationListSection, ConversationListRow, ConversationListWho, ConversationListTitle, ConversationListTime, ConversationListPreview, ConversationListCount",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       {
         name: "items",
         type: "ConversationListItem[]",
@@ -249,8 +321,22 @@ export const entries: ReadonlyArray<Atom> = [
       "parseRecipientText",
       "isEmailAddress",
       "addRecipients",
+      "RecipientInputLabel",
+      "RecipientInputField",
+      "RecipientInputBox",
+      "RecipientInputSuggestions",
+      "RecipientInputStatus",
+      "RecipientFieldsRow",
+      "RecipientFieldsInput",
+      "RecipientFieldsToggles",
     ],
     props: [
+      {
+        name: "Parts",
+        type: "RecipientInputLabel, RecipientInputField, RecipientInputBox, RecipientInputSuggestions, RecipientInputStatus, RecipientFieldsRow, RecipientFieldsInput, RecipientFieldsToggles",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       { name: "label", type: "string", description: "To, Cc, Bcc." },
       { name: "value / defaultValue / onChange", type: "string[]", description: "The addresses." },
       {
@@ -282,8 +368,22 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "typing-indicator",
     name: "Typing indicator and presence",
     summary: "Who is writing, in a polite live region, and whether someone is there.",
-    imports: ["TypingIndicator", "PresenceDot", "conversationTypingLabel"],
+    imports: [
+      "TypingIndicator",
+      "PresenceDot",
+      "conversationTypingLabel",
+      "PresenceDotMark",
+      "PresenceDotLabel",
+      "TypingIndicatorDots",
+      "TypingIndicatorText",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "PresenceDotMark, PresenceDotLabel, TypingIndicatorDots, TypingIndicatorText",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       {
         name: "names",
         type: "string[]",
@@ -311,8 +411,26 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "attachment-list",
     name: "Attachment list",
     summary: "Files with a thumbnail or mark, size, upload progress, retry, remove and download.",
-    imports: ["AttachmentList"],
+    imports: [
+      "AttachmentList",
+      "AttachmentListItem",
+      "AttachmentListThumb",
+      "AttachmentListBody",
+      "AttachmentListName",
+      "AttachmentListMeta",
+      "AttachmentListProgress",
+      "AttachmentListActions",
+      "AttachmentListDownload",
+      "AttachmentListRetry",
+      "AttachmentListRemove",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "AttachmentListItem, AttachmentListThumb, AttachmentListBody, AttachmentListName, AttachmentListMeta, AttachmentListProgress, AttachmentListActions, AttachmentListDownload, AttachmentListRetry, AttachmentListRemove",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       {
         name: "items",
         type: "{ id, name, size?, type?, url?, thumbnail?, progress?, error? }[]",
@@ -336,8 +454,24 @@ export const entries: ReadonlyArray<Atom> = [
       "inlineCommentAnchorTop",
       "structureRebaseAnchor",
       "structureLayoutThreads",
+      "InlineCommentsBar",
+      "InlineCommentsLane",
+      "InlineCommentsThreads",
+      "InlineCommentsThread",
+      "InlineCommentsQuote",
+      "InlineCommentsEntries",
+      "InlineCommentsComposer",
+      "InlineCommentsActions",
+      "InlineCommentsDraft",
+      "InlineCommentsEmpty",
     ],
     props: [
+      {
+        name: "Parts",
+        type: "InlineCommentsBar, InlineCommentsLane, InlineCommentsThreads, InlineCommentsThread, InlineCommentsQuote, InlineCommentsEntries, InlineCommentsComposer, InlineCommentsActions, InlineCommentsDraft, InlineCommentsEmpty",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       {
         name: "threads",
         type: "InlineThread[]",

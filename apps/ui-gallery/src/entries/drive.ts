@@ -16,8 +16,23 @@ export const entries: ReadonlyArray<Atom> = [
     name: "File browser",
     summary:
       "A folder's files as rows or cards: click, ⇧ and ⌘ ranges, lasso, keys, right click, drag onto folders.",
-    imports: ["FileBrowser", "useActions"],
+    imports: [
+      "FileBrowser",
+      "useActions",
+      "FileBrowserHeader",
+      "FileBrowserRow",
+      "FileBrowserTiles",
+      "FileBrowserCards",
+      "FileBrowserEmpty",
+      "FileBrowserLasso",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "FileBrowser > FileBrowserHeader, FileBrowserRow, FileBrowserTiles > FileBrowserTile, FileBrowserCards > FileBrowserCard, FileBrowserEmpty, FileBrowserLasso",
+        description:
+          "Without children the root draws the layout from `items`. With children they are the parts above; each takes `className`, `...rest` and carries a `data-slot`. `useFileBrowser()` gives a part of your own the items and helpers.",
+      },
       {
         name: "items",
         type: "{ id, name, kind?, size?, modified?, owner?, starred?, shared?, locked?, thumbnail?, icon? }[]",
@@ -86,8 +101,14 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Folder tree",
     summary:
       "Folders as a tree: arrows, typeahead, children loaded on first opening, drops of items and files.",
-    imports: ["FolderTree"],
+    imports: ["FolderTree", "FolderTreeItem"],
     props: [
+      {
+        name: "Parts",
+        type: "FolderTree > FolderTreeItem",
+        description:
+          "Without children the root draws one `FolderTreeItem` per folder; with children, place them yourself. A `FolderTreeItem` takes `node` and the `TreeItem` props.",
+      },
       {
         name: "folders",
         type: "{ id, name, icon?, children?, hasChildren?, readOnly? }[]",
@@ -127,9 +148,47 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "selection-bar",
     name: "Selection bar",
-    summary: "“3 selected”, the × that clears, the actions as buttons and the rest behind ⋯.",
-    imports: ["SelectionBar", "useActions"],
+    summary:
+      "“3 selected”, the × that clears, the actions as buttons and the rest behind ⋯. Composed from parts, with an `actions` props shorthand.",
+    imports: [
+      "SelectionBarRoot",
+      "SelectionBarClear",
+      "SelectionBarCount",
+      "SelectionBarSeparator",
+      "SelectionBarActions",
+      "SelectionBar",
+      "useActions",
+    ],
     props: [
+      {
+        name: "SelectionBarRoot",
+        type: "{ count, onClear, render? } & div props",
+        description:
+          "A toolbar named “Selection”, drawn while `count` is 1 or more. `SelectionBar` is the props shorthand of this root, built from `actions`. Escape inside it calls `onClear`.",
+      },
+      {
+        name: "SelectionBarClear",
+        type: "{ label?, asChild? } & button props",
+        description:
+          "The × that calls `onClear`. `asChild` gives the click to your own button; `preventDefault()` in `onClick` skips the clear.",
+      },
+      {
+        name: "SelectionBarCount",
+        type: "{ render? } & b props",
+        description:
+          "“3 selected”, announced politely as it changes. Give children to write something else (“3 files”).",
+      },
+      {
+        name: "SelectionBarSeparator",
+        type: "span",
+        description: "The thin rule between the count and the actions.",
+      },
+      {
+        name: "SelectionBarActions",
+        type: "{ actions, onAction?, inline?, iconOnly? }",
+        description:
+          "The screen's actions (`useActions`): the first `inline` (4) as buttons, the rest behind ⋯, the destructive ones in the danger colour; an action with `actions` opens a menu. `iconOnly` lists ids drawn as an icon.",
+      },
       { name: "count", type: "number", description: "How many are selected; nothing at 0." },
       { name: "onClear", type: "() => void", description: "The × and Escape." },
       {
@@ -156,8 +215,21 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "upload-queue",
     name: "Upload queue",
     summary: "Each file uploading: progress in blocks, cancel, retry, minimise; the total sent.",
-    imports: ["UploadQueue", "uploadSummary"],
+    imports: [
+      "UploadQueue",
+      "uploadSummary",
+      "UploadQueueHeader",
+      "UploadQueueList",
+      "UploadQueueRow",
+      "UploadQueueFooter",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "UploadQueue > UploadQueueHeader, UploadQueueList > UploadQueueRow, UploadQueueFooter",
+        description:
+          "Without children the header, the rows and the foot are drawn; `UploadQueueRow` takes the `item`.",
+      },
       {
         name: "items",
         type: `{ id, name, size?, progress, status, error? }[]`,
@@ -188,8 +260,20 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "storage-meter",
     name: "Storage meter",
     summary: "Space used against a budget, in blocks per part, the total in mono, a legend.",
-    imports: ["StorageMeter"],
+    imports: [
+      "StorageMeter",
+      "StorageMeterHead",
+      "StorageMeterBar",
+      "StorageMeterTotal",
+      "StorageMeterLegend",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "StorageMeter > StorageMeterHead, StorageMeterBar, StorageMeterTotal, StorageMeterLegend",
+        description:
+          "Without children the four are drawn; with children, keep the ones you want, in your order.",
+      },
       {
         name: "parts",
         type: `{ label, bytes, tone? }[]`,
@@ -208,8 +292,23 @@ export const entries: ReadonlyArray<Atom> = [
     name: "File preview",
     summary:
       "A file opened for a look: image, page, PDF, video, archive or no preview; arrows to its neighbours.",
-    imports: ["FilePreview", "FileDetails"],
+    imports: [
+      "FilePreview",
+      "FileDetails",
+      "FilePreviewHeader",
+      "FilePreviewActions",
+      "FilePreviewNav",
+      "FilePreviewBody",
+      "FilePreviewStage",
+      "FilePreviewAside",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "FilePreview > FilePreviewHeader (FilePreviewActions, FilePreviewNav), FilePreviewBody > FilePreviewStage, FilePreviewAside",
+        description:
+          "With `FilePreviewHeader` or `FilePreviewBody` as children the root is the frame of the parts; any other children are the stage, as before.",
+      },
       { name: "name", type: "string", description: "The title; the kind comes from it." },
       kind,
       { name: "size", type: "number", description: "In bytes." },
@@ -239,8 +338,26 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "file-details",
     name: "File details",
     summary: "Who has access, the properties, the versions and the activity of a file or folder.",
-    imports: ["FileDetails", "VersionList"],
+    imports: [
+      "FileDetails",
+      "VersionList",
+      "FileDetailsHeader",
+      "FileDetailsBody",
+      "FileDetailsSections",
+      "FileDetailsAccess",
+      "FileDetailsProperties",
+      "VersionListNote",
+      "VersionListItems",
+      "VersionListRow",
+      "VersionListUpload",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "FileDetails > FileDetailsHeader, FileDetailsBody > FileDetailsSections > FileDetailsAccess, FileDetailsProperties; VersionList > VersionListNote, VersionListItems > VersionListRow, VersionListUpload",
+        description:
+          "Without children the header and the body are drawn. `VersionList` is a root with parts too.",
+      },
       { name: "name", type: "string", description: "The title." },
       kind,
       {
@@ -280,8 +397,25 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Share dialog",
     summary:
       "People and teams with their role, general access, and the link's expiry, password and download.",
-    imports: ["ShareDialog", "SharePanel", "DEFAULT_SHARE"],
+    imports: [
+      "ShareDialog",
+      "SharePanel",
+      "DEFAULT_SHARE",
+      "SharePanelAdd",
+      "SharePanelPeople",
+      "SharePanelGeneral",
+      "SharePanelLink",
+      "ShareDialogHeader",
+      "ShareDialogPanel",
+      "ShareDialogFooter",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "SharePanel > SharePanelAdd, SharePanelPeople, SharePanelGeneral > SharePanelLink; ShareDialog > ShareDialogHeader, ShareDialogPanel, ShareDialogFooter",
+        description:
+          "With children, `ShareDialog` is a shadcn dialog (portal, scrim, focus trap) and these are its content; without, it is the usual modal.",
+      },
       {
         name: "directory",
         type: "{ id, name, hint? }[]",
@@ -326,8 +460,26 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "move-dialog",
     name: "Move dialog",
     summary: "Move or copy to a folder picked in the tree; a double click confirms.",
-    imports: ["MoveDialog", "MovePanel", "folderLabel"],
+    imports: [
+      "MoveDialog",
+      "MovePanel",
+      "folderLabel",
+      "MovePanelFrom",
+      "MovePanelTree",
+      "MovePanelFooter",
+      "MovePanelTo",
+      "MovePanelCancel",
+      "MovePanelConfirm",
+      "MoveDialogHeader",
+      "MoveDialogPanel",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "MovePanel > MovePanelFrom, MovePanelTree, MovePanelFooter > MovePanelTo, MovePanelCancel, MovePanelConfirm; MoveDialog > MoveDialogHeader, MoveDialogPanel",
+        description:
+          "With children, `MoveDialog` is a shadcn dialog and these are its content; without, the usual modal.",
+      },
       { name: "folders", type: "FolderNode[]", description: "The tree to pick from." },
       {
         name: "mode",

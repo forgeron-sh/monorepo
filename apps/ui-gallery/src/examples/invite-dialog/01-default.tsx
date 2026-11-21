@@ -2,24 +2,29 @@ import {
   Button,
   classifyInvites,
   InviteDialog,
+  InviteDialogEmails,
+  InviteDialogFooter,
+  InviteDialogHeader,
+  InviteDialogMessage,
+  InviteDialogResults,
+  InviteDialogTeams,
   type InviteDraft,
   type InviteResult,
 } from "@forgeron/ui";
 import { useState } from "react";
 
-const members = ["ada@example.test", "sam@example.test"];
+const members = ["ada@example.test"];
 const teams = [
-  { value: "finance", label: "Finance", hint: "4" },
-  { value: "support", label: "Support", hint: "9" },
-  { value: "ops", label: "Operations", hint: "6" },
+  { value: "finance", label: "Finance" },
+  { value: "support", label: "Support" },
 ];
 
-export default function Default() {
+export default function Composed() {
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<InviteResult[] | undefined>();
   const [draft, setDraft] = useState<InviteDraft>({
-    emails: ["lea@example.test", "ada@example.test", "not-an-address"],
-    teams: ["support"],
+    emails: ["lea@example.test", "ada@example.test"],
+    teams: [],
     message: "",
   });
   return (
@@ -32,17 +37,20 @@ export default function Default() {
           value={draft}
           onChange={setDraft}
           result={result}
-          // A real app sends the request; here every address gets the answer it would.
           onInvite={() => setResult(classifyInvites(draft.emails, members))}
-          onAgain={() => {
-            setResult(undefined);
-            setDraft({ emails: [], teams: [], message: "" });
-          }}
+          onAgain={() => setResult(undefined)}
           onClose={() => {
             setOpen(false);
             setResult(undefined);
           }}
-        />
+        >
+          <InviteDialogHeader />
+          <InviteDialogEmails />
+          <InviteDialogTeams />
+          <InviteDialogMessage />
+          <InviteDialogResults />
+          <InviteDialogFooter />
+        </InviteDialog>
       ) : null}
     </>
   );

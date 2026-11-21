@@ -1,5 +1,12 @@
-import { CommandLine } from "@forgeron/ui";
+import { CommandLine, CommandLineCopy, CommandLinePrompt, CommandLineText } from "@forgeron/ui";
 
-export default function Default() {
-  return <CommandLine>npx forgeron init</CommandLine>;
+// The parts: prompt, text and a copy button, placed as you like.
+export default function Composed() {
+  return (
+    <CommandLine>
+      <CommandLinePrompt>$</CommandLinePrompt>
+      <CommandLineText>npx forgeron init</CommandLineText>
+      <CommandLineCopy value="npx forgeron init" />
+    </CommandLine>
+  );
 }

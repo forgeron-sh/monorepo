@@ -1,18 +1,16 @@
 ---
 import { identity } from "../lib/identity";
-import { marketing } from "../lib/marketing";
-import { SHADER_GROUPS, shaders } from "../lib/shaders";
 import { atoms, blocks, charts, hooks } from "../registry";
 
 interface Props {
-  /** The slug of the page shown: an atom, a block, `installation` or `identity/<page>` or `marketing/<group>`. */
+  /** The slug of the page shown: an atom, a block, `installation` or `identity/<page>`. */
   current: string;
 }
 const { current } = Astro.props;
 const here = (slug: string) => (slug === current ? "page" : undefined);
 ---
 
-<aside class="side" aria-label="Contents">
+<aside class="side" aria-label="Contents" transition:persist="docs-sidebar">
   <div class="side-group">
     <p class="side-head t-mono">Get started</p>
     <a href="/docs/installation" aria-current={here("installation")}>Installation</a>
@@ -22,56 +20,20 @@ const here = (slug: string) => (slug === current ? "page" : undefined);
     {identity.map((p) => <a href={`/identity/${p.slug}`} aria-current={here(`identity/${p.slug}`)}>{p.name}</a>)}
   </div>
   <div class="side-group">
-    <p class="side-head t-mono">/0.2 Shaders</p>
-    <a href="/shaders" aria-current={here("shaders")}>Overview</a>
-    {
-      SHADER_GROUPS.map((g) => (
-        <>
-          <p class="side-head t-mono dim">{g.title}</p>
-          {shaders
-            .filter((s) => s.group === g.id)
-            .map((s) => (
-              <a href={`/shaders/${s.slug}`} aria-current={here(`shaders/${s.slug}`)}>
-                {s.name}
-              </a>
-            ))}
-        </>
-      ))
-    }
-  </div>
-  <div class="side-group">
-    <p class="side-head t-mono">/0.3 Atoms</p>
+    <p class="side-head t-mono">/0.2 Atoms</p>
     {atoms.map((a) => <a href={`/docs/${a.slug}`} aria-current={here(a.slug)}>{a.name}</a>)}
   </div>
   <div class="side-group">
-    <p class="side-head t-mono">/0.4 Charts</p>
+    <p class="side-head t-mono">/0.3 Charts</p>
     <a href="/charts" aria-current={here("charts")}>Overview</a>
     {charts.map((c) => <a href={`/docs/${c.slug}`} aria-current={here(c.slug)}>{c.name}</a>)}
   </div>
   <div class="side-group">
-    <p class="side-head t-mono">/0.5 Blocks</p>
+    <p class="side-head t-mono">/0.4 Blocks</p>
     {blocks.map((b) => <a href={`/docs/${b.slug}`} aria-current={here(b.slug)}>{b.name}</a>)}
-  </div>
-  <div class="side-group">
-    <p class="side-head t-mono">/0.6 Marketing</p>
-    <a href="/marketing" aria-current={here("marketing")}>Overview</a>
-    {marketing.map((g) => <a href={`/marketing/${g.slug}`} aria-current={here(`marketing/${g.slug}`)}>{g.name}</a>)}
-  </div>
-  <div class="side-group">
-    <p class="side-head t-mono">/0.7 Editors</p>
-    <a href="/editors" aria-current={here("editors")}>Overview</a>
-    <a href="/editors/canvas" aria-current={here("editors/canvas")}>Canvas</a>
-    <a href="/editors/flow" aria-current={here("editors/flow")}>Flow</a>
-    <a href="/editors/draw" aria-current={here("editors/draw")}>Draw</a>
-    <a href="/editors/blueprint" aria-current={here("editors/blueprint")}>Blueprint</a>
-    <a href="/editors/richtext" aria-current={here("editors/richtext")}>Rich text</a>
   </div>
   <div class="side-group">
     <p class="side-head t-mono">Hooks</p>
     {hooks.map((h) => <a href={`/docs/${h.slug}`} aria-current={here(h.slug)}>{h.name}</a>)}
-  </div>
-  <div class="side-group">
-    <p class="side-head t-mono">/0.8 Pages <span class="soon">Soon</span></p>
-    <a href="/pages">Planned pages</a>
   </div>
 </aside>

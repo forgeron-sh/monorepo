@@ -1,21 +1,25 @@
-import { Menu, type MenuEntry } from "@forgeron/ui";
-import { useState } from "react";
+import {
+  Button,
+  Menu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@forgeron/ui";
 
-export default function Default() {
-  const [theme, setTheme] = useState("forge");
-  const entries: MenuEntry[] = [
-    { kind: "text", label: "camille@acme.fr" },
-    { kind: "separator" },
-    { kind: "heading", label: "Theme" },
-    ...["system", "forge", "paper"].map((t): MenuEntry => ({
-      kind: "radio",
-      label: t,
-      checked: theme === t,
-      onSelect: () => setTheme(t),
-    })),
-    { kind: "separator" },
-    { kind: "link", label: "Documentation", href: "/docs" },
-    { kind: "action", label: "Sign out", tone: "danger", onSelect: () => {} },
-  ];
-  return <Menu trigger="Camille Roy" label="Account" entries={entries} />;
+// Without `entries`, Menu is the root of the DropdownMenu parts.
+export default function Composed() {
+  return (
+    <Menu>
+      <DropdownMenuTrigger render={<Button variant="outline">Workspace</Button>} />
+      <DropdownMenuContent aria-label="Workspace">
+        <DropdownMenuLabel>Acme</DropdownMenuLabel>
+        <DropdownMenuItem>Switch workspace</DropdownMenuItem>
+        <DropdownMenuItem>Invite people</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive">Leave workspace</DropdownMenuItem>
+      </DropdownMenuContent>
+    </Menu>
+  );
 }

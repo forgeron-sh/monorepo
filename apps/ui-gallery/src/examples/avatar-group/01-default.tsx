@@ -1,20 +1,13 @@
-import { AvatarGroup } from "@forgeron/ui";
+import { Avatar, AvatarGroup, AvatarGroupCount } from "@forgeron/ui";
 
-const team = [
-  "Hugo Bernard",
-  "Nadia Petit",
-  "Léa Martin",
-  "Tom Garnier",
-  "Camille Roux",
-  "Inès Faure",
-];
-
-export default function Default() {
+// The parts: AvatarGroup without names holds the avatars and the count.
+export default function Composed() {
   return (
-    <>
-      <AvatarGroup names={team.slice(0, 3)} />
-      <AvatarGroup names={team} label="6 members" />
-      <AvatarGroup names={team} max={3} size={32} label="6 members" />
-    </>
+    <AvatarGroup aria-label="6 members">
+      <Avatar name="Hugo Bernard" />
+      <Avatar name="Nadia Petit" />
+      <Avatar name="Léa Martin" />
+      <AvatarGroupCount>+3</AvatarGroupCount>
+    </AvatarGroup>
   );
 }

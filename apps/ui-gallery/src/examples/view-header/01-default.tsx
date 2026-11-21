@@ -1,22 +1,51 @@
 import { PlusSignIcon } from "@forgeron/icons";
-import { IconButton, ViewHeader } from "@forgeron/ui";
+import {
+  IconButton,
+  ViewHeader,
+  ViewHeaderActions,
+  ViewHeaderBar,
+  ViewHeaderCount,
+  ViewHeaderName,
+  ViewHeaderTab,
+  ViewHeaderTabs,
+  ViewHeaderTitle,
+} from "@forgeron/ui";
 import { useState } from "react";
 
-export default function Default() {
+const tabs = [
+  { value: "all", label: "All issues" },
+  { value: "active", label: "Active", count: 12 },
+  { value: "backlog", label: "Backlog" },
+];
+
+export default function Composed() {
   const [tab, setTab] = useState("active");
   return (
     <div style={{ width: 320, border: "1px solid var(--line)" }}>
-      <ViewHeader
-        title="Issues"
-        tabs={[
-          { value: "all", label: "All issues" },
-          { value: "active", label: "Active", count: 12 },
-          { value: "backlog", label: "Backlog" },
-        ]}
-        tab={tab}
-        onTabChange={setTab}
-        action={<IconButton icon={PlusSignIcon} label="New issue" variant="boxed" size="sm" />}
-      />
+      <ViewHeader>
+        <ViewHeaderBar>
+          <ViewHeaderTitle>
+            <ViewHeaderName>Issues</ViewHeaderName>
+          </ViewHeaderTitle>
+          <ViewHeaderTabs>
+            {tabs.map((t) => (
+              <ViewHeaderTab
+                key={t.value}
+                current={t.value === tab}
+                onClick={() => setTab(t.value)}
+              >
+                {t.label}
+                {t.value === tab && t.count !== undefined ? (
+                  <ViewHeaderCount>{t.count}</ViewHeaderCount>
+                ) : null}
+              </ViewHeaderTab>
+            ))}
+          </ViewHeaderTabs>
+          <ViewHeaderActions>
+            <IconButton icon={PlusSignIcon} label="New issue" variant="boxed" size="sm" />
+          </ViewHeaderActions>
+        </ViewHeaderBar>
+      </ViewHeader>
     </div>
   );
 }

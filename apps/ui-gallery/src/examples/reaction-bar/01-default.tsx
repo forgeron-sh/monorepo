@@ -1,9 +1,15 @@
-import { ReactionBar, toggleConversationReaction, type ConversationReaction } from "@forgeron/ui";
+import {
+  ReactionBar,
+  ReactionBarAdd,
+  ReactionBarChips,
+  toggleConversationReaction,
+  type ConversationReaction,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const me = { id: "me", name: "You" };
 
-export default function Default() {
+export default function Composed() {
   const [reactions, setReactions] = useState<ConversationReaction[]>([
     {
       emoji: "👍",
@@ -16,6 +22,9 @@ export default function Default() {
       reactions={reactions}
       currentUserId="me"
       onToggle={(emoji) => setReactions((r) => toggleConversationReaction(r, emoji, me))}
-    />
+    >
+      <ReactionBarChips />
+      <ReactionBarAdd label="React" />
+    </ReactionBar>
   );
 }

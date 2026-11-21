@@ -1,4 +1,11 @@
-import { FillPicker, type EditorFill } from "@forgeron/ui";
+import {
+  FillPicker,
+  FillPickerColor,
+  FillPickerOpacity,
+  FillPickerPatterns,
+  FillPickerType,
+  type EditorFill,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 export default function Default() {
@@ -9,7 +16,12 @@ export default function Default() {
   });
   return (
     <div style={{ width: "100%", maxWidth: 320 }}>
-      <FillPicker label="Fill" value={fill} onChange={setFill} />
+      <FillPicker label="Fill" value={fill} onChange={setFill}>
+        <FillPickerType />
+        <FillPickerColor />
+        <FillPickerPatterns />
+        <FillPickerOpacity />
+      </FillPicker>
     </div>
   );
 }

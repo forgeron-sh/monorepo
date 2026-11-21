@@ -57,4 +57,43 @@ export const entries: ReadonlyArray<Atom> = [
       { name: "className", type: "string", description: "Merged with the component's classes." },
     ],
   },
+  {
+    slug: "input-group",
+    name: "Input group",
+    summary: "One frame around an input and what sits beside it: an icon, a unit, a button.",
+    imports: [
+      "InputGroup",
+      "InputGroupAddon",
+      "InputGroupInput",
+      "InputGroupTextarea",
+      "InputGroupButton",
+      "InputGroupText",
+    ],
+    props: [
+      {
+        name: "InputGroup",
+        type: "div",
+        description:
+          "The frame: it draws the border and the focus ring; the control inside is bare.",
+      },
+      {
+        name: "InputGroupAddon",
+        type: '"inline-start" | "inline-end" | "block-start" | "block-end"',
+        default: '"inline-start"',
+        description: "align: before or after the control, or on a line above or below it.",
+      },
+      {
+        name: "InputGroupInput / InputGroupTextarea",
+        type: "input / textarea",
+        description: "The control. SearchBox is a preset over these parts.",
+      },
+      {
+        name: "InputGroupButton",
+        type: '"xs" | "sm" | "icon-xs" | "icon-sm"',
+        default: '"xs"',
+        description: "A small Button for an addon (size, variant: ghost by default).",
+      },
+      { name: "className", type: "string", description: "Merged with the component's classes." },
+    ],
+  },
 ];

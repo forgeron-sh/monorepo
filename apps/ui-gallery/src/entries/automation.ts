@@ -21,7 +21,21 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Automation list",
     summary:
       "The automations of a workspace: trigger, state, last run, runs of the last days, owner.",
-    imports: ["AutomationList", "RunBars"],
+    imports: [
+      "AutomationList",
+      "RunBars",
+      "AutomationListHeader",
+      "AutomationListBody",
+      "AutomationListRow",
+      "AutomationListName",
+      "AutomationListTrigger",
+      "AutomationListState",
+      "AutomationListLast",
+      "AutomationListRuns",
+      "AutomationListOwner",
+      "AutomationListActions",
+      "AutomationListEmpty",
+    ],
     props: [
       {
         name: "automations",
@@ -52,6 +66,12 @@ export const entries: ReadonlyArray<Atom> = [
         description: "Header of the bars.",
       },
       { name: "empty", type: "ReactNode", description: "Shown when there is no automation." },
+      {
+        name: "Parts",
+        type: "AutomationListHeader, AutomationListBody, AutomationListRow, AutomationListName, AutomationListTrigger, AutomationListState, AutomationListLast, AutomationListRuns, AutomationListOwner, AutomationListActions, AutomationListEmpty",
+        description:
+          "Without `automations`, the root is the Table of the parts: a row takes `automation` and the cells you want. Cells read the row; the root's `onOpen`, `columns`, `renderActions` apply.",
+      },
       className,
     ],
   },
@@ -60,7 +80,18 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Step card",
     summary:
       "One step: icon, name, call, and the state of its last run. A list row or a canvas node.",
-    imports: ["StepCard"],
+    imports: [
+      "StepCard",
+      "StepCardTrigger",
+      "StepCardMain",
+      "StepCardText",
+      "StepCardTitle",
+      "StepCardSubtitle",
+      "StepCardState",
+      "StepCardActions",
+      "StepCardMeta",
+      "StepCardError",
+    ],
     props: [
       { name: "title", type: "string", description: "The name of the step in this automation." },
       {
@@ -108,6 +139,12 @@ export const entries: ReadonlyArray<Atom> = [
         type: "ReactNode",
         description: "Small buttons shown on hover and focus.",
       },
+      {
+        name: "Parts",
+        type: "StepCardTrigger, StepCardMain, StepCardText, StepCardTitle, StepCardSubtitle, StepCardState, StepCardActions, StepCardMeta, StepCardError",
+        description:
+          "Without `title`, the root is the card of the parts. Every other prop (id, tabIndex, a list's item props…) goes on the card; `asChild` makes your element the card.",
+      },
       className,
     ],
   },
@@ -116,7 +153,17 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Step picker",
     summary:
       "Triggers or actions to add: a search, categories, groups under a band; arrows and Enter.",
-    imports: ["StepPicker"],
+    imports: [
+      "StepPicker",
+      "StepPickerHeader",
+      "StepPickerSearch",
+      "StepPickerCategories",
+      "StepPickerEmpty",
+      "StepPickerList",
+      "StepPickerGroup",
+      "StepPickerItem",
+      "StepPickerFooter",
+    ],
     props: [
       {
         name: "options",
@@ -138,6 +185,12 @@ export const entries: ReadonlyArray<Atom> = [
       },
       { name: "footer", type: "ReactNode", description: "Under the list: write your own step." },
       { name: "autoFocus", type: "boolean", description: "Focuses the search when shown." },
+      {
+        name: "Parts",
+        type: "StepPickerHeader, StepPickerSearch, StepPickerCategories, StepPickerEmpty, StepPickerList, StepPickerGroup, StepPickerItem, StepPickerFooter",
+        description:
+          "With children, they replace the default layout. The options and the filter stay in the root.",
+      },
       className,
     ],
   },
@@ -146,7 +199,20 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Step list",
     summary:
       "A linear automation: steps down a rail, branches nested under bands; add, move, remove in place.",
-    imports: ["StepList", "insertStep", "removeStep", "moveStep", "findStep"],
+    imports: [
+      "StepList",
+      "insertStep",
+      "removeStep",
+      "moveStep",
+      "findStep",
+      "StepListEmpty",
+      "StepListSteps",
+      "StepListInsert",
+      "StepListItem",
+      "StepListBranches",
+      "StepListBranch",
+      "StepListBand",
+    ],
     props: [
       {
         name: "steps / defaultSteps",
@@ -168,6 +234,12 @@ export const entries: ReadonlyArray<Atom> = [
       },
       readOnly,
       { name: "empty", type: "ReactNode", description: "Shown when there is no step." },
+      {
+        name: "Parts",
+        type: "StepListEmpty, StepListSteps, StepListInsert, StepListItem, StepListBranches, StepListBranch, StepListBand",
+        description:
+          "With children, they replace the default layout. The tree stays in the root (its collection drives the keyboard): every card is an item, one tab stop.",
+      },
       className,
     ],
   },
@@ -176,7 +248,24 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Step inspector",
     summary:
       "The panel of a step: parameters with references, settings (errors, retries, timeout), its test.",
-    imports: ["StepInspector", "StepFields", "StepSettings"],
+    imports: [
+      "StepInspector",
+      "StepFields",
+      "StepSettings",
+      "StepInspectorHeader",
+      "StepInspectorTabs",
+      "StepInspectorParams",
+      "StepInspectorTip",
+      "StepInspectorTest",
+      "StepInspectorFooter",
+      "StepField",
+      "StepSettingsOnError",
+      "StepSettingsRetry",
+      "StepSettingsTimeout",
+      "StepSettingsDisabled",
+      "StepSettingsNotes",
+      "StepSettingsOutput",
+    ],
     props: [
       { name: "icon / title / subtitle", type: "…", description: "The step, at the top." },
       { name: "onTitleChange", type: "(title) => void", description: "Makes the name editable." },
@@ -218,6 +307,12 @@ export const entries: ReadonlyArray<Atom> = [
         description: "Footer and header.",
       },
       readOnly,
+      {
+        name: "Parts",
+        type: "StepInspectorHeader, StepInspectorTabs, StepInspectorParams, StepInspectorTip, StepInspectorTest, StepInspectorFooter, StepField, StepSettingsOnError, StepSettingsRetry, StepSettingsTimeout, StepSettingsDisabled, StepSettingsNotes, StepSettingsOutput",
+        description:
+          "StepInspector, StepFields and StepSettings each take children: their own parts (StepField takes a field spec).",
+      },
       className,
     ],
   },
@@ -226,7 +321,19 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Schedule editor",
     summary:
       "When it runs: every n minutes, hourly, daily, weekdays, monthly or cron, said in words.",
-    imports: ["ScheduleEditor", "describeCron", "nextRuns"],
+    imports: [
+      "ScheduleEditor",
+      "describeCron",
+      "nextRuns",
+      "ScheduleEditorModes",
+      "ScheduleEditorControls",
+      "ScheduleEditorSummary",
+      "ScheduleEditorNext",
+      "ScheduleEditorNumber",
+      "ScheduleEditorTime",
+      "ScheduleEditorDays",
+      "ScheduleEditorCron",
+    ],
     props: [
       {
         name: "value / defaultValue / onChange",
@@ -247,6 +354,12 @@ export const entries: ReadonlyArray<Atom> = [
       { name: "preview", type: "number", default: "3", description: "How many next runs." },
       { name: "modes", type: "Mode[]", description: "The shapes offered, in order." },
       { name: "disabled", type: "boolean", description: "Shown, not editable." },
+      {
+        name: "Parts",
+        type: "ScheduleEditorModes, ScheduleEditorControls, ScheduleEditorSummary, ScheduleEditorNext, ScheduleEditorNumber, ScheduleEditorTime, ScheduleEditorDays, ScheduleEditorCron",
+        description:
+          "With children, they replace the default layout; useScheduleEditor() gives the cron and the shape.",
+      },
       className,
     ],
   },
@@ -255,7 +368,20 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Run list",
     summary:
       "Runs by day under a band: state, time, number, trigger, the error in a line, duration.",
-    imports: ["RunList"],
+    imports: [
+      "RunList",
+      "RunListFilter",
+      "RunListEmpty",
+      "RunListDays",
+      "RunListGroup",
+      "RunListItem",
+      "RunListRow",
+      "RunListState",
+      "RunListTime",
+      "RunListId",
+      "RunListWhat",
+      "RunListDuration",
+    ],
     props: [
       {
         name: "runs",
@@ -276,40 +402,11 @@ export const entries: ReadonlyArray<Atom> = [
         default: `"full"`,
         description: "compact: a column next to a run.",
       },
-      className,
-    ],
-  },
-  {
-    slug: "run-detail",
-    name: "Run detail",
-    summary:
-      "One run: its steps as a waterfall, the error and log of a failure, input and output as JSON.",
-    imports: ["RunDetail"],
-    props: [
       {
-        name: "run",
-        type: "RunSummary",
-        description: "The header: state, number, start, trigger.",
-      },
-      {
-        name: "steps",
-        type: "{ id, name, icon, status, startMs?, durationMs?, items?, attempts?, input?, output?, error? }[]",
-        description: "error is { code?, message, log? }.",
-      },
-      {
-        name: "selectedStep / onSelectStep",
-        type: "string / (id) => void",
-        description: "Default: the failed step, else the last that ran.",
-      },
-      {
-        name: "onRetry",
-        type: "(stepId) => void",
-        description: "Retry from here, on a failed step.",
-      },
-      {
-        name: "actions",
-        type: "ReactNode",
-        description: "End of the header: replay, open in editor.",
+        name: "Parts",
+        type: "RunListFilter, RunListEmpty, RunListDays, RunListGroup, RunListItem, RunListRow, RunListState, RunListTime, RunListId, RunListWhat, RunListDuration",
+        description:
+          "With children, they replace the default layout. The runs stay in the root (its collection drives the keyboard).",
       },
       className,
     ],
@@ -319,7 +416,21 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Publish bar",
     summary:
       "Draft or published, the active switch, Publish; the dialog that lists changes and checks.",
-    imports: ["PublishBar", "PublishDialog", "ChangeList"],
+    imports: [
+      "PublishBar",
+      "PublishDialog",
+      "ChangeList",
+      "PublishBarState",
+      "PublishBarSwitch",
+      "PublishBarPublish",
+      "ChangeListItem",
+      "PublishDialogContent",
+      "PublishDialogMessage",
+      "PublishDialogChanges",
+      "PublishDialogChecks",
+      "PublishDialogNote",
+      "PublishDialogFooter",
+    ],
     props: [
       {
         name: "version",
@@ -334,6 +445,12 @@ export const entries: ReadonlyArray<Atom> = [
         type: "{ version, changes, checks?, active?, onPublish(message), onClose, note? }",
         description: "A blocking check keeps Publish off.",
       },
+      {
+        name: "Parts",
+        type: "PublishBarState, PublishBarSwitch, PublishBarPublish, ChangeListItem, PublishDialogContent, PublishDialogMessage, PublishDialogChanges, PublishDialogChecks, PublishDialogNote, PublishDialogFooter",
+        description:
+          "PublishBar and PublishDialog take their parts as children; ChangeList without `changes` takes ChangeListItem. PublishDialog is a Dialog (portal): render it while open.",
+      },
       className,
     ],
   },
@@ -341,7 +458,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "version-history",
     name: "Version history",
     summary: "Versions with their message and changes, the draft on top; restore one as a draft.",
-    imports: ["VersionHistory"],
+    imports: ["VersionHistory", "VersionHistoryList", "VersionHistoryRow", "VersionHistoryDetail"],
     props: [
       {
         name: "versions",
@@ -359,6 +476,12 @@ export const entries: ReadonlyArray<Atom> = [
         name: "onRestore / onPublish / onDiscard",
         type: "…",
         description: "The buttons of the entry.",
+      },
+      {
+        name: "Parts",
+        type: "VersionHistoryList, VersionHistoryRow, VersionHistoryDetail",
+        description:
+          "With children, they replace the default layout. The list is one collection: the arrows move the choice.",
       },
       className,
     ],

@@ -1,20 +1,33 @@
-import { Button, DetailList, Drawer } from "@forgeron/ui";
-import { useState } from "react";
+import {
+  Button,
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@forgeron/ui";
 
-export default function Default() {
-  const [open, setOpen] = useState(true);
-  if (!open) {
-    return (
-      <Button size="sm" onClick={() => setOpen(true)}>
-        Open row 1041
-      </Button>
-    );
-  }
+export default function Composed() {
   return (
-    <div style={{ width: 300, height: 200, display: "flex" }}>
-      <Drawer title="Row 1041" description="invoices" onClose={() => setOpen(false)}>
-        <DetailList items={[{ label: "status", value: "paid" }]} />
-      </Drawer>
-    </div>
+    <Drawer>
+      <DrawerTrigger asChild>
+        <Button variant="outline">Open drawer</Button>
+      </DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Move goal</DrawerTitle>
+          <DrawerDescription>Set your daily activity goal.</DrawerDescription>
+        </DrawerHeader>
+        <DrawerFooter>
+          <Button variant="default">Submit</Button>
+          <DrawerClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DrawerClose>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }

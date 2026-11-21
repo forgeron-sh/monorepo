@@ -15,8 +15,22 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Canvas toolbar",
     summary:
       "The tool dock of an editor: grouped tools, an active one, variants in a menu, undo and redo. Horizontal or vertical.",
-    imports: ["CanvasToolbar", "formatShortcut"],
+    imports: [
+      "CanvasToolbar",
+      "formatShortcut",
+      "CanvasToolbarTools",
+      "CanvasToolbarTool",
+      "CanvasToolbarSeparator",
+      "CanvasToolbarUndo",
+      "CanvasToolbarRedo",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: CanvasToolbarTools (every tool), CanvasToolbarTool (one, by `tool`), CanvasToolbarSeparator, CanvasToolbarUndo, CanvasToolbarRedo, in any order. Other children go at the end of the usual dock.",
+      },
       { name: "label", type: "string", description: "Names the dock: “Drawing tools”." },
       {
         name: "tools",
@@ -77,8 +91,17 @@ export const entries: ReadonlyArray<Atom> = [
       "editorParseZoom",
       "editorZoomAround",
       "EDITOR_ZOOM_STEPS",
+      "ZoomControlsOut",
+      "ZoomControlsValue",
+      "ZoomControlsIn",
     ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: ZoomControlsOut, ZoomControlsValue (the percent and its menu), ZoomControlsIn, in any order. Other children go after zoom in.",
+      },
       { name: "zoom", type: "number", description: "1 = 100%." },
       {
         name: "onZoomChange",
@@ -130,8 +153,18 @@ export const entries: ReadonlyArray<Atom> = [
       "editorPanViewport",
       "editorScaleViewport",
       "editorBoundsOf",
+      "MinimapCanvas",
+      "MinimapViewport",
+      "MinimapHandle",
+      "MinimapStatus",
     ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: MinimapCanvas (world and items), MinimapViewport (the rectangle) holding MinimapHandle, MinimapStatus. Without them: all four.",
+      },
       { name: "label", type: "string", description: "Names the map: “Canvas overview”." },
       {
         name: "items",
@@ -194,8 +227,25 @@ export const entries: ReadonlyArray<Atom> = [
       "editorOutdentLayer",
       "editorUpdateLayer",
       "editorFindLayer",
+      "LayersPanelTree",
+      "LayersPanelRow",
+      "LayersPanelGrip",
+      "LayersPanelFold",
+      "LayersPanelMark",
+      "LayersPanelName",
+      "LayersPanelKind",
+      "LayersPanelExtra",
+      "LayersPanelLock",
+      "LayersPanelVisibility",
+      "LayersPanelEmpty",
     ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: LayersPanelTree with a function of the row returning a LayersPanelRow holding LayersPanelGrip, Fold, Mark, Name, Kind, Extra, Lock, Visibility. Without them: the usual rows.",
+      },
       { name: "label", type: "string", description: "Names the tree: “Layers”." },
       {
         name: "layers / defaultLayers / onChange",
@@ -233,8 +283,22 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Comment pins",
     summary:
       "Numbered markers, open or resolved, placed over a canvas from world positions, each opening a thread.",
-    imports: ["CommentPin", "PinLayer", "editorProject", "editorUnproject"],
+    imports: [
+      "CommentPin",
+      "PinLayer",
+      "editorProject",
+      "editorUnproject",
+      "PinLayerItem",
+      "PinLayerTrigger",
+      "PinLayerThread",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: one PinLayerItem per pin (`pin`, `index`) holding PinLayerTrigger (the marker) and PinLayerThread (the panel; your children replace renderThread). Without them: one per pin.",
+      },
       {
         name: "CommentPin: number / state / unread / active / author",
         type: "number; “open” | “resolved”; boolean",
@@ -275,8 +339,22 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Cursor presence",
     summary:
       "The other people in an editor: their cursors and selections, always with their name, moving in steps.",
-    imports: ["CursorPresence", "editorPresenceTone", "EDITOR_PRESENCE_TONES"],
+    imports: [
+      "CursorPresence",
+      "editorPresenceTone",
+      "EDITOR_PRESENCE_TONES",
+      "CursorPresenceList",
+      "CursorPresenceCursor",
+      "CursorPresenceSelection",
+      "CursorPresencePointer",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: CursorPresenceList (screen readers), and a CursorPresenceCursor per person (`cursor`) holding CursorPresenceSelection and CursorPresencePointer. Without them: all of it.",
+      },
       {
         name: "label",
         type: "string",
@@ -306,8 +384,25 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "stroke-picker",
     name: "Stroke picker",
     summary: "Colour, width, dash, ends and opacity of a line, with a live preview.",
-    imports: ["StrokePicker", "editorDashArray", "editorOpacityText"],
+    imports: [
+      "StrokePicker",
+      "editorDashArray",
+      "editorOpacityText",
+      "StrokePickerPreview",
+      "StrokePickerColor",
+      "StrokePickerWidth",
+      "StrokePickerDash",
+      "StrokePickerCap",
+      "StrokePickerOpacity",
+      "StyleRow",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in any order: StrokePickerPreview, Color, Width, Dash, Cap, Opacity. StyleRow lays out a row of your own. Without them: the preview then `fields`.",
+      },
       { name: "label", type: "string", description: "Names the panel: “Stroke”." },
       {
         name: "value / defaultValue / onChange",
@@ -334,8 +429,23 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "fill-picker",
     name: "Fill picker",
     summary: "None, a solid colour or a dither pattern, with opacity.",
-    imports: ["FillPicker", "PatternSwatch", "EDITOR_FILL_PATTERNS", "editorPatternCells"],
+    imports: [
+      "FillPicker",
+      "PatternSwatch",
+      "EDITOR_FILL_PATTERNS",
+      "editorPatternCells",
+      "FillPickerType",
+      "FillPickerColor",
+      "FillPickerPatterns",
+      "FillPickerOpacity",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: FillPickerType, FillPickerColor, FillPickerPatterns, FillPickerOpacity; each shows only when the fill has it. Without them: all of it.",
+      },
       { name: "label", type: "string", description: "Names the panel: “Fill”." },
       {
         name: "value / defaultValue / onChange",
@@ -364,8 +474,20 @@ export const entries: ReadonlyArray<Atom> = [
       "editorGroupShortcuts",
       "useActions",
       "formatShortcut",
+      "ShortcutsSheetContent",
+      "ShortcutsSheetSearch",
+      "ShortcutsSheetSections",
+      "ShortcutsSheetSection",
+      "ShortcutsSheetRow",
+      "ShortcutsSheetFooter",
     ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, on the Dialog parts: ShortcutsSheetContent (`title`) holding ShortcutsSheetSearch, ShortcutsSheetSections, ShortcutsSheetFooter. Without them: all of it.",
+      },
       {
         name: "actions",
         type: "Action[]",
@@ -400,8 +522,29 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Tour",
     summary:
       "Step-by-step coachmarks anchored to targets: the target lit, next / back / skip, dots, focus managed, Escape skips.",
-    imports: ["Tour", "editorTourPlacement", "editorTourIndex"],
+    imports: [
+      "Tour",
+      "editorTourPlacement",
+      "editorTourIndex",
+      "TourHeader",
+      "TourCount",
+      "TourClose",
+      "TourTitle",
+      "TourBody",
+      "TourDots",
+      "TourFooter",
+      "TourSkip",
+      "TourNav",
+      "TourBack",
+      "TourNext",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The card, as parts: TourHeader (TourCount, TourClose), TourTitle, TourBody, TourDots, TourFooter (TourSkip, TourNav with TourBack and TourNext). Without them: the usual card.",
+      },
       { name: "label", type: "string", description: "Names the tour: “Tour of the editor”." },
       {
         name: "steps",
@@ -445,8 +588,25 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Onboarding checklist",
     summary:
       "Steps to get started with a done mark, a bar of progress, an action and “Mark done” on each; folds and dismisses.",
-    imports: ["OnboardingChecklist", "editorChecklistProgress", "editorNextStep"],
+    imports: [
+      "OnboardingChecklist",
+      "editorChecklistProgress",
+      "editorNextStep",
+      "OnboardingChecklistHeader",
+      "OnboardingChecklistToggle",
+      "OnboardingChecklistProgress",
+      "OnboardingChecklistBody",
+      "OnboardingChecklistComplete",
+      "OnboardingChecklistList",
+      "OnboardingChecklistStep",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: OnboardingChecklistHeader, Progress, and Body holding Complete and List (or your own OnboardingChecklistStep by `step`). Without them: all of it.",
+      },
       { name: "title", type: "string", description: "The heading: “Get started”." },
       {
         name: "steps",

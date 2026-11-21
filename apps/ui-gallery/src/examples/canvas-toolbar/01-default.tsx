@@ -8,7 +8,13 @@ import {
   TextIcon,
   TriangleIcon,
 } from "@forgeron/icons";
-import { CanvasToolbar } from "@forgeron/ui";
+import {
+  CanvasToolbar,
+  CanvasToolbarRedo,
+  CanvasToolbarSeparator,
+  CanvasToolbarTool,
+  CanvasToolbarUndo,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const tools = [
@@ -45,7 +51,14 @@ export default function Default() {
         canRedo={history.future > 0}
         onUndo={() => setHistory(({ past, future }) => ({ past: past - 1, future: future + 1 }))}
         onRedo={() => setHistory(({ past, future }) => ({ past: past + 1, future: future - 1 }))}
-      />
+      >
+        {tools.map((t) => (
+          <CanvasToolbarTool key={t.id} tool={t} />
+        ))}
+        <CanvasToolbarSeparator />
+        <CanvasToolbarUndo />
+        <CanvasToolbarRedo />
+      </CanvasToolbar>
       <span style={{ font: "400 12px var(--font-mono)", color: "var(--ink-muted)" }}>
         TOOL {tool.toUpperCase()} · UNDO {history.past} · REDO {history.future} · TRY V H R O P T
       </span>

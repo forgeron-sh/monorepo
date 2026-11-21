@@ -1,6 +1,12 @@
-import { Stepper } from "@forgeron/ui";
+import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "@forgeron/ui";
 
-// Markup only: the page wires the buttons (data-step) and reads the field.
-export default function Default() {
-  return <Stepper label="People on the team" value={10} data-stepper="people" />;
+// Without `value`, Stepper is the root of its parts: the plus on the left, for instance.
+export default function Composed() {
+  return (
+    <Stepper label="Rooms">
+      <StepperIncrement />
+      <StepperField defaultValue={2} />
+      <StepperDecrement />
+    </Stepper>
+  );
 }

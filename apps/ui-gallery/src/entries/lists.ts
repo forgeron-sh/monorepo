@@ -90,8 +90,18 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "issue-list",
     name: "Issue list",
-    summary: "Issues in foldable groups, one dense row each. Arrows move, Enter opens.",
-    imports: ["IssueList"],
+    summary:
+      "Issues in foldable groups, one dense row each. Arrows move, Enter opens. Composed from parts, with a props shorthand.",
+    imports: [
+      "IssueList",
+      "IssueListGroup",
+      "IssueListHeader",
+      "IssueListToggle",
+      "IssueListAdd",
+      "IssueListRows",
+      "IssueListRow",
+      "IssueRow",
+    ],
     props: [
       {
         name: "groups",
@@ -132,13 +142,30 @@ export const entries: ReadonlyArray<Atom> = [
       shared.rowMenu,
       shared.onRowAction,
       shared.className,
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in place of the groups drawn from groups: IssueListGroup (group: an IssueGroup) with IssueListHeader (IssueListToggle, IssueListAdd) and IssueListRows of IssueListRow (record). They are those of RecordList; each takes className, the element's attributes, a data-slot and, where it is one element, asChild.",
+      },
     ],
   },
   {
     slug: "issue-board",
     name: "Issue board",
-    summary: "Issues as cards in columns. Layout only: moving a card is the caller's.",
-    imports: ["IssueBoard"],
+    summary:
+      "Issues as cards in columns. Layout only: moving a card is the caller's. Composed from parts, with a props shorthand.",
+    imports: [
+      "IssueBoard",
+      "IssueBoardColumn",
+      "IssueBoardColumnHeader",
+      "IssueBoardColumnToggle",
+      "IssueBoardColumnActions",
+      "IssueBoardCards",
+      "IssueBoardCard",
+      "IssueBoardAdd",
+      "IssueCard",
+    ],
     props: [
       {
         name: "columns",
@@ -179,14 +206,31 @@ export const entries: ReadonlyArray<Atom> = [
       shared.rowMenu,
       shared.onRowAction,
       shared.className,
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in place of the columns drawn from columns: IssueBoardColumn (column: an IssueGroup) with IssueBoardColumnHeader (IssueBoardColumnToggle, IssueBoardColumnActions) and IssueBoardCards of IssueBoardCard (record) and IssueBoardAdd. They are those of RecordBoard.",
+      },
     ],
   },
   {
     slug: "projects-table",
     name: "Projects table",
     summary:
-      "Projects in rows: health, lead, target date and progress at a glance. Point at a bar for its detail.",
-    imports: ["ProjectsTable"],
+      "Projects in rows: health, lead, target date and progress at a glance. Point at a bar for its detail. A data table on the Table parts, composed from parts, with a props shorthand.",
+    imports: [
+      "ProjectsTable",
+      "ProjectsTableHeader",
+      "ProjectsTableHead",
+      "ProjectsTableBody",
+      "ProjectsTableRow",
+      "ProjectsTableName",
+      "ProjectsTableCell",
+      "ProjectsTableActions",
+      "ProjectsTableEmpty",
+      "useProjectsTable",
+    ],
     props: [
       {
         name: "projects",
@@ -247,6 +291,18 @@ export const entries: ReadonlyArray<Atom> = [
       },
       shared.onRowAction,
       shared.className,
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in place of the header and the rows: ProjectsTableHeader (ProjectsTableHead column), ProjectsTableBody of ProjectsTableRow (project) holding ProjectsTableName, ProjectsTableCell (project, column) and ProjectsTableActions. They read the order, the editing and the menus from the table, and take the attributes of td and tr.",
+      },
+      {
+        name: "…rest",
+        type: "TableHTMLAttributes",
+        description:
+          "The attributes of the <table>. The arrows move between rows when the table has onOpen or href.",
+      },
     ],
   },
 ];

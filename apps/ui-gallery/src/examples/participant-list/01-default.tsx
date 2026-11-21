@@ -1,6 +1,19 @@
-import { ParticipantList } from "@forgeron/ui";
+import {
+  ParticipantList,
+  ParticipantListBadge,
+  ParticipantListGrip,
+  ParticipantListItem,
+  ParticipantListLive,
+  ParticipantListOrder,
+  ParticipantListRemind,
+  ParticipantListRemove,
+  ParticipantListRows,
+  ParticipantListTone,
+  ParticipantListWhen,
+  ParticipantListWho,
+} from "@forgeron/ui";
 
-export default function Default() {
+export default function Composed() {
   return (
     <div style={{ width: "100%", maxWidth: 520 }}>
       <ParticipantList
@@ -32,7 +45,23 @@ export default function Default() {
           },
         ]}
         onRemind={() => {}}
-      />
+      >
+        <ParticipantListRows
+          renderItem={(person, index) => (
+            <ParticipantListItem person={person} index={index}>
+              <ParticipantListGrip />
+              <ParticipantListOrder />
+              <ParticipantListTone />
+              <ParticipantListWho />
+              <ParticipantListWhen />
+              <ParticipantListBadge />
+              <ParticipantListRemind />
+              <ParticipantListRemove />
+            </ParticipantListItem>
+          )}
+        />
+        <ParticipantListLive />
+      </ParticipantList>
     </div>
   );
 }

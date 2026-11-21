@@ -1,4 +1,4 @@
-import { FileBrowser, type DriveItem } from "@forgeron/ui";
+import { FileBrowser, FileBrowserHeader, FileBrowserRow, type DriveItem } from "@forgeron/ui";
 
 const items: DriveItem[] = [
   {
@@ -24,16 +24,9 @@ const items: DriveItem[] = [
     owner: "Camille Roy",
     starred: true,
   },
-  {
-    id: "c",
-    name: "Yard after the walk.jpg",
-    size: 1_840_000,
-    modified: "2026-10-02 08:15",
-    owner: "Tom Garnier",
-  },
 ];
 
-export default function Default() {
+export default function Composed() {
   return (
     <div style={{ width: "100%", maxWidth: 640 }}>
       <FileBrowser
@@ -41,7 +34,12 @@ export default function Default() {
         today="2026-11-18"
         defaultSelected={["a"]}
         columns={["owner", "modified"]}
-      />
+      >
+        <FileBrowserHeader />
+        {items.map((item) => (
+          <FileBrowserRow key={item.id} item={item} />
+        ))}
+      </FileBrowser>
     </div>
   );
 }

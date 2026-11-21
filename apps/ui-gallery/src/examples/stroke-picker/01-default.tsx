@@ -1,4 +1,13 @@
-import { StrokePicker, type EditorStroke } from "@forgeron/ui";
+import {
+  StrokePicker,
+  StrokePickerCap,
+  StrokePickerColor,
+  StrokePickerDash,
+  StrokePickerOpacity,
+  StrokePickerPreview,
+  StrokePickerWidth,
+  type EditorStroke,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 export default function Default() {
@@ -11,7 +20,14 @@ export default function Default() {
   });
   return (
     <div style={{ width: "100%", maxWidth: 320 }}>
-      <StrokePicker label="Stroke" value={stroke} onChange={setStroke} />
+      <StrokePicker label="Stroke" value={stroke} onChange={setStroke}>
+        <StrokePickerPreview />
+        <StrokePickerColor />
+        <StrokePickerWidth />
+        <StrokePickerDash />
+        <StrokePickerCap />
+        <StrokePickerOpacity />
+      </StrokePicker>
     </div>
   );
 }

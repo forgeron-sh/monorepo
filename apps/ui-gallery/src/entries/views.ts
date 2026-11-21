@@ -59,6 +59,12 @@ export const entries: ReadonlyArray<Atom> = [
     imports: ["Timeline"],
     props: [
       {
+        name: "Parts",
+        type: "Timeline",
+        description:
+          "With children, Timeline is the root of the parts. TimelineToolbar (TimelineToday, TimelineZoomControl) and TimelineScroller, which draws a TimelineCanvas: TimelineHeader (the axis), TimelineLayer, TimelineRows. Draw rows yourself with TimelineRows and a function of the row: TimelineGroupRow, or TimelineRow holding TimelineLabel and TimelineTrack (TimelineBar, TimelineDiamond). TimelineEmpty when there is no record. useTimeline() reads the zoom, the range and the rows.",
+      },
+      {
         name: "groups",
         type: "{ key, name, glyph?, records }[]",
         description: "The rows in sections: useListView's groups as they are.",
@@ -166,6 +172,12 @@ export const entries: ReadonlyArray<Atom> = [
       "Records on the days of a month or a week, Monday first. Drag or Alt+arrows to move one.",
     imports: ["CalendarView"],
     props: [
+      {
+        name: "Parts",
+        type: "CalendarView",
+        description:
+          "With children, CalendarView is the root of the parts. CalendarViewToolbar (CalendarViewToday, CalendarViewPrevious, CalendarViewNext, CalendarViewTitle, CalendarViewWeekNumber, CalendarViewModes) and CalendarViewBody, the DayGrid underneath: give it DayGrid parts (DayGridHeader, DayGridBody, DayGridDay, DayGridItems…) to draw days yourself. useCalendarView() reads the date, the mode and the days.",
+      },
       { name: "records", type: "T[]", description: "Records without a date are left out." },
       shared.getId,
       shared.getLabel,

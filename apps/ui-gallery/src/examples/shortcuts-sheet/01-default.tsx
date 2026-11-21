@@ -1,4 +1,12 @@
-import { Button, ShortcutsSheet, type Action } from "@forgeron/ui";
+import {
+  Button,
+  ShortcutsSheet,
+  ShortcutsSheetContent,
+  ShortcutsSheetFooter,
+  ShortcutsSheetSearch,
+  ShortcutsSheetSections,
+  type Action,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const actions: Action[] = [
@@ -36,7 +44,14 @@ export default function Default() {
           { id: "zoom-wheel", label: "Zoom", keys: ["⌘", "scroll"], group: "View" },
         ]}
         sectionOrder={["Tools", "Edit", "View"]}
-      />
+        footer="Press ? any time to open this sheet."
+      >
+        <ShortcutsSheetContent title="Keyboard shortcuts">
+          <ShortcutsSheetSearch />
+          <ShortcutsSheetSections />
+          <ShortcutsSheetFooter />
+        </ShortcutsSheetContent>
+      </ShortcutsSheet>
     </>
   );
 }

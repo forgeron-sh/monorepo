@@ -17,6 +17,12 @@ export const entries: ReadonlyArray<Atom> = [
     imports: ["TimeGrid"],
     props: [
       {
+        name: "Parts",
+        type: "TimeGrid",
+        description:
+          "With children, TimeGrid is the root of the parts (the props are the same). TimeGridToolbar (TimeGridToday, TimeGridPrevious, TimeGridNext, TimeGridTitle, TimeGridWeekNumber, TimeGridViews) and TimeGridBody, the EventGrid underneath: give it EventGrid parts (EventGridHeader, EventGridBody, EventGridColumns…) to draw the columns yourself. useTimeGrid() reads the date, the view and the days.",
+      },
+      {
         name: "records",
         type: "T[]",
         description: "Events, meetings, shifts, bookings: anything with a day and times.",
@@ -136,6 +142,12 @@ export const entries: ReadonlyArray<Atom> = [
       "Weekly hours with several ranges a day, copy to other days, dates that differ (off or custom hours) and the time zone.",
     imports: ["AvailabilityEditor", "defaultWeekly", "spansOn", "normalizeSpans"],
     props: [
+      {
+        name: "Parts",
+        type: "AvailabilityEditor",
+        description:
+          "With children, AvailabilityEditor is the root of the parts. AvailabilityEditorZone, AvailabilityEditorWeek (seven AvailabilityEditorDay, each a DayHead, DayBody with AvailabilityEditorRanges, and Copy), AvailabilityEditorExceptions (AvailabilityEditorExceptionList of AvailabilityEditorException, AvailabilityEditorExceptionAdd). useAvailabilityEditor() reads the value.",
+      },
       controlled(
         "value",
         "Availability",
@@ -182,6 +194,12 @@ export const entries: ReadonlyArray<Atom> = [
       "A day strip or a month, then the times: duration, time zone with its offset, taken and past slots struck, one chosen. For bookings.",
     imports: ["SlotPicker", "daySlots"],
     props: [
+      {
+        name: "Parts",
+        type: "SlotPicker",
+        description:
+          "With children, SlotPicker is the root of the parts. SlotPickerHeader (SlotPickerDuration, SlotPickerZone), SlotPickerBody holding SlotPickerDays (SlotPickerStrip of SlotPickerDay, or SlotPickerCalendar) and SlotPickerTimes (SlotPickerTitle, SlotPickerList on the SlotList primitive, SlotPickerSummary, SlotPickerConfirm). useSlotPicker() reads the day, the zone and the choice.",
+      },
       controlled(
         "value",
         "SlotChoice | null",
@@ -266,6 +284,12 @@ export const entries: ReadonlyArray<Atom> = [
       "parseRrule",
     ],
     props: [
+      {
+        name: "Parts",
+        type: "RecurrenceEditor",
+        description:
+          "With children, RecurrenceEditor is the root of the parts, in any order: RecurrenceEditorToggle, RecurrenceEditorEvery, RecurrenceEditorDays, RecurrenceEditorEnd, RecurrenceEditorSummary, RecurrenceEditorNext, RecurrenceEditorStatus. Every part but the switch is empty while the event does not repeat. useRecurrenceEditor() reads the rule.",
+      },
       controlled(
         "value",
         "Recurrence | null",
@@ -306,6 +330,12 @@ export const entries: ReadonlyArray<Atom> = [
       "Rows per person or resource over days: blocks as bars, clashes marked. A thin preset on the Timeline, not a second engine.",
     imports: ["ResourceSchedule", "scheduleConflicts", "findConflicts"],
     props: [
+      {
+        name: "Parts",
+        type: "ResourceSchedule",
+        description:
+          "With children, ResourceSchedule is the root of the parts: ResourceScheduleToolbar and ResourceScheduleBody (the Timeline parts underneath), ResourceScheduleConflicts (the blocks that clash, as a list). useResourceSchedule() reads the clashes.",
+      },
       {
         name: "resources",
         type: "{ id, name, glyph? }[]",

@@ -1,4 +1,12 @@
-import { OnboardingChecklist, type OnboardingStep } from "@forgeron/ui";
+import {
+  OnboardingChecklist,
+  OnboardingChecklistBody,
+  OnboardingChecklistComplete,
+  OnboardingChecklistHeader,
+  OnboardingChecklistList,
+  OnboardingChecklistProgress,
+  type OnboardingStep,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const initial: OnboardingStep[] = [
@@ -27,7 +35,14 @@ export default function Default() {
         onMarkDone={(id) => set(id, true)}
         onMarkUndone={(id) => set(id, false)}
         onDismiss={() => setSteps(initial)}
-      />
+      >
+        <OnboardingChecklistHeader />
+        <OnboardingChecklistProgress />
+        <OnboardingChecklistBody>
+          <OnboardingChecklistComplete />
+          <OnboardingChecklistList />
+        </OnboardingChecklistBody>
+      </OnboardingChecklist>
     </div>
   );
 }

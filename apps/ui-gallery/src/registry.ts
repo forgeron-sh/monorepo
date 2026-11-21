@@ -19,12 +19,10 @@ import { entries as structureBlocks } from "./entries/structure";
 import { entries as movedMenus } from "./entries/primitives-menus";
 import { entries as movedFields } from "./entries/primitives-fields";
 import { entries as primitivesStatus } from "./entries/primitives-status";
-import { entries as movedPickers } from "./entries/primitives-pickers";
 import { entries as primitivesTimeline } from "./entries/primitives-timeline";
 import { entries as primitivesTree } from "./entries/primitives-tree";
 import { entries as primitivesDiff } from "./entries/primitives-diff";
 import { entries as primitivesAccess } from "./entries/primitives-access";
-import { entries as primitivesCollection } from "./entries/primitives-collection";
 import { entries as primitivesSortable } from "./entries/primitives-sortable";
 import { entries as chartEntries } from "./entries/charts";
 import { entries as shadcnForms } from "./entries/shadcn-forms";
@@ -34,36 +32,10 @@ import { entries as shadcnOverlays } from "./entries/shadcn-overlays";
 import { entries as shadcnData } from "./entries/shadcn-data";
 import { entries as timeBlocks } from "./entries/time";
 import { entries as viewBlocks } from "./entries/views";
-import {
-  BeachIcon,
-  Calendar01Icon,
-  ChartLineData01Icon,
-  CustomerSupportIcon,
-  DashboardSquare01Icon,
-  FileEditIcon,
-  Folder01Icon,
-  Invoice01Icon,
-  Mail01Icon,
-  Message01Icon,
-  Note01Icon,
-  ReceiptEuroIcon,
-  SignatureIcon,
-  Task01Icon,
-  UserGroupIcon,
-  UserListIcon,
-} from "@forgeron/icons";
-import type { IconDefinition } from "@forgeron/icons";
 import type { Atom, PropRow } from "./types";
 
-// What the gallery shows. Atoms are ready: each one has a page, its examples in
-// `src/examples/<slug>/` (the first one is the demo of the index) and its props. Blocks and pages
-// are planned: they are listed, marked Soon, and get their pages once built.
-
-export interface Planned {
-  name: string;
-  icon: IconDefinition;
-  summary: string;
-}
+// What the gallery shows: identity, atoms, charts and blocks. Each one has a page, its examples in
+// `src/examples/<slug>/` (the first one is the demo of the index) and its props.
 
 const className: PropRow = { name: "className", type: "string", description: "Extra classes." };
 
@@ -195,7 +167,8 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "kbd",
     name: "Kbd",
-    summary: "A keyboard shortcut, one framed cap per key.",
+    summary:
+      "A keyboard shortcut, one framed cap per key. Composed from parts, with a props shorthand.",
     imports: ["Kbd", "KbdGroup"],
     props: [
       {
@@ -215,7 +188,8 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "avatar",
     name: "Avatar",
-    summary: "A person's picture, else their initials, in a sharp square.",
+    summary:
+      "A person's picture, else their initials, in a sharp square. Composed from parts, with a props shorthand.",
     imports: ["Avatar", "AvatarImage", "AvatarFallback"],
     props: [
       {
@@ -233,8 +207,13 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "avatar-group",
     name: "Avatar group",
     summary: "The people on a record, overlapping, the rest counted.",
-    imports: ["AvatarGroup"],
+    imports: ["AvatarGroup", "AvatarGroupCount"],
     props: [
+      {
+        name: "AvatarGroup parts",
+        type: "AvatarGroup (no names; Avatars as children), AvatarGroupCount size",
+        description: "AvatarGroup with names is built from them; AvatarGroupCount is the +3.",
+      },
       { name: "names", type: "string[]", description: "Names or emails, in order." },
       { name: "max", type: "number", default: "4", description: "Avatars before the +n square." },
       { name: "size", type: "number", default: "24", description: "In px." },
@@ -328,9 +307,9 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "select",
     name: "Select",
-    summary: "One choice in a list that opens below: icons, hints, typeahead.",
+    summary:
+      "One choice in a list that opens below: icons, hints, typeahead. Composed from parts, with a props shorthand (`SelectMenu`) and the option presets of the pickers.",
     imports: [
-      "SelectMenu",
       "Select",
       "SelectTrigger",
       "SelectValue",
@@ -339,6 +318,12 @@ export const atoms: ReadonlyArray<Atom> = [
       "SelectGroup",
       "SelectLabel",
       "SelectSeparator",
+      "SelectMenu",
+      "statusOptions",
+      "priorityOptions",
+      "sizeOptions",
+      "quarterOptions",
+      "personOptions",
     ],
     props: [
       {
@@ -375,6 +360,42 @@ export const atoms: ReadonlyArray<Atom> = [
         description: "While nothing is chosen.",
       },
       className,
+      {
+        name: "statusOptions",
+        type: "SelectMenuOption[]",
+        description: "The six states: value is the state, glyph its mark.",
+      },
+      {
+        name: "priorityOptions",
+        type: "SelectMenuOption[]",
+        description: "No priority to Low; value is the level as a string.",
+      },
+      {
+        name: "sizeOptions(points?)",
+        type: "(points?: number[]) => SelectMenuOption[]",
+        description: "No estimate, XS to XL; `points` adds “n pt” hints.",
+      },
+      {
+        name: "quarterOptions(years)",
+        type: "(years: number[]) => SelectMenuOption[]",
+        description: "Q1 to Q4 of each year, values like 2026-Q4, months as hint.",
+      },
+      {
+        name: "personOptions(people, me?)",
+        type: "(people: Person[], me?: string) => SelectMenuOption[]",
+        description: "Avatar glyph, hint, `me` first and marked “(you)”; value is the id.",
+      },
+      {
+        name: "SelectItem glyph / hint / checkbox",
+        type: "ReactNode / ReactNode / boolean",
+        description: "A mark before the text, mono text at the end, a ticking box for multiple.",
+      },
+      {
+        name: "SelectTrigger variant",
+        type: `"field" | "chip"`,
+        default: `"field"`,
+        description: "chip: a property of a record, 26px, no caret.",
+      },
     ],
   },
 
@@ -422,7 +443,8 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "radio",
     name: "Radio group",
-    summary: "One choice among a few, all visible. The chosen box holds a square.",
+    summary:
+      "One choice among a few, all visible. The chosen box holds a square. Composed from parts, with a props shorthand.",
     imports: ["RadioGroup", "RadioGroupItem"],
     props: [
       {
@@ -451,8 +473,16 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "calendar",
     name: "Calendar",
-    summary: "A month of days, Monday first, driven from the keyboard.",
-    imports: ["Calendar"],
+    summary:
+      "A month of days, Monday first, driven from the keyboard. Composed from parts, with a props shorthand.",
+    imports: [
+      "Calendar",
+      "CalendarGrid",
+      "CalendarHeader",
+      "CalendarNext",
+      "CalendarPrevious",
+      "CalendarTitle",
+    ],
     props: [
       { name: "value", type: "string", description: "The chosen day, YYYY-MM-DD." },
       { name: "onChange", type: "(value: string) => void", description: "On a choice." },
@@ -465,8 +495,15 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "date-picker",
     name: "Date picker",
-    summary: "A date behind a chip: quick picks first, then the month.",
-    imports: ["DatePicker"],
+    summary:
+      "A date behind a chip: quick picks first, then the month. Composed from parts, with a props shorthand.",
+    imports: [
+      "DatePicker",
+      "DatePickerCalendar",
+      "DatePickerContent",
+      "DatePickerPresets",
+      "DatePickerTrigger",
+    ],
     props: [
       { name: "label", type: "string", description: "e.g. Due date." },
       { name: "value / defaultValue", type: "string | null", description: "YYYY-MM-DD, or none." },
@@ -520,8 +557,9 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "segmented",
     name: "Segmented",
-    summary: "A switch between a few views or modes of the same thing.",
-    imports: ["Segmented"],
+    summary:
+      "A switch between a few views or modes of the same thing. Composed from parts, with a props shorthand.",
+    imports: ["Segmented", "SegmentedItem"],
     props: [
       { name: "label", type: "string", description: "Names the group, e.g. View." },
       {
@@ -634,7 +672,8 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "breadcrumb",
     name: "Breadcrumb",
-    summary: "Where the page sits: its parents as links, the page last.",
+    summary:
+      "Where the page sits: its parents as links, the page last. Composed from parts, with a props shorthand.",
     imports: [
       "Breadcrumb",
       "BreadcrumbList",
@@ -662,8 +701,9 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "notice",
     name: "Notice",
-    summary: "A message in the flow of the page; the state always comes with a word.",
-    imports: ["Notice"],
+    summary:
+      "A message in the flow of the page; the state always comes with a word. Composed from parts, with a props shorthand.",
+    imports: ["Notice", "NoticeAction", "NoticeDescription", "NoticeTitle"],
     props: [
       {
         name: "tone",
@@ -680,8 +720,15 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "empty-state",
     name: "Empty state",
-    summary: "What a list shows with nothing in it, and what to do about it.",
-    imports: ["EmptyState"],
+    summary:
+      "What a list shows with nothing in it, and what to do about it. Composed from parts, with a props shorthand.",
+    imports: [
+      "EmptyState",
+      "EmptyStateActions",
+      "EmptyStateDescription",
+      "EmptyStateIcon",
+      "EmptyStateTitle",
+    ],
     props: [
       { name: "title", type: "ReactNode", description: "One line." },
       { name: "description", type: "ReactNode", description: "The way out, links allowed." },
@@ -699,8 +746,18 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "toast",
     name: "Toast",
-    summary: "A short confirmation at the bottom right, with an undo.",
-    imports: ["Toaster", "useToast"],
+    summary:
+      "A short confirmation at the bottom right, with an undo. Composed from parts, with a props shorthand.",
+    imports: [
+      "Toast",
+      "Toaster",
+      "ToastAction",
+      "ToastClose",
+      "ToastContent",
+      "ToastDescription",
+      "ToastTitle",
+      "useToast",
+    ],
     props: [
       {
         name: "limit (Toaster)",
@@ -720,7 +777,8 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "tooltip",
     name: "Tooltip",
-    summary: "A few words on hover or focus of a control. Not shown on touch.",
+    summary:
+      "A few words on hover or focus of a control. Not shown on touch. Composed from parts, with a props shorthand.",
     imports: ["Tooltip", "TooltipProvider", "TooltipTrigger", "TooltipContent"],
     props: [
       {
@@ -744,7 +802,8 @@ export const atoms: ReadonlyArray<Atom> = [
   {
     slug: "tabs",
     name: "Tabs",
-    summary: "Views of one page; arrows, Home and End move between them.",
+    summary:
+      "Views of one page; arrows, Home and End move between them. Composed from parts, with a props shorthand.",
     imports: ["Tabs", "TabsList", "TabsTrigger", "TabsContent"],
     props: [
       {
@@ -851,111 +910,12 @@ export const atoms: ReadonlyArray<Atom> = [
       className,
     ],
   },
-  // Marketing atoms: the pieces of the landing pages (forgeron.sh).
-  {
-    slug: "section-head",
-    name: "Section head",
-    summary:
-      "The head of a marketing section: its coordinate in ember, the pixel title, a lead. Sits on the page's rail (fg-rail).",
-    imports: ["SectionHead"],
-    props: [
-      { name: "index", type: "string", description: "The coordinate, /0.1, in the pixel face." },
-      { name: "title", type: "string | string[]", description: "The title, one string per line." },
-      {
-        name: "titleAs",
-        type: '"h1" | "h2"',
-        default: '"h2"',
-        description: "h1 when it opens the page.",
-      },
-      { name: "lead", type: "ReactNode", description: "One or two sentences under the title." },
-      { name: "meta", type: "ReactNode", description: "A mono note right of the coordinate." },
-      className,
-    ],
-  },
-  {
-    slug: "section-band",
-    name: "Section band",
-    summary:
-      "The hatched band between two sections, /0.1 → /0.2 and the next one's name. It takes the rule of the block above.",
-    imports: ["SectionBand"],
-    props: [
-      { name: "from", type: "string", description: "The coordinate of the section above." },
-      { name: "to", type: "string", description: "The coordinate of the section below." },
-      { name: "label", type: "string", description: "What comes next, shown in brackets." },
-      {
-        name: "className",
-        type: "string",
-        description:
-          "fg-rail to sit on the page's rail. Cards take fg-ticks (corner brackets), drawings fg-dots.",
-      },
-    ],
-  },
-  {
-    slug: "pixel-figure",
-    name: "Pixel figure",
-    summary: "A figure, a step or a short name drawn in the pixel face at a fixed height.",
-    imports: ["PixelFigure"],
-    props: [
-      { name: "text", type: "string", description: "What is drawn: 348, $14.99, 01." },
-      {
-        name: "label",
-        type: "string",
-        default: "text",
-        description: "Said to assistive technology.",
-      },
-      {
-        name: "size",
-        type: '"sm" | "md" | "lg" | "xl"',
-        default: '"lg"',
-        description: "20px (a name), 32px (a price), 56px (a figure), 70px (a step).",
-      },
-      {
-        name: "tone",
-        type: '"accent" | "ink" | "inherit"',
-        default: '"accent"',
-        description: "Its colour.",
-      },
-      className,
-    ],
-  },
-  {
-    slug: "soon-tag",
-    name: "Soon tag",
-    summary: "A small dashed tag in the bitmap face next to what is announced but not there yet.",
-    imports: ["SoonTag"],
-    props: [
-      { name: "children", type: "ReactNode", default: '"Soon"', description: "The word." },
-      className,
-    ],
-  },
-  {
-    slug: "mark-badge",
-    name: "Mark badge",
-    summary: "An outlined mono pill led by a small square mark, above a hero title.",
-    imports: ["MarkBadge"],
-    props: [
-      { name: "mark", type: "ReactNode", description: "The mark, 18 × 22: an SVG fills it." },
-      { name: "children", type: "ReactNode", description: "The words, in mono capitals." },
-      className,
-    ],
-  },
-  {
-    slug: "logo-tile",
-    name: "Logo tile",
-    summary: "A product's pixel mark, or its initial, in a 28px square. Decorative.",
-    imports: ["LogoTile"],
-    props: [
-      { name: "icon", type: "IconDefinition", description: "Its pixel brand mark, drawn at 16px." },
-      { name: "name", type: "string", description: "Without an icon, its first letter is drawn." },
-      className,
-    ],
-  },
   {
     slug: "stepper",
     name: "Stepper",
     summary:
-      "A whole number between a minus and a plus button. Markup only: the page wires data-step and reads the field.",
-    imports: ["Stepper"],
+      "A whole number between a minus and a plus button. Composed from StepperDecrement, StepperField and StepperIncrement, with a props shorthand.",
+    imports: ["Stepper", "StepperDecrement", "StepperField", "StepperIncrement"],
     props: [
       {
         name: "label",
@@ -982,13 +942,11 @@ export const atoms: ReadonlyArray<Atom> = [
   ...movedMenus,
   ...movedFields,
   ...primitivesStatus,
-  ...movedPickers,
   ...primitivesTimeline,
   ...primitivesTree,
   ...primitivesDiff,
   ...iconPickerEntries,
   ...primitivesAccess,
-  ...primitivesCollection,
   ...primitivesSortable,
 ];
 
@@ -1157,23 +1115,3 @@ export const groupOf = (slug: string): "Atoms" | "Blocks" | "Hooks" | "Charts" =
       : charts.some((c) => c.slug === slug)
         ? "Charts"
         : "Atoms";
-
-/** Whole screens, after the HTML prototypes of the apps. */
-export const pages: ReadonlyArray<Planned> = [
-  { name: "Console home", icon: DashboardSquare01Icon, summary: "The workspace at a glance." },
-  { name: "CRM", icon: UserGroupIcon, summary: "Leads, pipeline, contacts." },
-  { name: "Tasks", icon: Task01Icon, summary: "Lists, board, due dates." },
-  { name: "Notes", icon: Note01Icon, summary: "Documents and their tree." },
-  { name: "Mail", icon: Mail01Icon, summary: "Inbox, thread, compose." },
-  { name: "Chat", icon: Message01Icon, summary: "Channels and threads." },
-  { name: "Agenda", icon: Calendar01Icon, summary: "Week, day, booking." },
-  { name: "Drive", icon: Folder01Icon, summary: "Folders, files, sharing." },
-  { name: "Dashboard", icon: ChartLineData01Icon, summary: "Figures and charts." },
-  { name: "Helpdesk", icon: CustomerSupportIcon, summary: "Tickets and replies." },
-  { name: "Invoices", icon: Invoice01Icon, summary: "Quotes, invoices, payments." },
-  { name: "Expenses", icon: ReceiptEuroIcon, summary: "Receipts and approvals." },
-  { name: "Forms", icon: FileEditIcon, summary: "Build, share, answers." },
-  { name: "Sign", icon: SignatureIcon, summary: "Documents to sign." },
-  { name: "People", icon: UserListIcon, summary: "Directory and profiles." },
-  { name: "Time off", icon: BeachIcon, summary: "Requests and balances." },
-];

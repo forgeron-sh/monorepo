@@ -5,8 +5,19 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "property-panel",
     name: "Property panel",
-    summary: "The properties of a record: a column of labelled pickers, or a row of chips.",
-    imports: ["PropertyPanel", "PropertyText", "PropertyChips"],
+    summary:
+      "The properties of a record: a column of labelled pickers, or a row of chips. Composed from parts, with a props shorthand.",
+    imports: [
+      "PropertyPanel",
+      "PropertyPanelGroup",
+      "PropertyPanelHeading",
+      "PropertyPanelList",
+      "PropertyPanelRow",
+      "PropertyPanelLabel",
+      "PropertyPanelValue",
+      "PropertyText",
+      "PropertyChips",
+    ],
     props: [
       {
         name: "rows",
@@ -19,6 +30,12 @@ export const entries: ReadonlyArray<Atom> = [
         type: "string",
         default: '"Properties"',
         description: "Names the panel, or the chips, for assistive technology.",
+      },
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "Without rows, the parts: PropertyPanelGroup, PropertyPanelHeading, PropertyPanelList, PropertyPanelRow (wide), PropertyPanelLabel (srOnly) and PropertyPanelValue. Each takes className, the element's attributes, a data-slot and asChild.",
       },
       {
         name: "glyph / dim",
@@ -36,8 +53,23 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "activity",
     name: "Activity",
-    summary: "The timeline of a record: its changes, its comments, a box to write one.",
-    imports: ["Activity", "CommentComposer"],
+    summary:
+      "The timeline of a record: its changes, its comments, a box to write one. On the Feed parts; composed from parts, with a props shorthand.",
+    imports: [
+      "Activity",
+      "ActivityHeader",
+      "ActivityTitle",
+      "ActivityList",
+      "ActivityEventItem",
+      "ActivityCommentItem",
+      "ActivityCommentHeader",
+      "ActivityCommentQuote",
+      "ActivityCommentBody",
+      "CommentComposer",
+      "CommentComposerInput",
+      "CommentComposerFooter",
+      "CommentComposerSubmit",
+    ],
     props: [
       {
         name: "items",
@@ -72,14 +104,37 @@ export const entries: ReadonlyArray<Atom> = [
         default: '"Comment" / "Leave a comment…"',
         description: "The composer's button and empty text.",
       },
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "Without items, the parts: ActivityHeader (ActivityTitle), ActivityList of ActivityEventItem and ActivityCommentItem (item; its children are ActivityCommentHeader, ActivityCommentQuote, ActivityCommentBody), and a CommentComposer whose children are CommentComposerInput, CommentComposerFooter and CommentComposerSubmit.",
+      },
       { name: "className", type: "string", description: "Extra classes." },
     ],
   },
   {
     slug: "create-dialog",
     name: "Create dialog",
-    summary: "Make a record from anywhere: title, description, properties, ⌘↵.",
-    imports: ["CreateDialog", "Modal"],
+    summary:
+      "Make a record from anywhere: title, description, properties, ⌘↵. A Modal on the Dialog parts; composed from parts, with a props shorthand.",
+    imports: [
+      "CreateDialog",
+      "CreateDialogTrigger",
+      "CreateDialogContent",
+      "CreateDialogHeader",
+      "CreateDialogContext",
+      "CreateDialogHeading",
+      "CreateDialogClose",
+      "CreateDialogForm",
+      "CreateDialogTitle",
+      "CreateDialogDescription",
+      "CreateDialogProperties",
+      "CreateDialogFooter",
+      "CreateDialogMore",
+      "CreateDialogSubmit",
+      "Modal",
+    ],
     props: [
       {
         name: "open / onOpenChange",
@@ -123,6 +178,12 @@ export const entries: ReadonlyArray<Atom> = [
         type: "string",
         default: '"Create issue"',
         description: "The primary button.",
+      },
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in place of the modal drawn from the props: CreateDialogTrigger, CreateDialogContent with CreateDialogHeader (CreateDialogHeading, CreateDialogClose) and CreateDialogForm (CreateDialogTitle, CreateDialogDescription, CreateDialogProperties, CreateDialogFooter with CreateDialogMore and CreateDialogSubmit). The form keeps the draft and drops it when the dialog closes.",
       },
       {
         name: "footerStart",

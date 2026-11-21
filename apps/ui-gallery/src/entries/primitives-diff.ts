@@ -8,17 +8,17 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "diff-view",
     name: "Diff view",
     summary:
-      "What changed between two texts or two records: unified or side by side, words marked.",
+      "What changed between two texts or two records: unified or side by side, words marked. Composed from parts, with a props shorthand.",
     imports: [
       "DiffView",
-      "FieldDiff",
       "DiffBar",
       "DiffTable",
       "DiffHunk",
       "DiffLine",
-      "DiffSplitLine",
       "DiffFold",
       "DiffSame",
+      "FieldDiff",
+      "DiffSplitLine",
       "FieldDiffTable",
       "FieldDiffRow",
       "structureDiffRows",
@@ -75,7 +75,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "version-compare",
     name: "Version compare",
-    summary: "The versions of a document or record in a list: pick two and see what changed.",
+    summary:
+      "The versions of a document or record in a list: pick two and see what changed. Composed from parts, with a props shorthand.",
     imports: ["VersionCompare", "VersionCompareList", "VersionCompareItem", "VersionCompareView"],
     props: [
       {

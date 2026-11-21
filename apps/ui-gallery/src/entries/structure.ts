@@ -9,8 +9,25 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "outline",
     name: "Outline",
     summary: "The table of contents of a document, nested by level, that follows your reading.",
-    imports: ["Outline", "structureHeadingsFrom", "structureActiveHeading"],
+    imports: [
+      "Outline",
+      "structureHeadingsFrom",
+      "structureActiveHeading",
+      "OutlineTitle",
+      "OutlineContent",
+      "OutlineList",
+      "OutlineItems",
+      "OutlineItem",
+      "OutlineLink",
+      "useOutline",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in the order you choose: OutlineTitle, OutlineContent around OutlineList (OutlineItems, OutlineItem, OutlineLink for your own rows). Without them: the title and the list.",
+      },
       {
         name: "headings",
         type: "{ id, text, level }[]",
@@ -75,8 +92,24 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Org chart",
     summary:
       "People or units as a hierarchy: cards joined by pixel connectors, folds, selection, keyboard.",
-    imports: ["OrgChart", "OrgCardBody", "structureOrgLayout"],
+    imports: [
+      "OrgChart",
+      "OrgCardBody",
+      "structureOrgLayout",
+      "OrgChartCanvas",
+      "OrgChartLinks",
+      "OrgChartCards",
+      "OrgChartCard",
+      "OrgChartFold",
+      "useOrgChart",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: OrgChartCanvas holding OrgChartLinks and OrgChartCards (or your own OrgChartCard by id). Without them: the canvas.",
+      },
       {
         name: "roots",
         type: "OrgPerson[]",
@@ -120,8 +153,26 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "template-gallery",
     name: "Template gallery",
     summary: "Templates to start from: search, categories, a blank entry, and a preview pane.",
-    imports: ["TemplateGallery", "structureFilterTemplates"],
+    imports: [
+      "TemplateGallery",
+      "structureFilterTemplates",
+      "TemplateGalleryMain",
+      "TemplateGalleryBar",
+      "TemplateGallerySearch",
+      "TemplateGalleryCategories",
+      "TemplateGalleryGrid",
+      "TemplateGalleryCard",
+      "TemplateGalleryEmpty",
+      "TemplateGalleryPane",
+      "useTemplateGallery",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: Main (Bar with Search and Categories, Grid, Empty) and Pane. Without them: all of it.",
+      },
       {
         name: "templates",
         type: "TemplateItem[]",
@@ -165,8 +216,25 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Cover picker",
     summary:
       "A page's banner: generated pixel patterns, an uploaded or linked picture, its position, removal.",
-    imports: ["CoverPicker", "CoverArt", "STRUCTURE_COVER_PATTERNS"],
+    imports: [
+      "CoverPicker",
+      "CoverArt",
+      "STRUCTURE_COVER_PATTERNS",
+      "CoverPickerStage",
+      "CoverPickerSource",
+      "CoverPickerGallery",
+      "CoverPickerUpload",
+      "CoverPickerLink",
+      "CoverPickerError",
+      "useCoverPicker",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: Stage, Source, Gallery, Upload, Link, Error. Each tab part shows only on its tab. Without them: all of them.",
+      },
       {
         name: "value / defaultValue / onChange",
         type: "CoverValue | null",

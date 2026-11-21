@@ -1,4 +1,19 @@
-import { Button, Tour, type TourStep } from "@forgeron/ui";
+import {
+  Button,
+  Tour,
+  TourBack,
+  TourBody,
+  TourClose,
+  TourCount,
+  TourDots,
+  TourFooter,
+  TourHeader,
+  TourNav,
+  TourNext,
+  TourSkip,
+  TourTitle,
+  type TourStep,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const steps: TourStep[] = [
@@ -86,7 +101,22 @@ export default function Default() {
         onOpenChange={setOpen}
         step={step}
         onStepChange={setStep}
-      />
+      >
+        <TourHeader>
+          <TourCount />
+          <TourClose />
+        </TourHeader>
+        <TourTitle />
+        <TourBody />
+        <TourDots />
+        <TourFooter>
+          <TourSkip />
+          <TourNav>
+            <TourBack />
+            <TourNext />
+          </TourNav>
+        </TourFooter>
+      </Tour>
     </div>
   );
 }

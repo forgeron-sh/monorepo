@@ -1,14 +1,14 @@
-import { AddressField, type FormAddress } from "@forgeron/ui";
-import { useState } from "react";
+import { AddressField, AddressFieldPart } from "@forgeron/ui";
 
-export default function Default() {
-  const [address, setAddress] = useState<FormAddress>({});
+// Only the parts you need, in the order you want.
+export default function Composed() {
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <AddressField label="Delivery address" value={address} onChange={setAddress} />
-      <pre style={{ margin: 0, font: "12px/18px var(--font-mono)", color: "var(--ink-muted)" }}>
-        {JSON.stringify(address)}
-      </pre>
+    <div style={{ width: "100%", maxWidth: 420 }}>
+      <AddressField aria-label="Delivery address" required>
+        <AddressFieldPart name="line1" label="Street" />
+        <AddressFieldPart name="postcode" />
+        <AddressFieldPart name="city" />
+      </AddressField>
     </div>
   );
 }

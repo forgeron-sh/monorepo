@@ -60,8 +60,32 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Filter bar",
     summary:
       "The filters of a list as chips: field, is or is not, values, ×. A Filter button adds one.",
-    imports: ["FilterBar", "FilterMenu", "matchesFilters", "type Filter", "type FilterField"],
+    imports: [
+      "FilterBar",
+      "FilterMenu",
+      "matchesFilters",
+      "type Filter",
+      "type FilterField",
+      "FilterBarChips",
+      "FilterBarAdd",
+      "FilterBarGap",
+      "FilterBarClear",
+      "FilterChip",
+      "FilterChipField",
+      "FilterChipOperator",
+      "FilterChipValues",
+      "FilterChipRemove",
+      "FilterMenuTrigger",
+      "FilterMenuContent",
+      "FieldList",
+      "ValueList",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "FilterBar > FilterBarChips, FilterBarAdd, FilterBarGap, FilterBarClear; FilterChip > FilterChipField, FilterChipOperator, FilterChipValues, FilterChipRemove; FilterMenu > FilterMenuTrigger, FilterMenuContent; FieldList / ValueList > …Input, …Empty, …Items",
+        description: "Without children each root draws the usual form.",
+      },
       {
         name: "fields",
         type: "FilterField[]",
@@ -103,7 +127,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "display-menu",
     name: "Display menu",
     summary:
-      "How a view shows: its layouts, grouping, ordering, switches, properties. Built from props, or composed from parts.",
+      "How a view shows: its layouts, grouping, ordering, switches, properties. Composed from parts, with a props shorthand.",
     imports: [
       "DisplayMenu",
       "DisplayLayouts",
@@ -185,8 +209,24 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "view-header",
     name: "View header",
     summary: "The bar above a list: title, view tabs, then filter, display and the main action.",
-    imports: ["ViewHeader", "LayoutSwitch"],
+    imports: [
+      "ViewHeader",
+      "LayoutSwitch",
+      "ViewHeaderBar",
+      "ViewHeaderTitle",
+      "ViewHeaderName",
+      "ViewHeaderTabs",
+      "ViewHeaderTab",
+      "ViewHeaderCount",
+      "ViewHeaderActions",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "ViewHeader > ViewHeaderBar > ViewHeaderTitle (ViewHeaderName), ViewHeaderTabs > ViewHeaderTab (ViewHeaderCount), ViewHeaderActions",
+        description:
+          "With children and no `title`, `breadcrumb` or `tabs` the root is the frame of the parts.",
+      },
       {
         name: "breadcrumb",
         type: "BreadcrumbItem[]",

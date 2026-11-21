@@ -1,25 +1,13 @@
-import { VersionHistory } from "@forgeron/ui";
+import { VersionHistory, VersionHistoryDetail, VersionHistoryList } from "@forgeron/ui";
 
+// The list is one collection: the arrows move the choice, the detail follows.
 export default function Default() {
   return (
     <div style={{ width: "100%", maxWidth: 720 }}>
       <VersionHistory
-        live={4}
-        draft={[
-          { kind: "add", text: "Step “Mail the CFO”" },
-          { kind: "change", text: "Above €5,000?: compare to" },
-        ]}
+        live={3}
+        draft={[{ kind: "add", text: "Step “Mail the CFO”" }]}
         versions={[
-          {
-            version: 4,
-            message: "Escalate amounts above €5,000",
-            at: "2026-11-16 17:20",
-            by: "Camille Roy",
-            changes: [
-              { kind: "add", text: "Step “Above €5,000?”" },
-              { kind: "add", text: "Wire Above €5,000? → Draft the invoice (true)" },
-            ],
-          },
           {
             version: 3,
             message: "Thank the client by mail",
@@ -35,10 +23,13 @@ export default function Default() {
             changes: [{ kind: "change", text: "Tell #sales: channel" }],
           },
         ]}
+        onRestore={() => {}}
         onPublish={() => {}}
         onDiscard={() => {}}
-        onRestore={() => {}}
-      />
+      >
+        <VersionHistoryList />
+        <VersionHistoryDetail />
+      </VersionHistory>
     </div>
   );
 }

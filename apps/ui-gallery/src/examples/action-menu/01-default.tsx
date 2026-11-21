@@ -1,25 +1,38 @@
+import { MoreHorizontalIcon } from "@forgeron/icons";
 import {
-  ArrowUpRight01Icon,
-  Copy01Icon,
-  Delete02Icon,
-  MoreHorizontalIcon,
-  Notification01Icon,
-} from "@forgeron/icons";
-import { ActionMenu, IconButton } from "@forgeron/ui";
+  ActionMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+  IconButton,
+} from "@forgeron/ui";
 
-export default function Default() {
+// Without `items`, ActionMenu is the root of the DropdownMenu parts: your own rows and submenus.
+export default function Composed() {
   return (
-    <ActionMenu
-      label="Actions on OPS-40"
-      trigger={<IconButton icon={MoreHorizontalIcon} label="Issue actions" variant="boxed" />}
-      onSelect={() => {}}
-      items={[
-        { id: "open", label: "Open issue", icon: ArrowUpRight01Icon, kbd: "↵" },
-        { id: "copy", label: "Copy ID", icon: Copy01Icon },
-        { id: "subscribe", label: "Subscribe", icon: Notification01Icon },
-        { separator: true },
-        { id: "delete", label: "Delete issue", icon: Delete02Icon, danger: true },
-      ]}
-    />
+    <ActionMenu>
+      <DropdownMenuTrigger
+        render={<IconButton icon={MoreHorizontalIcon} label="Issue actions" variant="boxed" />}
+      />
+      <DropdownMenuContent>
+        <DropdownMenuItem>
+          Copy ID <DropdownMenuShortcut>⌘.</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Move to</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem>Backlog</DropdownMenuItem>
+            <DropdownMenuItem>Sprint 12</DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive">Delete issue</DropdownMenuItem>
+      </DropdownMenuContent>
+    </ActionMenu>
   );
 }

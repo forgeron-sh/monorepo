@@ -1,38 +1,40 @@
-import { MoreHorizontalIcon } from "@forgeron/icons";
 import {
-  ActionMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-  IconButton,
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
 } from "@forgeron/ui";
 
-// Without `items`, ActionMenu is the root of the DropdownMenu parts: your own rows and submenus.
 export default function Composed() {
   return (
-    <ActionMenu>
-      <DropdownMenuTrigger
-        render={<IconButton icon={MoreHorizontalIcon} label="Issue actions" variant="boxed" />}
-      />
-      <DropdownMenuContent>
-        <DropdownMenuItem>
-          Copy ID <DropdownMenuShortcut>⌘.</DropdownMenuShortcut>
-        </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Move to</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem>Backlog</DropdownMenuItem>
-            <DropdownMenuItem>Sprint 12</DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive">Delete issue</DropdownMenuItem>
-      </DropdownMenuContent>
-    </ActionMenu>
+    <ContextMenu>
+      <ContextMenuTrigger className="fg-card" style={{ padding: 32, textAlign: "center" }}>
+        Right click here
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem>
+          Back <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem inset>
+          Reload <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuCheckboxItem defaultChecked>Show bookmarks</ContextMenuCheckboxItem>
+        <ContextMenuSeparator />
+        <ContextMenuLabel>People</ContextMenuLabel>
+        <ContextMenuRadioGroup defaultValue="ada">
+          <ContextMenuRadioItem value="ada">Ada</ContextMenuRadioItem>
+          <ContextMenuRadioItem value="grace">Grace</ContextMenuRadioItem>
+        </ContextMenuRadioGroup>
+        <ContextMenuSeparator />
+        <ContextMenuItem variant="destructive">Delete</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

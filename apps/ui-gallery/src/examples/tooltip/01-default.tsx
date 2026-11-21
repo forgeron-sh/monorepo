@@ -1,18 +1,16 @@
-import { Archive01Icon, Delete02Icon, Edit02Icon } from "@forgeron/icons";
-import { IconButton, Tooltip } from "@forgeron/ui";
+import { Edit02Icon } from "@forgeron/icons";
+import { IconButton, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@forgeron/ui";
 
-export default function Default() {
+// shadcn's composition: Tooltip without content is the root of the parts.
+export default function Composed() {
   return (
-    <>
-      <Tooltip content="Edit" kbd="E">
-        <IconButton icon={Edit02Icon} label="Edit" />
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <IconButton icon={Edit02Icon} label="Edit" />
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Edit</TooltipContent>
       </Tooltip>
-      <Tooltip content="Archive" kbd="⌘⌫">
-        <IconButton icon={Archive01Icon} label="Archive" />
-      </Tooltip>
-      <Tooltip content="Delete" side="bottom">
-        <IconButton icon={Delete02Icon} label="Delete" />
-      </Tooltip>
-    </>
+    </TooltipProvider>
   );
 }

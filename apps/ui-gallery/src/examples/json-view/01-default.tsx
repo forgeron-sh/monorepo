@@ -1,12 +1,14 @@
-import { JsonView } from "@forgeron/ui";
+import { JsonView, JsonViewContent, JsonViewCopy, JsonViewLabel } from "@forgeron/ui";
 
-export default function Default() {
+export default function Composed() {
   return (
     <div style={{ width: 320 }}>
-      <JsonView
-        label="Output"
-        value={{ id: 4182, name: "Transalp", amount: 9600, won: true, lost_reason: null }}
-      />
+      <JsonView label="Payload" value={{ id: 4182, name: "Transalp", won: true }}>
+        <JsonViewLabel />
+        <JsonViewContent maxHeight={160}>
+          <JsonViewCopy />
+        </JsonViewContent>
+      </JsonView>
     </div>
   );
 }

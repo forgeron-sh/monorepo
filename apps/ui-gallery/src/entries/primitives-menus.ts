@@ -5,8 +5,19 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "command-palette",
     name: "Command palette",
-    summary: "⌘K: search pages, records and actions, arrows and Enter to run.",
-    imports: ["CommandPalette", "filterCommands"],
+    summary:
+      "⌘K: search pages, records and actions, arrows and Enter to run. Composed from parts, with a props shorthand.",
+    imports: [
+      "CommandPalette",
+      "CommandEmpty",
+      "CommandGroup",
+      "CommandInput",
+      "CommandItem",
+      "CommandList",
+      "CommandSeparator",
+      "CommandShortcut",
+      "filterCommands",
+    ],
     props: [
       {
         name: "Command parts",
@@ -49,9 +60,18 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "action-menu",
     name: "Action menu",
-    summary: "The actions on a record behind “…” or a right click, with submenus.",
+    summary:
+      "The actions on a record behind “…” or a right click, with submenus. Composed from parts, with a props shorthand.",
     imports: [
       "ActionMenu",
+      "DropdownMenuContent",
+      "DropdownMenuItem",
+      "DropdownMenuSeparator",
+      "DropdownMenuShortcut",
+      "DropdownMenuSub",
+      "DropdownMenuSubContent",
+      "DropdownMenuSubTrigger",
+      "DropdownMenuTrigger",
       "ContextMenu",
       "ContextMenuTrigger",
       "ContextMenuContent",
@@ -107,7 +127,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "menu",
     name: "Menu",
-    summary: "A button that opens links, actions and one-of-many choices.",
+    summary:
+      "A button that opens links, actions and one-of-many choices. Composed from parts, with a props shorthand.",
     imports: [
       "Menu",
       "DropdownMenuTrigger",
@@ -141,7 +162,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "modal",
     name: "Modal",
-    summary: "A modal over the page with its context, title and close button.",
+    summary:
+      "A modal over the page with its context, title and close button. Composed from parts, with a props shorthand.",
     imports: [
       "Modal",
       "ModalContent",

@@ -6,7 +6,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "status",
     name: "Status",
     summary:
-      "A state in a word: a tone indicator and its label; the states of a record named once.",
+      "A state in a word: a tone indicator and its label; the states of a record named once. Composed from parts, with a props shorthand.",
     imports: ["Status", "StatusIndicator", "StatusLabel", "StatusOf", "defineStatuses"],
     props: [
       {

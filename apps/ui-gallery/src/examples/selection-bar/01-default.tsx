@@ -1,30 +1,34 @@
+import { Delete02Icon, Share08Icon } from "@forgeron/icons";
 import {
-  ArrowRight02Icon,
-  Delete02Icon,
-  Download01Icon,
-  Link01Icon,
-  StarIcon,
-  UserAdd01Icon,
-} from "@forgeron/icons";
-import { SelectionBar } from "@forgeron/ui";
+  SelectionBarActions,
+  SelectionBarClear,
+  SelectionBarCount,
+  SelectionBarRoot,
+  SelectionBarSeparator,
+  type Action,
+} from "@forgeron/ui";
+import { useState } from "react";
 
 export default function Default() {
+  const [count, setCount] = useState(3);
+  const actions: Action[] = [
+    { id: "share", label: "Share", icon: Share08Icon, run: () => {} },
+    { id: "remove", label: "Delete", icon: Delete02Icon, danger: true, run: () => setCount(0) },
+  ];
   return (
-    <div style={{ width: "100%", maxWidth: 640 }}>
-      <SelectionBar
-        count={3}
-        onClear={() => {}}
-        inline={5}
-        iconOnly={["star", "trash"]}
-        actions={[
-          { id: "share", label: "Share", icon: UserAdd01Icon },
-          { id: "download", label: "Download", icon: Download01Icon },
-          { id: "move", label: "Move", icon: ArrowRight02Icon },
-          { id: "star", label: "Star", icon: StarIcon },
-          { id: "trash", label: "Move to trash", icon: Delete02Icon, danger: true },
-          { id: "link", label: "Copy link", icon: Link01Icon },
-        ]}
-      />
+    <div style={{ display: "grid", gap: 12 }}>
+      <SelectionBarRoot count={count} onClear={() => setCount(0)}>
+        <SelectionBarClear />
+        <SelectionBarCount />
+        <SelectionBarSeparator />
+        <SelectionBarActions actions={actions} />
+      </SelectionBarRoot>
+      <small>
+        {count === 0 ? "Nothing selected: the bar is gone. " : `${count} selected. `}
+        <button type="button" onClick={() => setCount(count + 1)}>
+          Select one more
+        </button>
+      </small>
     </div>
   );
 }

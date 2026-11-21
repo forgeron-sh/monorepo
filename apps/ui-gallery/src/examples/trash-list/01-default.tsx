@@ -1,4 +1,12 @@
-import { TrashList, type TrashEntry } from "@forgeron/ui";
+import {
+  TrashList,
+  TrashListBar,
+  TrashListEmpty,
+  TrashListNotice,
+  TrashListRows,
+  useTrashList,
+  type TrashEntry,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const initial: TrashEntry[] = [
@@ -16,23 +24,14 @@ const initial: TrashEntry[] = [
     deletedBy: "Sam Roche",
     deletedAt: "2026-11-02",
   },
-  {
-    id: "c",
-    name: "Old onboarding checklist",
-    kind: "Document",
-    deletedBy: "Léa Martin",
-    deletedAt: "2026-10-22",
-  },
-  {
-    id: "d",
-    name: "Acme renewal",
-    kind: "Project",
-    deletedBy: "Ada Lovelace",
-    deletedAt: "2026-11-17",
-  },
 ];
 
-export default function Default() {
+function Body() {
+  const { rows } = useTrashList();
+  return rows.length === 0 ? <TrashListEmpty /> : <TrashListRows />;
+}
+
+export default function Composed() {
   const [items, setItems] = useState(initial);
   const drop = (ids: string[]) => setItems(items.filter((i) => !ids.includes(i.id)));
   return (
@@ -43,7 +42,11 @@ export default function Default() {
         onRestore={drop}
         onDeleteForever={drop}
         onEmpty={() => setItems([])}
-      />
+      >
+        <TrashListNotice />
+        <TrashListBar />
+        <Body />
+      </TrashList>
     </div>
   );
 }

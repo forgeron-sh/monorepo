@@ -1,50 +1,38 @@
-import { MetricPicker, dashboardEmptyQuery, type DashboardQuery } from "@forgeron/ui";
-import { useState } from "react";
+import {
+  MetricPicker,
+  MetricPickerGrouping,
+  MetricPickerMeasure,
+  MetricPickerSteps,
+  MetricPickerSummary,
+} from "@forgeron/ui";
 
-const measures = [
-  { id: "revenue", label: "Revenue", hint: "deals", aggregations: ["sum", "avg", "max"] as const },
-  { id: "deals", label: "Deals", hint: "deals", aggregations: ["count"] as const },
-  {
-    id: "tickets",
-    label: "Tickets",
-    hint: "support",
-    aggregations: ["count", "distinct"] as const,
-  },
-];
-const groupings = [
-  { id: "created", label: "Created", kind: "time" as const },
-  { id: "stage", label: "Stage" },
-  { id: "owner", label: "Owner" },
-];
-
+// Two steps and the sentence: no filter step, so the root gets no `fields`.
 export default function Default() {
-  const [query, setQuery] = useState<DashboardQuery>({
-    ...dashboardEmptyQuery,
-    measure: "revenue",
-    aggregation: "sum",
-    groupBy: "created",
-  });
   return (
-    <div
-      style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 560 }}
-    >
+    <div style={{ width: "100%", maxWidth: 560 }}>
       <MetricPicker
-        measures={measures.map((m) => ({ ...m, aggregations: [...m.aggregations] }))}
-        groupings={groupings}
-        value={query}
-        onChange={setQuery}
-      />
-      <pre
-        style={{
-          margin: 0,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-all",
-          font: "12px/18px var(--font-mono)",
-          color: "var(--ink-muted)",
+        measures={[
+          { id: "revenue", label: "Revenue", hint: "deals", aggregations: ["sum", "avg"] },
+          { id: "deals", label: "Deals", hint: "deals", aggregations: ["count"] },
+        ]}
+        groupings={[
+          { id: "created", label: "Created", kind: "time" },
+          { id: "owner", label: "Owner" },
+        ]}
+        defaultValue={{
+          measure: "revenue",
+          aggregation: "sum",
+          groupBy: "created",
+          interval: "month",
+          filters: [],
         }}
       >
-        {JSON.stringify(query)}
-      </pre>
+        <MetricPickerSteps>
+          <MetricPickerMeasure />
+          <MetricPickerGrouping />
+        </MetricPickerSteps>
+        <MetricPickerSummary />
+      </MetricPicker>
     </div>
   );
 }

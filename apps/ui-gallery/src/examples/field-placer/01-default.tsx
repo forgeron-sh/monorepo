@@ -1,4 +1,16 @@
-import { FieldPlacer, type PlacedField } from "@forgeron/ui";
+import {
+  FieldPlacer,
+  FieldPlacerAssignee,
+  FieldPlacerHint,
+  FieldPlacerList,
+  FieldPlacerLive,
+  FieldPlacerPanel,
+  FieldPlacerPlace,
+  FieldPlacerStage,
+  FieldPlacerTools,
+  FieldPlacerTypes,
+  type PlacedField,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const page = (n: number) => ({
@@ -17,7 +29,7 @@ const participants = [
   { id: "jo", name: "Jo Bernard", role: "Provider" },
 ];
 
-export default function Default() {
+export default function Composed() {
   const [fields, setFields] = useState<PlacedField[]>([
     {
       id: "field-1",
@@ -49,7 +61,19 @@ export default function Default() {
         value={fields}
         onChange={setFields}
         viewer={{ height: 460, thumbnails: false }}
-      />
+      >
+        <FieldPlacerStage />
+        <FieldPlacerPanel>
+          <FieldPlacerTools>
+            <FieldPlacerTypes />
+            <FieldPlacerAssignee />
+            <FieldPlacerHint />
+            <FieldPlacerPlace />
+          </FieldPlacerTools>
+          <FieldPlacerList />
+          <FieldPlacerLive />
+        </FieldPlacerPanel>
+      </FieldPlacer>
     </div>
   );
 }

@@ -1,4 +1,15 @@
-import { ThreadPanel, type ConversationMessage } from "@forgeron/ui";
+import {
+  ThreadPanel,
+  ThreadPanelClose,
+  ThreadPanelComposer,
+  ThreadPanelCount,
+  ThreadPanelHeader,
+  ThreadPanelMessage,
+  ThreadPanelReplies,
+  ThreadPanelTitle,
+  ThreadPanelTyping,
+  type ConversationMessage,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const lea = { id: "lea", name: "Léa Martin" };
@@ -11,14 +22,9 @@ const root: ConversationMessage = {
   body: "Found it: the **webhook** is sent twice. Thoughts?",
 };
 
-export default function Default() {
+export default function Composed() {
   const [replies, setReplies] = useState<ConversationMessage[]>([
-    {
-      id: "1",
-      at: "2026-11-19T09:02:00Z",
-      author: me,
-      body: "Add an idempotency key on our side.",
-    },
+    { id: "1", at: "2026-11-19T09:02:00Z", author: me, body: "Add an idempotency key." },
     { id: "2", at: "2026-11-19T09:10:00Z", author: lea, body: "Agreed, I will open a PR." },
   ]);
   return (
@@ -39,8 +45,17 @@ export default function Default() {
             { id: `n${r.length}`, at: new Date().toISOString(), author: me, body: text },
           ])
         }
-        onReact={() => {}}
-      />
+      >
+        <ThreadPanelHeader>
+          <ThreadPanelTitle>Thread on the webhook</ThreadPanelTitle>
+          <ThreadPanelCount />
+          <ThreadPanelClose />
+        </ThreadPanelHeader>
+        <ThreadPanelMessage />
+        <ThreadPanelReplies />
+        <ThreadPanelTyping />
+        <ThreadPanelComposer placeholder="Answer Léa…" />
+      </ThreadPanel>
     </div>
   );
 }

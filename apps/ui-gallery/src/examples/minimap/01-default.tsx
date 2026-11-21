@@ -1,4 +1,11 @@
-import { Minimap, type EditorRect } from "@forgeron/ui";
+import {
+  Minimap,
+  MinimapCanvas,
+  MinimapHandle,
+  MinimapStatus,
+  MinimapViewport,
+  type EditorRect,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const items = [
@@ -17,7 +24,13 @@ export default function Default() {
         items={items}
         viewport={viewport}
         onViewportChange={setViewport}
-      />
+      >
+        <MinimapCanvas />
+        <MinimapViewport>
+          <MinimapHandle />
+        </MinimapViewport>
+        <MinimapStatus />
+      </Minimap>
       <span style={{ font: "400 12px var(--font-mono)", color: "var(--ink-muted)" }}>
         X {Math.round(viewport.x)} · Y {Math.round(viewport.y)} · W {Math.round(viewport.w)} ·
         ARROWS PAN, + − ZOOM

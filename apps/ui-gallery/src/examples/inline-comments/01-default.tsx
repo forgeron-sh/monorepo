@@ -1,6 +1,20 @@
 // A document with blocks that carry data-block-id, and the threads in its margin. Click a card to
 // bring it to its anchor; select, reply and resolve work on this page's own state.
-import { InlineComments, type InlineThread, type MentionOption } from "@forgeron/ui";
+import {
+  InlineComments,
+  InlineCommentsActions,
+  InlineCommentsBar,
+  InlineCommentsComposer,
+  InlineCommentsDraft,
+  InlineCommentsEmpty,
+  InlineCommentsEntries,
+  InlineCommentsLane,
+  InlineCommentsQuote,
+  InlineCommentsThread,
+  InlineCommentsThreads,
+  type InlineThread,
+  type MentionOption,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const people: MentionOption[] = [
@@ -56,7 +70,7 @@ const text: Record<string, string> = {
   b4: "Rollback is a single switch and is rehearsed the week before.",
 };
 
-export default function Default() {
+export default function Composed() {
   const [threads, setThreads] = useState(initial);
   const [active, setActive] = useState<string | null>(null);
   const set = (id: string, patch: Partial<InlineThread>) =>
@@ -117,7 +131,23 @@ export default function Default() {
             ],
           })
         }
-      />
+      >
+        <InlineCommentsBar />
+        <InlineCommentsLane>
+          <InlineCommentsDraft />
+          <InlineCommentsThreads
+            renderThread={(thread) => (
+              <InlineCommentsThread thread={thread}>
+                <InlineCommentsQuote />
+                <InlineCommentsEntries />
+                <InlineCommentsComposer />
+                <InlineCommentsActions />
+              </InlineCommentsThread>
+            )}
+          />
+          <InlineCommentsEmpty />
+        </InlineCommentsLane>
+      </InlineComments>
     </div>
   );
 }

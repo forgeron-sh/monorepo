@@ -64,8 +64,13 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "command-line",
     name: "CommandLine",
     summary: "A command to type, $ npx forgeron init, framed or inline.",
-    imports: ["CommandLine"],
+    imports: ["CommandLine", "CommandLinePrompt", "CommandLineText", "CommandLineCopy"],
     props: [
+      {
+        name: "CommandLine parts",
+        type: "CommandLine (children are parts), CommandLinePrompt, CommandLineText, CommandLineCopy value",
+        description: "Without parts, CommandLine draws the prompt and its text itself.",
+      },
       { name: "prompt", type: "string", default: '"$"', description: "Shown before, in ember." },
       {
         name: "framed",

@@ -1,5 +1,10 @@
 import {
   MessageList,
+  MessageListJump,
+  MessageListOlder,
+  MessageListRows,
+  MessageListScroll,
+  MessageListStatus,
   RichComposer,
   toggleConversationReaction,
   type ConversationMessage,
@@ -49,7 +54,7 @@ const start: ConversationMessage[] = [
   },
 ];
 
-export default function Default() {
+export default function Composed() {
   const [messages, setMessages] = useState(start);
   const react = (id: string, emoji: string) =>
     setMessages((all) =>
@@ -83,7 +88,14 @@ export default function Default() {
         onDelete={(m) =>
           setMessages((all) => all.map((x) => (x.id === m.id ? { ...x, deleted: true } : x)))
         }
-      />
+      >
+        <MessageListScroll>
+          <MessageListOlder />
+          <MessageListRows />
+        </MessageListScroll>
+        <MessageListJump />
+        <MessageListStatus />
+      </MessageList>
       <RichComposer
         placeholder="Write to #ops…"
         onSend={({ text }) =>

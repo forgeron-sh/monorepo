@@ -1,44 +1,48 @@
-import { Briefcase01Icon, Home01Icon } from "@forgeron/icons";
-import { Tree, type TreeNode } from "@forgeron/ui";
-
-const pages: TreeNode[] = [
-  {
-    id: "home",
-    label: "Home",
-    icon: Home01Icon,
-    children: [
-      { id: "welcome", label: "Welcome" },
-      {
-        id: "handbook",
-        label: "Handbook",
-        count: 3,
-        children: [
-          { id: "leave", label: "Leave policy" },
-          { id: "expenses", label: "Expenses" },
-          { id: "security", label: "Security" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "projects",
-    label: "Projects",
-    icon: Briefcase01Icon,
-    children: [{ id: "launch", label: "Launch plan" }],
-  },
-  { id: "inbox", label: "Inbox", count: 12 },
-  { id: "locked", label: "Legal", readOnly: true },
-];
+import { Folder01Icon, File01Icon } from "@forgeron/icons";
+import { Icon, TreeGroup, TreeItem, TreeItemContent, Tree } from "@forgeron/ui";
 
 export default function Default() {
   return (
-    <div style={{ width: 260 }}>
-      <Tree
-        items={pages}
-        label="Pages"
-        defaultExpanded={["home", "handbook"]}
-        defaultSelected={["leave"]}
-      />
-    </div>
+    <Tree
+      aria-label="Project files"
+      defaultExpanded={["src"]}
+      defaultSelected={["button"]}
+      style={{ width: 280 }}
+    >
+      <TreeItem id="src" textValue="src">
+        <TreeItemContent>
+          <Icon icon={Folder01Icon} size={12} variant="mono" className="fg-tree-icon" />
+          <span className="fg-tree-name">src</span>
+        </TreeItemContent>
+        <TreeGroup>
+          <TreeItem id="button" textValue="button.tsx">
+            <TreeItemContent>
+              <Icon icon={File01Icon} size={12} variant="mono" className="fg-tree-icon" />
+              <span className="fg-tree-name">button.tsx</span>
+            </TreeItemContent>
+          </TreeItem>
+          <TreeItem id="hooks" textValue="hooks">
+            <TreeItemContent>
+              <Icon icon={Folder01Icon} size={12} variant="mono" className="fg-tree-icon" />
+              <span className="fg-tree-name">hooks</span>
+            </TreeItemContent>
+            <TreeGroup>
+              <TreeItem id="use-controllable" textValue="use-controllable.ts">
+                <TreeItemContent>
+                  <Icon icon={File01Icon} size={12} variant="mono" className="fg-tree-icon" />
+                  <span className="fg-tree-name">use-controllable.ts</span>
+                </TreeItemContent>
+              </TreeItem>
+            </TreeGroup>
+          </TreeItem>
+        </TreeGroup>
+      </TreeItem>
+      <TreeItem id="readme" textValue="README.md">
+        <TreeItemContent>
+          <Icon icon={File01Icon} size={12} variant="mono" className="fg-tree-icon" />
+          <span className="fg-tree-name">README.md</span>
+        </TreeItemContent>
+      </TreeItem>
+    </Tree>
   );
 }

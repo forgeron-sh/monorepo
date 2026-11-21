@@ -1,18 +1,16 @@
-import { Tabs } from "@forgeron/ui";
-import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@forgeron/ui";
 
-const tabs = [
-  { id: "overview", label: "Overview" },
-  { id: "activity", label: "Activity" },
-  { id: "settings", label: "Settings" },
-];
-
-export default function Default() {
-  const [tab, setTab] = useState("overview");
+// shadcn's composition: Tabs without tabs is the root; a value ties a trigger to its content.
+export default function Composed() {
   return (
     <div style={{ width: "100%", maxWidth: 520 }}>
-      <Tabs label="Tool" tabs={tabs} value={tab} onChange={setTab}>
-        {tabs.find((t) => t.id === tab)?.label} of the tool.
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview">Overview of the tool.</TabsContent>
+        <TabsContent value="activity">Activity of the tool.</TabsContent>
       </Tabs>
     </div>
   );

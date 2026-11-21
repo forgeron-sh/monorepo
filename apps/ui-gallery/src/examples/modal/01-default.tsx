@@ -1,15 +1,27 @@
-import { Button, Modal } from "@forgeron/ui";
-import { useState } from "react";
+import {
+  Button,
+  DialogTrigger,
+  Modal,
+  ModalClose,
+  ModalContent,
+  ModalContext,
+  ModalHeader,
+  ModalTitle,
+} from "@forgeron/ui";
 
-export default function Default() {
-  const [open, setOpen] = useState(false);
+// Without `title`, Modal is the root of its own parts; DialogTrigger opens it.
+export default function Composed() {
   return (
-    <>
-      <Button onClick={() => setOpen(true)}>New issue</Button>
-      <Modal open={open} onOpenChange={setOpen} title="New issue" context="OPS" size="sm">
-        <p style={{ margin: "12px 0" }}>The form goes here.</p>
-        <Button onClick={() => setOpen(false)}>Create</Button>
-      </Modal>
-    </>
+    <Modal>
+      <DialogTrigger render={<Button>Rename view</Button>} />
+      <ModalContent size="sm">
+        <ModalHeader>
+          <ModalContext>OPS</ModalContext>
+          <ModalTitle>Rename view</ModalTitle>
+          <ModalClose />
+        </ModalHeader>
+        <p style={{ margin: "12px 0" }}>Shown to everyone in the team.</p>
+      </ModalContent>
+    </Modal>
   );
 }

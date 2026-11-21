@@ -1,77 +1,56 @@
-import { Donut, Funnel, Gauge, KpiRow, WidgetFrame, WidgetGrid } from "@forgeron/ui";
+import {
+  WidgetFrame,
+  WidgetGrid,
+  WidgetGridCanvas,
+  WidgetGridContent,
+  WidgetGridEditBar,
+  WidgetGridGrab,
+  WidgetGridItem,
+  WidgetGridRemove,
+  WidgetGridResize,
+  WidgetGridStatus,
+} from "@forgeron/ui";
+import { useState } from "react";
 
-const widgets = [
-  {
-    id: "kpi",
-    label: "Key figures",
-    content: (
-      <WidgetFrame title="This month">
-        <KpiRow
-          items={[
-            { label: "Revenue", value: "€48.2k", delta: 0.124 },
-            { label: "Leads", value: "212", delta: -0.06 },
-          ]}
-        />
-      </WidgetFrame>
-    ),
-  },
-  {
-    id: "quota",
-    label: "Quota",
-    content: (
-      <WidgetFrame title="Quota">
-        <Gauge title="Quarter" value={36} target={50} size={160} />
-      </WidgetFrame>
-    ),
-  },
-  {
-    id: "funnel",
-    label: "Funnel",
-    content: (
-      <WidgetFrame title="Pipeline">
-        <Funnel
-          title="Deals"
-          items={[
-            { label: "Lead", value: 480 },
-            { label: "Qualified", value: 212 },
-            { label: "Won", value: 38 },
-          ]}
-        />
-      </WidgetFrame>
-    ),
-  },
-  {
-    id: "sources",
-    label: "Sources",
-    content: (
-      <WidgetFrame title="Sources">
-        <Donut
-          title="Leads"
-          size={120}
-          items={[
-            { label: "Web", value: 60 },
-            { label: "Referral", value: 30 },
-            { label: "Events", value: 10 },
-          ]}
-        />
-      </WidgetFrame>
-    ),
-  },
-];
+const frame = (title: string, text: string) => (
+  <WidgetFrame title={title}>
+    <p style={{ margin: 0 }}>{text}</p>
+  </WidgetFrame>
+);
 
+// The 2D layout stays the root's (it owns the drag and the layout); the cell, its content and its
+// edit controls are parts.
 export default function Default() {
+  const [widgets, setWidgets] = useState([
+    { id: "a", label: "Revenue", content: frame("Revenue", "€48.2k") },
+    { id: "b", label: "Leads", content: frame("Leads", "212") },
+    { id: "c", label: "Quota", content: frame("Quota", "72%"), locked: true },
+  ]);
   return (
     <div style={{ width: "100%" }}>
       <WidgetGrid
         widgets={widgets}
-        rowHeight={120}
+        defaultEditing
         defaultLayout={[
-          { id: "kpi", x: 0, y: 0, w: 8, h: 2 },
-          { id: "quota", x: 8, y: 0, w: 4, h: 3 },
-          { id: "funnel", x: 0, y: 2, w: 4, h: 4 },
-          { id: "sources", x: 4, y: 2, w: 4, h: 4 },
+          { id: "a", x: 0, y: 0, w: 4, h: 2 },
+          { id: "b", x: 4, y: 0, w: 4, h: 2 },
+          { id: "c", x: 8, y: 0, w: 4, h: 2 },
         ]}
-      />
+        onRemoveWidget={(id) => setWidgets((all) => all.filter((w) => w.id !== id))}
+      >
+        <WidgetGridEditBar />
+        <WidgetGridCanvas>
+          {(widget) => (
+            <WidgetGridItem id={widget.id}>
+              <WidgetGridContent />
+              <WidgetGridGrab />
+              <WidgetGridResize />
+              <WidgetGridRemove />
+            </WidgetGridItem>
+          )}
+        </WidgetGridCanvas>
+        <WidgetGridStatus />
+      </WidgetGrid>
     </div>
   );
 }

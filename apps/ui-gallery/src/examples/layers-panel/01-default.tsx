@@ -1,4 +1,16 @@
-import { LayersPanel, type EditorLayer } from "@forgeron/ui";
+import {
+  LayersPanel,
+  LayersPanelFold,
+  LayersPanelGrip,
+  LayersPanelKind,
+  LayersPanelLock,
+  LayersPanelMark,
+  LayersPanelName,
+  LayersPanelRow,
+  LayersPanelTree,
+  LayersPanelVisibility,
+  type EditorLayer,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const initial: EditorLayer[] = [
@@ -36,7 +48,21 @@ export default function Default() {
         onChange={setLayers}
         selected={selected}
         onSelectedChange={setSelected}
-      />
+      >
+        <LayersPanelTree>
+          {(row) => (
+            <LayersPanelRow key={row.layer.id} row={row}>
+              <LayersPanelGrip />
+              <LayersPanelFold />
+              <LayersPanelMark />
+              <LayersPanelName />
+              <LayersPanelKind />
+              <LayersPanelLock />
+              <LayersPanelVisibility />
+            </LayersPanelRow>
+          )}
+        </LayersPanelTree>
+      </LayersPanel>
       <p style={{ font: "400 12px var(--font-mono)", color: "var(--ink-muted)", marginTop: 12 }}>
         CLICK, ⌘ CLICK, ⇧ CLICK · F2 RENAME · H HIDE · L LOCK · ⌥ ARROWS MOVE · DRAG
       </p>

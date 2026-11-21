@@ -2,15 +2,56 @@ import type { Atom, PropRow } from "../types";
 
 const className: PropRow = { name: "className", type: "string", description: "Extra classes." };
 
-/** Gallery entry of the Tree primitive, extracted from the four tree blocks, and the one `Tree` with `items` (D-157). */
+/** Gallery entry of the Tree primitive, extracted from the four tree blocks, merged with its parts (D-157). */
 export const entries: ReadonlyArray<Atom> = [
   {
     slug: "tree",
     name: "Tree",
     summary:
-      "A tree for any node (pages, folders, teams): arrows, selection, lazy children, drag to reorder, Alt + arrows, F2 rename.",
-    imports: ["Tree", "structureMove", "structureShift"],
+      "A tree for any node (pages, folders, teams): arrows, selection, lazy children, drag to reorder, Alt + arrows, F2 rename. Composed from Tree, TreeItem and TreeGroup, with an `items` props shorthand.",
+    imports: [
+      "Tree",
+      "TreeItem",
+      "TreeItemContent",
+      "TreeItemIndicator",
+      "TreeGroup",
+      "structureMove",
+      "structureShift",
+    ],
     props: [
+      {
+        name: "Tree (root)",
+        type: "ul",
+        description:
+          "Without `items`, `Tree` is the root of the parts below. With `items`, it is the props shorthand (`items` and the rows after the parts). `render={<div />}` draws another element.",
+      },
+      {
+        name: "TreeItem",
+        type: "{ id, textValue?, disabled?, hasChildren?, level?, setSize?, position?, pickOnClick?, render? }",
+        description:
+          "One node; `id` names it for the tree (not the DOM id). `textValue` is what typeahead matches. `hasChildren` says it for children that load on opening; `level`, `setSize` and `position` for a flat list. Takes any li prop: drag handlers, data attributes.",
+      },
+      {
+        name: "TreeItemContent",
+        type: "{ indicator?, asChild? } & div props",
+        description:
+          "The row: indented by level, the chevron before your content, a click that focuses and selects. `preventDefault()` in `onClick` skips the pick. Takes any div prop.",
+      },
+      {
+        name: "TreeItemIndicator",
+        type: "span",
+        description: "The chevron, drawn by TreeItemContent; give children for your own mark.",
+      },
+      {
+        name: "TreeGroup",
+        type: "ul",
+        description: "The children of an item: drawn while the item is open.",
+      },
+      {
+        name: "useTree / useTreeItem",
+        type: "() => { expanded, selected, toggle, select, focus… }",
+        description: "The state and actions, for a part of your own inside the tree.",
+      },
       {
         name: "items",
         type: "TreeNode<D>[]",
@@ -77,75 +118,6 @@ export const entries: ReadonlyArray<Atom> = [
       { name: "empty", type: "ReactNode", description: "Shown when nothing is left." },
       { name: "label", type: "string", default: `"Tree"`, description: "Names the tree." },
       className,
-    ],
-  },
-  {
-    slug: "tree-parts",
-    name: "Tree parts",
-    summary:
-      "A tree of rows that open and close, with the WAI-ARIA tree keys: arrows, Home, End, * and typeahead.",
-    imports: ["Tree", "TreeItem", "TreeItemContent", "TreeItemIndicator", "TreeGroup"],
-    props: [
-      {
-        name: "Tree",
-        type: "ul",
-        description:
-          "The root: `Tree` without `items`. With `items`, `Tree` is the props-driven tree (the Tree page). `render={<div />}` draws another element.",
-      },
-      {
-        name: "expanded / defaultExpanded / onExpandedChange",
-        type: "string[] / (ids: string[]) => void",
-        description: "The ids of the open items, controlled or not.",
-      },
-      {
-        name: "selected / defaultSelected / onSelectedChange",
-        type: "string[] / (ids: string[]) => void",
-        description: "The ids of the selected items, controlled or not.",
-      },
-      {
-        name: "selectionMode",
-        type: `"none" | "single" | "multiple"`,
-        default: `"single"`,
-        description:
-          "multiple: Space toggles, Cmd/Ctrl click toggles, Shift click and Shift + arrows extend, Cmd/Ctrl A takes all.",
-      },
-      {
-        name: "onActivate",
-        type: "(id: string) => void",
-        description: "Enter on an item that is not disabled, after it is selected.",
-      },
-      {
-        name: "aria-label",
-        type: "string",
-        description: "Names the tree for assistive technology.",
-      },
-      {
-        name: "TreeItem",
-        type: "{ id, textValue?, disabled?, hasChildren?, level?, setSize?, position?, pickOnClick?, render? }",
-        description:
-          "One node; `id` names it for the tree (not the DOM id). `textValue` is what typeahead matches. `hasChildren` says it for children that load on opening; `level`, `setSize` and `position` for a flat list. Takes any li prop: drag handlers, data attributes.",
-      },
-      {
-        name: "TreeItemContent",
-        type: "{ indicator?, asChild? } & div props",
-        description:
-          "The row: indented by level, the chevron before your content, a click that focuses and selects. `preventDefault()` in `onClick` skips the pick. Takes any div prop.",
-      },
-      {
-        name: "TreeItemIndicator",
-        type: "span",
-        description: "The chevron, drawn by TreeItemContent; give children for your own mark.",
-      },
-      {
-        name: "TreeGroup",
-        type: "ul",
-        description: "The children of an item: drawn while the item is open.",
-      },
-      {
-        name: "useTree / useTreeItem",
-        type: "() => { expanded, selected, toggle, select, focus… }",
-        description: "The state and actions, for a part of your own inside the tree.",
-      },
     ],
   },
 ];

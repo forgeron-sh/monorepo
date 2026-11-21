@@ -1,25 +1,19 @@
-import { KpiRow } from "@forgeron/ui";
+import { KpiRow, KpiRowItem } from "@forgeron/ui";
 
-export default function Default() {
+export default function Items() {
   return (
-    <div style={{ width: 380 }}>
-      <KpiRow
-        items={[
-          {
-            label: "Revenue",
-            value: "€48.2k",
-            delta: 0.124,
-            trend: [31, 33, 32, 36, 35, 39, 41, 40, 44, 48],
-          },
-          {
-            label: "Open tickets",
-            value: "37",
-            delta: 0.09,
-            better: "down",
-            trend: [30, 28, 31, 29, 33, 34, 32, 37],
-          },
-        ]}
+    <KpiRow>
+      <KpiRowItem
+        label="Revenue"
+        value="€48.2k"
+        delta={0.12}
+        hint="vs last month"
+        trend={[31, 34, 33, 39, 42, 48]}
       />
-    </div>
+      <KpiRowItem label="Open tickets" value="37" delta={-0.08} better="down" hint="vs last week">
+        <a href="#tickets">See the queue</a>
+      </KpiRowItem>
+      <KpiRowItem label="Uptime" value="99.94%" />
+    </KpiRow>
   );
 }

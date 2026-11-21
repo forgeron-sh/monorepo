@@ -14,6 +14,13 @@ export const entries: ReadonlyArray<Atom> = [
       "useRecordView",
       "issueFields",
       "projectFields",
+      "RecordListGroup",
+      "RecordListHeader",
+      "RecordListToggle",
+      "RecordListAdd",
+      "RecordListRows",
+      "RecordListRow",
+      "RecordRow",
     ],
     props: [
       {
@@ -55,13 +62,31 @@ export const entries: ReadonlyArray<Atom> = [
         type: "(record, surface) => ReactNode",
         description: "Draws a row yourself; the groups, arrows and selection stay.",
       },
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in place of the groups drawn from groups: RecordListGroup (group) with RecordListHeader (RecordListToggle, RecordListAdd) and RecordListRows of RecordListRow (record). The list keeps the state; each part takes className, the element's attributes, a data-slot and asChild.",
+      },
     ],
   },
   {
     slug: "record-board",
     name: "Record board",
     summary: "Any records as cards in columns of a groupable field. IssueBoard is its preset.",
-    imports: ["RecordBoard", "recordGroups", "projectFields"],
+    imports: [
+      "RecordBoard",
+      "recordGroups",
+      "projectFields",
+      "RecordBoardColumn",
+      "RecordBoardColumnHeader",
+      "RecordBoardColumnToggle",
+      "RecordBoardColumnActions",
+      "RecordBoardCards",
+      "RecordBoardCard",
+      "RecordBoardAdd",
+      "RecordCard",
+    ],
     props: [
       {
         name: "columns",
@@ -77,6 +102,12 @@ export const entries: ReadonlyArray<Atom> = [
         name: "onAdd / onColumnMenu",
         type: "(key) => void",
         description: "A + and a ⋯ in each header.",
+      },
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in place of the columns drawn from columns: RecordBoardColumn (column) with RecordBoardColumnHeader (RecordBoardColumnToggle, RecordBoardColumnActions) and RecordBoardCards of RecordBoardCard (record) and RecordBoardAdd.",
       },
     ],
   },

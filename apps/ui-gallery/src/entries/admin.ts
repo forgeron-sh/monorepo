@@ -22,8 +22,21 @@ export const entries: ReadonlyArray<Atom> = [
       "setPermission",
       "permissionAt",
       "permissionKey",
+      "PermissionMatrixBar",
+      "PermissionMatrixLegend",
+      "PermissionMatrixChanges",
+      "PermissionMatrixGrid",
+      "PermissionMatrixKeys",
+      "PermissionMatrixSummary",
+      "PermissionMatrixStatus",
     ],
     props: [
+      {
+        name: "Parts",
+        type: "PermissionMatrix > PermissionMatrixBar (PermissionMatrixLegend, PermissionMatrixChanges), PermissionMatrixGrid, PermissionMatrixKeys, PermissionMatrixSummary, PermissionMatrixStatus",
+        description:
+          "Without children all of them are drawn. `usePermissionMatrix()` gives a part of your own the grid and its helpers.",
+      },
       { name: "label", type: "string", description: "Names the grid for assistive technology." },
       {
         name: "subjects",
@@ -83,8 +96,26 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Invite dialog",
     summary:
       "Emails pasted by the dozen, teams, a message, then the answer for each: invited, already a member, invalid.",
-    imports: ["InviteDialog", "classifyInvites", "parseEmails", "isInviteEmail", "inviteSummary"],
+    imports: [
+      "InviteDialog",
+      "classifyInvites",
+      "parseEmails",
+      "isInviteEmail",
+      "inviteSummary",
+      "InviteDialogHeader",
+      "InviteDialogEmails",
+      "InviteDialogTeams",
+      "InviteDialogMessage",
+      "InviteDialogResults",
+      "InviteDialogFooter",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "InviteDialog > InviteDialogHeader, InviteDialogEmails, InviteDialogTeams, InviteDialogMessage, InviteDialogResults, InviteDialogFooter",
+        description:
+          "With children the root is a shadcn dialog and these are its content, each reading the root's state; without, the usual modal.",
+      },
       {
         name: "onInvite",
         type: "({ emails, teams, message }) => void",
@@ -127,8 +158,24 @@ export const entries: ReadonlyArray<Atom> = [
       "exportFilename",
       "exportPercent",
       "DEFAULT_EXPORT_FORMATS",
+      "ExportDialogHeader",
+      "ExportDialogError",
+      "ExportDialogOptions",
+      "ExportDialogFormats",
+      "ExportDialogRanges",
+      "ExportDialogColumns",
+      "ExportDialogPreview",
+      "ExportDialogProgress",
+      "ExportDialogDone",
+      "ExportDialogFooter",
     ],
     props: [
+      {
+        name: "Parts",
+        type: "ExportDialog > ExportDialogHeader, ExportDialogError, ExportDialogOptions > ExportDialogFormats, ExportDialogRanges, ExportDialogColumns, ExportDialogPreview, ExportDialogProgress, ExportDialogDone, ExportDialogFooter",
+        description:
+          "With children the root is a shadcn dialog and these are its content; without, the usual modal.",
+      },
       { name: "columns", type: "{ id, label, hint? }[]", description: "What can be included." },
       {
         name: "formats / ranges",
@@ -161,8 +208,24 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "trash-list",
     name: "Trash list",
     summary: "Deleted items with who and when, days left, restore, delete forever and empty trash.",
-    imports: ["TrashList", "retentionDaysLeft", "retentionText", "sortByRetention"],
+    imports: [
+      "TrashList",
+      "retentionDaysLeft",
+      "retentionText",
+      "sortByRetention",
+      "TrashListNotice",
+      "TrashListBar",
+      "TrashListRows",
+      "TrashListRow",
+      "TrashListEmpty",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "TrashList > TrashListNotice, TrashListBar, TrashListRows > TrashListRow, TrashListEmpty",
+        description:
+          "Without children the notice, the bar and the rows are drawn. The confirmation is the root's.",
+      },
       {
         name: "items",
         type: "{ id, name, kind?, deletedBy, deletedAt }[]",
@@ -202,8 +265,14 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "audit-log",
     name: "Audit log",
     summary: "Who did what to which thing, by day. Refusals say so; detail folds open.",
-    imports: ["AuditLog"],
+    imports: ["AuditLog", "AuditLogDay", "AuditLogEvent", "AuditLogEmpty"],
     props: [
+      {
+        name: "Parts",
+        type: "AuditLog > AuditLogDay > AuditLogEvent, AuditLogEmpty",
+        description:
+          "Without children one `AuditLogDay` of `AuditLogEvent`s is drawn per day, on the `Feed` parts.",
+      },
       {
         name: "events",
         type: "{ id, at, actor, actorIcon?, action, target?, outcome?, detail? }[]",

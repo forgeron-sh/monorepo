@@ -1,4 +1,15 @@
-import { QuestionCard, type FormQuestion } from "@forgeron/ui";
+import {
+  QuestionCard,
+  QuestionCardBody,
+  QuestionCardChoices,
+  QuestionCardDelete,
+  QuestionCardDuplicate,
+  QuestionCardFields,
+  QuestionCardLimits,
+  QuestionCardRow,
+  QuestionCardSummary,
+  type FormQuestion,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 export default function Default() {
@@ -6,12 +17,10 @@ export default function Default() {
     id: "q1",
     type: "singleChoice",
     title: "How did you hear about us?",
-    help: "Pick the closest one.",
     required: true,
     options: [
       { id: "o1", label: "A friend" },
       { id: "o2", label: "Search" },
-      { id: "o3", label: "An event" },
     ],
   });
   return (
@@ -23,7 +32,18 @@ export default function Default() {
         defaultOpen
         onDuplicate={() => {}}
         onDelete={() => {}}
-      />
+      >
+        <QuestionCardRow>
+          <QuestionCardSummary />
+          <QuestionCardDuplicate />
+          <QuestionCardDelete />
+        </QuestionCardRow>
+        <QuestionCardBody>
+          <QuestionCardFields />
+          <QuestionCardChoices />
+          <QuestionCardLimits />
+        </QuestionCardBody>
+      </QuestionCard>
     </div>
   );
 }

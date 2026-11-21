@@ -24,7 +24,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "table",
     name: "Table",
-    summary: "Typed columns, 44px rows; a clickable row opens on Enter.",
+    summary:
+      "Typed columns, 44px rows; a clickable row opens on Enter. Composed from parts, with a props shorthand.",
     imports: [
       "Table",
       "TableHeader",
@@ -67,8 +68,18 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "data-grid",
     name: "Data grid",
-    summary: "Rows of a database table: typed headers, constraints, sort, NULL and masked cells.",
-    imports: ["DataGrid", "ConstraintChip"],
+    summary:
+      "Rows of a database table: typed headers, constraints, sort, NULL and masked cells. Composed from parts, with a props shorthand.",
+    imports: [
+      "DataGrid",
+      "DataGridBody",
+      "DataGridCell",
+      "DataGridEmpty",
+      "DataGridHeader",
+      "DataGridHeaderCell",
+      "DataGridRow",
+      "ConstraintChip",
+    ],
     props: [
       { name: "label", type: "string", description: "Names the grid; it scrolls on the keyboard." },
       {
@@ -120,7 +131,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "detail-list",
     name: "Detail list",
-    summary: "Label and value pairs, stacked: the facts beside a record.",
+    summary:
+      "Label and value pairs, stacked: the facts beside a record. Composed from parts, with a props shorthand.",
     imports: ["DetailList", "DetailListItem", "DetailListTerm", "DetailListValue"],
     props: [
       { name: "items", type: "{ label, value }[]", description: "In order; value is any node." },
@@ -131,7 +143,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "board",
     name: "Board",
     summary:
-      "Columns of cards, layout only. Give columns, or compose BoardColumn, BoardColumnHeader, BoardCards and BoardCard.",
+      "Columns of cards, layout only. Composed from BoardColumn, BoardColumnHeader, BoardCards and BoardCard, with a `columns` props shorthand.",
     imports: ["Board", "BoardColumn", "BoardColumnHeader", "BoardCards", "BoardCard", "BoardEmpty"],
     props: [
       {
@@ -152,10 +164,10 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "tool-card",
     name: "Tool card",
-    summary: "A tool in a grid: monogram, name, summary, facts and the one thing to do.",
+    summary:
+      "A tool in a grid: monogram, name, summary, facts and the one thing to do. Composed from parts, with a props shorthand.",
     imports: [
       "ToolCard",
-      "ToolIcon",
       "ToolCardHeader",
       "ToolCardIcon",
       "ToolCardHeading",
@@ -164,6 +176,7 @@ export const entries: ReadonlyArray<Atom> = [
       "ToolCardMeta",
       "ToolCardDescription",
       "ToolCardFooter",
+      "ToolIcon",
     ],
     props: [
       { name: "name", type: "string", description: "Its first letters make the monogram." },
@@ -186,14 +199,15 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "settings-group",
     name: "Settings group",
-    summary: "A titled card of rows, label left and control right; a link row ends with a chevron.",
+    summary:
+      "A titled card of rows, label left and control right; a link row ends with a chevron. Composed from parts, with a props shorthand.",
     imports: [
       "SettingsGroup",
-      "SettingsRow",
       "SettingsGroupHeader",
       "SettingsGroupTitle",
       "SettingsGroupDescription",
       "SettingsGroupCard",
+      "SettingsRow",
       "SettingsRowText",
       "SettingsRowLabel",
       "SettingsRowDescription",
@@ -240,7 +254,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "drawer",
     name: "Drawer",
-    summary: "A side panel for one record. Not modal; Escape closes, focus comes back.",
+    summary:
+      "A side panel for one record. Not modal; Escape closes, focus comes back. Composed from parts, with a props shorthand.",
     imports: [
       "Drawer",
       "DrawerTrigger",
@@ -277,7 +292,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "app-shell",
     name: "App shell",
-    summary: "Sidebar, content and a skip link; at phone width the sidebar folds behind a menu.",
+    summary:
+      "Sidebar, content and a skip link; at phone width the sidebar folds behind a menu. Composed from parts, with a props shorthand.",
     imports: [
       "AppShell",
       "Sidebar",
@@ -285,8 +301,6 @@ export const entries: ReadonlyArray<Atom> = [
       "AppShellHeader",
       "AppShellSidebar",
       "AppShellMain",
-      "SidebarProvider",
-      "SidebarTrigger",
       "SidebarHeader",
       "SidebarContent",
       "SidebarFooter",
@@ -298,6 +312,10 @@ export const entries: ReadonlyArray<Atom> = [
       "NavList",
       "NavListItem",
       "NavLink",
+      "NavBadge",
+      "NavLabel",
+      "SidebarProvider",
+      "SidebarTrigger",
     ],
     props: [
       {

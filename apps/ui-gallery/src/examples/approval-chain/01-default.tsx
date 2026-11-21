@@ -1,4 +1,20 @@
-import { ApprovalChain, type ApprovalStep } from "@forgeron/ui";
+import {
+  ApprovalChain,
+  ApprovalChainAdd,
+  ApprovalChainAudit,
+  ApprovalChainBody,
+  ApprovalChainComments,
+  ApprovalChainFoot,
+  ApprovalChainHeader,
+  ApprovalChainLive,
+  ApprovalChainModes,
+  ApprovalChainPeople,
+  ApprovalChainRail,
+  ApprovalChainStep,
+  ApprovalChainStepHead,
+  ApprovalChainSteps,
+  type ApprovalStep,
+} from "@forgeron/ui";
 
 const steps: ApprovalStep[] = [
   {
@@ -40,7 +56,7 @@ const steps: ApprovalStep[] = [
   },
 ];
 
-export default function Default() {
+export default function Composed() {
   return (
     <div style={{ width: "100%", maxWidth: 640 }}>
       <ApprovalChain
@@ -64,7 +80,26 @@ export default function Default() {
             tone: "success",
           },
         ]}
-      />
+      >
+        <ApprovalChainHeader />
+        <ApprovalChainSteps
+          renderStep={(step, index) => (
+            <ApprovalChainStep step={step} index={index}>
+              <ApprovalChainRail />
+              <ApprovalChainBody>
+                <ApprovalChainStepHead />
+                <ApprovalChainModes />
+                <ApprovalChainPeople />
+                <ApprovalChainAdd />
+                <ApprovalChainComments />
+              </ApprovalChainBody>
+            </ApprovalChainStep>
+          )}
+        />
+        <ApprovalChainFoot />
+        <ApprovalChainAudit />
+        <ApprovalChainLive />
+      </ApprovalChain>
     </div>
   );
 }

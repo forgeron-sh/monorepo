@@ -9,7 +9,20 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "widget-grid",
     name: "Widget grid",
     summary: "Widgets on 12 columns. In edit mode: drag, resize, arrows. One column when narrow.",
-    imports: ["WidgetGrid", "dashboardPlace", "dashboardSync", "dashboardNextSlot"],
+    imports: [
+      "WidgetGrid",
+      "dashboardPlace",
+      "dashboardSync",
+      "dashboardNextSlot",
+      "WidgetGridEditBar",
+      "WidgetGridCanvas",
+      "WidgetGridItem",
+      "WidgetGridContent",
+      "WidgetGridGrab",
+      "WidgetGridResize",
+      "WidgetGridRemove",
+      "WidgetGridStatus",
+    ],
     props: [
       {
         name: "widgets",
@@ -50,6 +63,12 @@ export const entries: ReadonlyArray<Atom> = [
       },
       { name: "label", type: "string", default: `"Dashboard"`, description: "Names the region." },
       { name: "empty", type: "ReactNode", description: "Shown when there is no widget." },
+      {
+        name: "Parts",
+        type: "WidgetGridEditBar, WidgetGridCanvas, WidgetGridItem, WidgetGridContent, WidgetGridGrab, WidgetGridResize, WidgetGridRemove, WidgetGridStatus",
+        description:
+          "With children, they replace the default layout. The widgets, the layout and the drag stay in the root; WidgetGridCanvas takes a function from a widget to its WidgetGridItem.",
+      },
       className,
     ],
   },
@@ -58,7 +77,20 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Widget frame",
     summary:
       "A titled box for a chart: menu, loading, error with retry, empty, and full size in a dialog.",
-    imports: ["WidgetFrame"],
+    imports: [
+      "WidgetFrame",
+      "WidgetFrameHeader",
+      "WidgetFrameGrip",
+      "WidgetFrameTitles",
+      "WidgetFrameTitle",
+      "WidgetFrameSubtitle",
+      "WidgetFrameTools",
+      "WidgetFrameExpand",
+      "WidgetFrameMenu",
+      "WidgetFrameContent",
+      "WidgetFrameBody",
+      "WidgetFrameFooter",
+    ],
     props: [
       {
         name: "title / subtitle",
@@ -103,6 +135,12 @@ export const entries: ReadonlyArray<Atom> = [
         default: "3",
         description: "Of the title.",
       },
+      {
+        name: "Parts",
+        type: "WidgetFrameHeader, WidgetFrameGrip, WidgetFrameTitles, WidgetFrameTitle, WidgetFrameSubtitle, WidgetFrameTools, WidgetFrameExpand, WidgetFrameMenu, WidgetFrameContent, WidgetFrameBody, WidgetFrameFooter",
+        description:
+          "With a header or a content among the children, they are the whole layout. Title, state and menu stay on the root.",
+      },
       className,
     ],
   },
@@ -111,7 +149,15 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Date range compare",
     summary:
       "A period and what it is compared to: previous period, previous year, or a custom one.",
-    imports: ["DateRangeCompare", "dashboardCompareRanges"],
+    imports: [
+      "DateRangeCompare",
+      "dashboardCompareRanges",
+      "DateRangeComparePeriod",
+      "DateRangeCompareVs",
+      "DateRangeCompareSelect",
+      "DateRangeCompareCustom",
+      "DateRangeCompareSummary",
+    ],
     props: [
       {
         name: "value / defaultValue",
@@ -136,6 +182,12 @@ export const entries: ReadonlyArray<Atom> = [
         type: "as DateRangePicker",
         description: "Passed through.",
       },
+      {
+        name: "Parts",
+        type: "DateRangeComparePeriod, DateRangeCompareVs, DateRangeCompareSelect, DateRangeCompareCustom, DateRangeCompareSummary",
+        description:
+          "With children, they replace the default layout; useDateRangeCompare() gives the period and its ranges.",
+      },
       className,
     ],
   },
@@ -143,7 +195,17 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "metric-picker",
     name: "Metric picker",
     summary: "Pick a measure, a grouping and filters. The value is a query to run, not data.",
-    imports: ["MetricPicker", "dashboardQueryText", "dashboardEmptyQuery"],
+    imports: [
+      "MetricPicker",
+      "dashboardQueryText",
+      "dashboardEmptyQuery",
+      "MetricPickerSteps",
+      "MetricPickerStep",
+      "MetricPickerMeasure",
+      "MetricPickerGrouping",
+      "MetricPickerFilter",
+      "MetricPickerSummary",
+    ],
     props: [
       {
         name: "measures",
@@ -178,6 +240,12 @@ export const entries: ReadonlyArray<Atom> = [
         description: "The query in a sentence.",
       },
       { name: "label", type: "string", default: `"Question"`, description: "Names the group." },
+      {
+        name: "Parts",
+        type: "MetricPickerSteps, MetricPickerStep, MetricPickerMeasure, MetricPickerGrouping, MetricPickerFilter, MetricPickerSummary",
+        description:
+          "With children, they replace the default layout. The catalogue (measures, groupings, fields) stays in the root.",
+      },
       className,
     ],
   },

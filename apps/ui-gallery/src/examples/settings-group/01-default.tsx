@@ -1,18 +1,37 @@
-import { SettingsGroup, SettingsRow, Switch } from "@forgeron/ui";
+import {
+  SettingsGroup,
+  SettingsGroupCard,
+  SettingsGroupDescription,
+  SettingsGroupHeader,
+  SettingsGroupTitle,
+  SettingsRow,
+  SettingsRowControl,
+  SettingsRowDescription,
+  SettingsRowLabel,
+  SettingsRowText,
+  Switch,
+} from "@forgeron/ui";
 
-export default function Default() {
+// A group and its rows from their parts: you decide what is in the header and in each row.
+export default function Composed() {
   return (
     <div style={{ width: 380 }}>
-      <SettingsGroup title="Notifications">
-        <SettingsRow label="Email digest" description="One email a day, at 8:00.">
-          <Switch label="" aria-label="Email digest" defaultChecked />
-        </SettingsRow>
-        <SettingsRow
-          label="Language"
-          href="#/settings/language"
-          value="English"
-          onNavigate={() => {}}
-        />
+      <SettingsGroup>
+        <SettingsGroupHeader>
+          <SettingsGroupTitle>Notifications</SettingsGroupTitle>
+          <SettingsGroupDescription>Where and when we write to you.</SettingsGroupDescription>
+        </SettingsGroupHeader>
+        <SettingsGroupCard>
+          <SettingsRow>
+            <SettingsRowText>
+              <SettingsRowLabel>Email digest</SettingsRowLabel>
+              <SettingsRowDescription>One email a day, at 8:00.</SettingsRowDescription>
+            </SettingsRowText>
+            <SettingsRowControl>
+              <Switch label="" aria-label="Email digest" defaultChecked />
+            </SettingsRowControl>
+          </SettingsRow>
+        </SettingsGroupCard>
       </SettingsGroup>
     </div>
   );

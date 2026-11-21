@@ -15,8 +15,41 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Approval chain",
     summary:
       "An approval as steps: people one by one or all at once, status, due date, reminder, comments, audit.",
-    imports: ["ApprovalChain", "ApprovalAudit", "resolveChain", "chainStatus", "chainProgress"],
+    imports: [
+      "ApprovalChain",
+      "ApprovalAudit",
+      "resolveChain",
+      "chainStatus",
+      "chainProgress",
+      "ApprovalChainHeader",
+      "ApprovalChainSteps",
+      "ApprovalChainStep",
+      "ApprovalChainRail",
+      "ApprovalChainBody",
+      "ApprovalChainStepHead",
+      "ApprovalChainTitle",
+      "ApprovalChainStatus",
+      "ApprovalChainMode",
+      "ApprovalChainDue",
+      "ApprovalChainControls",
+      "ApprovalChainModes",
+      "ApprovalChainPeople",
+      "ApprovalChainAdd",
+      "ApprovalChainComments",
+      "ApprovalChainFoot",
+      "ApprovalChainAudit",
+      "ApprovalChainLive",
+      "ApprovalAuditTitle",
+      "ApprovalAuditList",
+      "ApprovalAuditItem",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "ApprovalChainHeader, ApprovalChainSteps, ApprovalChainStep, ApprovalChainRail, ApprovalChainBody, ApprovalChainStepHead, ApprovalChainTitle, ApprovalChainStatus, ApprovalChainMode, ApprovalChainDue, ApprovalChainControls, ApprovalChainModes, ApprovalChainPeople, ApprovalChainAdd, ApprovalChainComments, ApprovalChainFoot, ApprovalChainAudit, ApprovalChainLive, ApprovalAuditTitle, ApprovalAuditList, ApprovalAuditItem",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       { name: "label", type: "string", description: "Names the chain: “Expense 214”." },
       {
         name: "value / defaultValue / onChange",
@@ -70,8 +103,29 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "participant-list",
     name: "Participant list",
     summary: "People with role, status and order, reordered by drag or Alt + arrows.",
-    imports: ["ParticipantList", "participantTone"],
+    imports: [
+      "ParticipantList",
+      "participantTone",
+      "ParticipantListRows",
+      "ParticipantListItem",
+      "ParticipantListGrip",
+      "ParticipantListOrder",
+      "ParticipantListTone",
+      "ParticipantListWho",
+      "ParticipantListWhen",
+      "ParticipantListBadge",
+      "ParticipantListRemind",
+      "ParticipantListActions",
+      "ParticipantListRemove",
+      "ParticipantListLive",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "ParticipantListRows, ParticipantListItem, ParticipantListGrip, ParticipantListOrder, ParticipantListTone, ParticipantListWho, ParticipantListWhen, ParticipantListBadge, ParticipantListRemind, ParticipantListActions, ParticipantListRemove, ParticipantListLive",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       { name: "label", type: "string", description: "Names the list: “Signers”." },
       {
         name: "value / defaultValue / onChange",
@@ -116,8 +170,28 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Document viewer",
     summary:
       "Pages as images or a render callback, thumbnails, zoom 50–300 %, navigation, search, overlay.",
-    imports: ["DocumentViewer", "fitScale", "stepZoom"],
+    imports: [
+      "DocumentViewer",
+      "fitScale",
+      "stepZoom",
+      "DocumentViewerToolbar",
+      "DocumentViewerSeparator",
+      "DocumentViewerThumbsToggle",
+      "DocumentViewerPager",
+      "DocumentViewerZoom",
+      "DocumentViewerSearch",
+      "DocumentViewerMain",
+      "DocumentViewerThumbs",
+      "DocumentViewerPages",
+      "DocumentViewerPage",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "DocumentViewerToolbar, DocumentViewerSeparator, DocumentViewerThumbsToggle, DocumentViewerPager, DocumentViewerZoom, DocumentViewerSearch, DocumentViewerMain, DocumentViewerThumbs, DocumentViewerPages, DocumentViewerPage",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       { name: "label", type: "string", description: "Names the viewer." },
       {
         name: "pages",
@@ -167,8 +241,31 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "field-placer",
     name: "Field placer",
     summary: "Place, drag, resize and delete typed boxes on a document, each for a participant.",
-    imports: ["FieldPlacer", "boxAt", "participantsWithoutField", "PARTICIPANT_TONES"],
+    imports: [
+      "FieldPlacer",
+      "boxAt",
+      "participantsWithoutField",
+      "PARTICIPANT_TONES",
+      "FieldPlacerStage",
+      "FieldPlacerLayer",
+      "FieldPlacerBox",
+      "FieldPlacerPanel",
+      "FieldPlacerTools",
+      "FieldPlacerTypes",
+      "FieldPlacerAssignee",
+      "FieldPlacerHint",
+      "FieldPlacerPlace",
+      "FieldPlacerList",
+      "FieldPlacerItem",
+      "FieldPlacerLive",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "FieldPlacerStage, FieldPlacerLayer, FieldPlacerBox, FieldPlacerPanel, FieldPlacerTools, FieldPlacerTypes, FieldPlacerAssignee, FieldPlacerHint, FieldPlacerPlace, FieldPlacerList, FieldPlacerItem, FieldPlacerLive",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props.",
+      },
       { name: "label", type: "string", description: "Names the placer." },
       { name: "pages", type: "DocumentPage[]", description: "As DocumentViewer." },
       {
@@ -205,8 +302,23 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "seal-badge",
     name: "Seal badge",
     summary: "Proof of a signature or approval: who, when with its zone, how, and a hash prefix.",
-    imports: ["SealBadge", "formatStamp", "hashPrefix"],
+    imports: [
+      "SealBadge",
+      "formatStamp",
+      "hashPrefix",
+      "SealBadgeMark",
+      "SealBadgeBody",
+      "SealBadgeTop",
+      "SealBadgeWho",
+      "SealBadgeFacts",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "SealBadgeMark, SealBadgeBody, SealBadgeTop, SealBadgeWho, SealBadgeFacts",
+        description:
+          "With children, the block is a frame and these parts compose it; each takes className, ...rest, a data-slot and, on one element, asChild. Without children it builds them from its props. Plain children of the shorthand go at the end of the seal.",
+      },
       { name: "who / detail", type: "string", description: "Name, and a role or email under it." },
       {
         name: "action",

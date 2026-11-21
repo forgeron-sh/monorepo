@@ -7,8 +7,25 @@ export const entries: ReadonlyArray<Atom> = [
     name: "App sidebar",
     summary:
       "The left column of an app: switcher, links, folding sections, an unread count on Inbox.",
-    imports: ["AppSidebar"],
+    imports: [
+      "AppSidebar",
+      "AppSidebarHeader",
+      "AppSidebarSwitcher",
+      "AppSidebarNav",
+      "AppSidebarSection",
+      "AppSidebarMenu",
+      "AppSidebarItem",
+      "AppSidebarLink",
+      "AppSidebarFold",
+      "AppSidebarFooter",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "AppSidebar > AppSidebarHeader (AppSidebarSwitcher), AppSidebarNav > AppSidebarMenu > AppSidebarItem > AppSidebarLink | AppSidebarFold, AppSidebarSection, AppSidebarFooter",
+        description:
+          "A preset of the `Sidebar` parts: without `app` and `items` the root takes `current` and `onNavigate` and these parts as children.",
+      },
       { name: "app", type: "{ name, icon }", description: "The app on top: its tile and name." },
       {
         name: "items",
@@ -46,8 +63,21 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "inbox-list",
     name: "Inbox list",
     summary: "Notification rows: unread in bold with the ember LED, arrows to move.",
-    imports: ["InboxList"],
+    imports: [
+      "InboxList",
+      "InboxListRow",
+      "InboxListWho",
+      "InboxListTitle",
+      "InboxListTime",
+      "InboxListPreview",
+    ],
     props: [
+      {
+        name: "Parts",
+        type: "InboxList > InboxListRow > InboxListWho, InboxListTitle, InboxListTime, InboxListPreview",
+        description:
+          "Give children to draw the rows yourself; the root still takes `items` for the keyboard.",
+      },
       {
         name: "items",
         type: "InboxItem[]",

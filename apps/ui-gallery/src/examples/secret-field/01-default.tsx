@@ -1,21 +1,27 @@
-import { SecretField } from "@forgeron/ui";
-import { useState } from "react";
+import {
+  SecretField,
+  SecretFieldBody,
+  SecretFieldConfirm,
+  SecretFieldHeader,
+  SecretFieldHint,
+} from "@forgeron/ui";
 
-export default function Default() {
-  const [rotated, setRotated] = useState("2026-11-01");
+export default function Composed() {
   return (
     <div style={{ width: "100%", maxWidth: 560 }}>
       <SecretField
-        label="Signing secret"
-        hint="Used to sign every request we send you."
+        label="Client secret"
         isSet
-        rotatedAt={rotated}
-        today="2026-11-19"
-        // The value is a placeholder, read only when asked for.
         getValue={() => "fg_test_xxxxxxxx"}
-        onReplace={() => setRotated("2026-11-19")}
         onRemove={() => {}}
-      />
+      >
+        <SecretFieldHeader />
+        <SecretFieldHint>
+          Kept by the app: it never reaches this page until you reveal it.
+        </SecretFieldHint>
+        <SecretFieldBody />
+        <SecretFieldConfirm />
+      </SecretField>
     </div>
   );
 }

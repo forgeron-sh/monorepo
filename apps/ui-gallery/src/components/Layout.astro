@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from "astro:transitions";
 import "@forgeron/ui/styles.css";
 import "../styles/lab.css";
 import "../styles/gallery.css";
@@ -7,7 +8,7 @@ import Nav from "./Nav.astro";
 interface Props {
   title: string;
   description: string;
-  page: "home" | "identity" | "shaders" | "docs" | "blocks" | "marketing" | "editors" | "pages" | "charts";
+  page: "home" | "identity" | "docs" | "blocks" | "charts";
 }
 const { title, description, page } = Astro.props;
 ---
@@ -30,6 +31,8 @@ const { title, description, page } = Astro.props;
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Silkscreen&display=swap"
     />
+    <!-- From page to page the content is swapped without a full load; the sidebar stays. -->
+    <ClientRouter />
   </head>
   <body>
     <a class="skip btn btn-sm" href="#main">Skip to content</a>
@@ -44,6 +47,7 @@ const { title, description, page } = Astro.props;
     </footer>
     <script>
       import "../lib/frames";
+      import "../lib/sidebar";
     </script>
   </body>
 </html>

@@ -30,8 +30,30 @@ export const entries: ReadonlyArray<Atom> = [
       "moveFormQuestion",
       "newFormQuestion",
       "formConditionFields",
+      "FormBuilderToolbar",
+      "FormBuilderEdit",
+      "FormBuilderMeta",
+      "FormBuilderProblems",
+      "FormBuilderSections",
+      "FormBuilderSection",
+      "FormBuilderSectionHead",
+      "FormBuilderSectionDescription",
+      "FormBuilderSectionLogic",
+      "FormBuilderCards",
+      "FormBuilderCard",
+      "FormBuilderAddQuestion",
+      "FormBuilderAddPage",
+      "FormBuilderStatus",
+      "FormBuilderPreview",
+      "useFormBuilder",
     ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in the order you choose: FormBuilderToolbar, FormBuilderEdit (FormBuilderMeta, FormBuilderProblems, FormBuilderSections or your own FormBuilderSection with its head, logic, cards and add menu, FormBuilderAddPage, FormBuilderStatus) and FormBuilderPreview. Without them: the whole builder.",
+      },
       {
         name: "value / defaultValue",
         type: "FormSchema",
@@ -76,8 +98,32 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Question card",
     summary:
       "One question edited where it stands: title, help, type, required, options, limits; duplicate, delete, a handle to reorder.",
-    imports: ["QuestionCard", "newFormQuestion", "convertFormQuestion", "formQuestionInfo"],
+    imports: [
+      "QuestionCard",
+      "newFormQuestion",
+      "convertFormQuestion",
+      "formQuestionInfo",
+      "QuestionCardRow",
+      "QuestionCardHandle",
+      "QuestionCardSummary",
+      "QuestionCardDuplicate",
+      "QuestionCardDelete",
+      "QuestionCardBody",
+      "QuestionCardProblems",
+      "QuestionCardFields",
+      "QuestionCardChoices",
+      "QuestionCardRange",
+      "QuestionCardLimits",
+      "QuestionCardLogic",
+      "useQuestionCard",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: QuestionCardRow (handle, summary, duplicate, delete) and QuestionCardBody (problems, fields, choices, range, limits, logic). Without them: both.",
+      },
       question,
       {
         name: "onChange",
@@ -148,8 +194,30 @@ export const entries: ReadonlyArray<Atom> = [
       "formPages",
       "parseFormAnswer",
       "formAnswerText",
+      "FormRendererHeader",
+      "FormRendererProgress",
+      "FormRendererNotice",
+      "FormRendererPages",
+      "FormRendererPage",
+      "FormRendererQuestion",
+      "FormRendererReview",
+      "FormRendererActions",
+      "FormRendererBack",
+      "FormRendererSubmit",
+      "FormQuestionFieldTitle",
+      "FormQuestionFieldHelp",
+      "FormQuestionFieldControl",
+      "FormQuestionFieldError",
+      "useFormRenderer",
+      "useFormQuestionField",
     ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts, in the order you choose: header, progress, notice, pages (or your own FormRendererPage with FormRendererQuestion), actions (back, submit). FormQuestionField takes FormQuestionFieldTitle, Help, Control and Error the same way. Without them: the whole form.",
+      },
       schema,
       {
         name: "value / defaultValue",
@@ -217,8 +285,21 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Matrix field",
     summary:
       "Rows rated against the same columns: one radio (or box) per cell, named by its row and column.",
-    imports: ["MatrixField"],
+    imports: [
+      "MatrixField",
+      "MatrixFieldColumns",
+      "MatrixFieldRows",
+      "MatrixFieldRow",
+      "MatrixFieldCell",
+      "useMatrixField",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts inside the table: MatrixFieldColumns and MatrixFieldRows (or your own MatrixFieldRow with MatrixFieldCell). Without them: both.",
+      },
       {
         name: "label",
         type: "string",
@@ -255,8 +336,26 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Ranking field",
     summary:
       "Items put in order: drag the handle, press the arrow buttons, or Alt + Up and Alt + Down on an item.",
-    imports: ["RankingField", "moveFormItem"],
+    imports: [
+      "RankingField",
+      "moveFormItem",
+      "RankingFieldList",
+      "RankingFieldItem",
+      "RankingFieldHandle",
+      "RankingFieldMain",
+      "RankingFieldUp",
+      "RankingFieldDown",
+      "RankingFieldKeep",
+      "RankingFieldStatus",
+      "useRankingField",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: RankingFieldList (RankingFieldItem with its handle, main, up and down), RankingFieldKeep, RankingFieldStatus. Without them: all three.",
+      },
       {
         name: "label",
         type: "string",
@@ -292,8 +391,27 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Response summary",
     summary:
       "What came back, one mini-chart per question: bars, histogram with mean and NPS, list of texts, matrix grid.",
-    imports: ["ResponseSummary", "summarizeForm", "formResponseGrid", "formPercent"],
+    imports: [
+      "ResponseSummary",
+      "summarizeForm",
+      "formResponseGrid",
+      "formPercent",
+      "ResponseSummaryTotals",
+      "ResponseSummaryEmpty",
+      "ResponseSummaryList",
+      "ResponseSummaryQuestion",
+      "ResponseSummaryQuestionHead",
+      "ResponseSummaryQuestionMeta",
+      "ResponseSummaryQuestionBody",
+      "useResponseSummary",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: totals, the empty note, and the list (or your own ResponseSummaryQuestion by index). Without them: all three.",
+      },
       schema,
       {
         name: "responses",
@@ -321,8 +439,21 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Share link panel",
     summary:
       "The link of a form to copy, the embed code, and a switch that stops taking responses.",
-    imports: ["ShareLinkPanel"],
+    imports: [
+      "ShareLinkPanel",
+      "ShareLinkPanelLink",
+      "ShareLinkPanelEmbed",
+      "ShareLinkPanelSwitch",
+      "ShareLinkPanelClosed",
+      "useShareLinkPanel",
+    ],
     props: [
+      {
+        name: "children",
+        type: "ReactNode",
+        description:
+          "The parts: the link, the embed snippet, the switch and the closed note. Without them: all of them (the snippet unless `embed` is false).",
+      },
       { name: "url", type: "string", description: "The public address of the form." },
       {
         name: "open / defaultOpen",

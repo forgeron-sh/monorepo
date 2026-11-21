@@ -30,8 +30,21 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "combobox",
     name: "Combobox",
     summary:
-      "Pick one or several among many by typing. Options can come from a server, and the text can become one.",
-    imports: ["Combobox", "type ComboboxOption"],
+      "Pick one or several among many by typing. Options can come from a server, and the text can become one. Composed from parts, with a props shorthand.",
+    imports: [
+      "Combobox",
+      "ComboboxChip",
+      "ComboboxChips",
+      "ComboboxChipsInput",
+      "ComboboxContent",
+      "ComboboxEmpty",
+      "ComboboxInput",
+      "ComboboxInputGroup",
+      "ComboboxItem",
+      "ComboboxList",
+      "ComboboxValue",
+      "type ComboboxOption",
+    ],
     props: [
       label("the control"),
       {
@@ -86,8 +99,14 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Tag input",
     summary:
       "Tags typed in: a separator or Enter ends one, a paste is split, Backspace removes the last.",
-    imports: ["TagInput"],
+    imports: ["TagInput", "TagInputList", "TagInputTags", "TagInputTag", "TagInputField"],
     props: [
+      {
+        name: "TagInput parts",
+        type: "TagInput (no label; value / defaultValue / onChange, separators, validate, max, allowDuplicates, disabled), TagInputList, TagInputTags, TagInputTag value, TagInputField",
+        description:
+          "TagInput with a label is built from them; compose your own as shadcn would. It is free text: to choose among options, use the ComboboxChips parts. useTagInput reads the tags.",
+      },
       label("the field"),
       value("string[]"),
       onChange("(value: string[]) => void"),
@@ -168,7 +187,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "rating",
     name: "Rating",
-    summary: "Pixel stars, one tab stop that works as a slider. Read-only mode, optional halves.",
+    summary:
+      "Pixel stars, one tab stop that works as a slider. Read-only mode, optional halves. Composed from parts, with a props shorthand.",
     imports: ["Rating", "RatingItem", "Star"],
     props: [
       label("the rating"),
@@ -202,8 +222,13 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "scale",
     name: "Scale",
     summary: "A row of numbers to pick one from: a satisfaction scale, an NPS question.",
-    imports: ["Scale"],
+    imports: ["Scale", "ScaleLabel", "ScaleRow", "ScaleItem", "ScaleEnds"],
     props: [
+      {
+        name: "Scale parts",
+        type: "Scale (no label; value / defaultValue / onChange, min, max, nps, readOnly, disabled), ScaleLabel, ScaleRow label, ScaleItem value, ScaleEnds",
+        description: "Scale with a label is built from them; compose your own as shadcn would.",
+      },
       { name: "label", type: "string", description: "The question, said once for the whole row." },
       value("number | null"),
       onChange("(value: number | null) => void"),
@@ -232,8 +257,15 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "time-picker",
     name: "Time picker",
     summary:
-      "A time typed or chosen: spinbuttons, AM and PM in 12 hours, a list every few minutes.",
-    imports: ["TimePicker"],
+      "A time typed or chosen: spinbuttons, AM and PM in 12 hours, a list every few minutes. Composed from parts, with a props shorthand.",
+    imports: [
+      "TimePicker",
+      "TimePickerHour",
+      "TimePickerList",
+      "TimePickerMinute",
+      "TimePickerPeriod",
+      "TimePickerSeparator",
+    ],
     props: [
       label("the field"),
       value("string | null", "`HH:mm`, always 24 hours."),
@@ -259,8 +291,16 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "date-range-picker",
     name: "Date range picker",
     summary:
-      "A period: quick picks, then a month where the first click sets the start and the second the end.",
-    imports: ["DateRangePicker", "type DateRange"],
+      "A period: quick picks, then a month where the first click sets the start and the second the end. Composed from parts, with a props shorthand.",
+    imports: [
+      "DateRangePicker",
+      "DateRangePickerCalendar",
+      "DateRangePickerContent",
+      "DateRangePickerFooter",
+      "DateRangePickerPresets",
+      "DateRangePickerTrigger",
+      "type DateRange",
+    ],
     props: [
       { name: "label", type: "string", description: "e.g. Period." },
       value("{ from, to }", "Each YYYY-MM-DD or null."),
@@ -292,7 +332,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "number-input",
     name: "Number input",
-    summary: "A number with minus and plus buttons, read and written in the locale.",
+    summary:
+      "A number with minus and plus buttons, read and written in the locale. Composed from parts, with a props shorthand.",
     imports: [
       "NumberInput",
       "NumberInputField",
@@ -343,7 +384,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "money-input",
     name: "Money input",
     summary:
-      "An amount in a currency, in minor units: 1250 is 12.50. The symbol sits where the locale puts it.",
+      "An amount in a currency, in minor units: 1250 is 12.50. The symbol sits where the locale puts it. Composed from parts, with a props shorthand.",
     imports: ["MoneyInput", "MoneyInputField", "MoneyInputSymbol", "formatMoney"],
     props: [
       label("the field"),
@@ -374,8 +415,15 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "currency-picker",
     name: "Currency picker",
-    summary: "A currency in a short list: code, name and symbol.",
-    imports: ["CurrencyPicker", "CurrencyPickerItem"],
+    summary:
+      "A currency in a short list: code, name and symbol. Composed from parts, with a props shorthand.",
+    imports: [
+      "CurrencyPicker",
+      "CurrencyPickerItem",
+      "SelectContent",
+      "SelectTrigger",
+      "SelectValue",
+    ],
     props: [
       { name: "label", type: "string", default: '"Currency"', description: "Names the control." },
       value("string", "An ISO 4217 code."),
@@ -400,15 +448,18 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "color-picker",
     name: "Color picker",
-    summary: "A swatch palette from the tokens and a hex field: no gradients, no sliders.",
+    summary:
+      "A swatch palette from the tokens and a hex field: no gradients, no sliders. Composed from parts, with a props shorthand.",
     imports: [
-      "ColorPicker",
+      "ColorPickerClear",
       "ColorPickerRoot",
       "ColorPickerTrigger",
       "ColorPickerContent",
       "ColorPickerSwatches",
       "ColorPickerSwatch",
       "ColorPickerInput",
+      "ColorPickerPanel",
+      "ColorPicker",
       "COLOR_PALETTE",
     ],
     props: [
@@ -448,8 +499,8 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "otp-input",
     name: "OTP input",
     summary:
-      "A one-time code in cells: typing moves on, a paste fills them all, Backspace goes back.",
-    imports: ["OtpInput", "InputOTP", "InputOTPGroup", "InputOTPSlot", "InputOTPSeparator"],
+      "A one-time code in cells: typing moves on, a paste fills them all, Backspace goes back. Composed from parts, with a props shorthand.",
+    imports: ["InputOTP", "InputOTPGroup", "InputOTPSlot", "InputOTPSeparator", "OtpInput"],
     props: [
       label("the group; each cell reads “character 3 of 6”"),
       { name: "length", type: "number", default: "6", description: "How many characters." },
@@ -477,8 +528,16 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "file-input",
     name: "File input",
     summary:
-      "A button and a drop target, the list of chosen files with a remove button each, and the limits.",
-    imports: ["FileInput", "FileInputDrop", "FileInputTrigger", "FileInputList", "formatFileSize"],
+      "A button and a drop target, the list of chosen files with a remove button each, and the limits. Composed from parts, with a props shorthand.",
+    imports: [
+      "FileInput",
+      "FileInputDrop",
+      "FileInputTrigger",
+      "FileInputList",
+      "FileInputHint",
+      "FileInputLimits",
+      "formatFileSize",
+    ],
     props: [
       label("the field"),
       value("File[]"),
@@ -504,11 +563,13 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "popover",
     name: "Popover",
-    summary: "A panel that opens from a button and holds anything. Built on Base UI.",
+    summary:
+      "A panel that opens from a button and holds anything. Built on Base UI. Composed from parts, with a props shorthand.",
     imports: [
       "Popover",
       "PopoverTrigger",
       "PopoverContent",
+      "PopoverArrow",
       "PopoverTitle",
       "PopoverDescription",
       "PopoverClose",
@@ -516,7 +577,7 @@ export const entries: ReadonlyArray<Atom> = [
     props: [
       {
         name: "Popover parts",
-        type: "Popover (open / defaultOpen / onOpenChange), PopoverTrigger (asChild), PopoverContent (side, align, sideOffset), PopoverTitle, PopoverDescription, PopoverClose",
+        type: "Popover (open / defaultOpen / onOpenChange), PopoverTrigger (asChild), PopoverContent (side, align, sideOffset, anchor), PopoverArrow, PopoverTitle, PopoverDescription, PopoverClose",
         description: "shadcn's composition: Popover without trigger is the root (D-156).",
       },
       {
@@ -561,7 +622,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "collapsible",
     name: "Collapsible",
-    summary: "One section that folds. Short stepped motion, none under reduced motion.",
+    summary:
+      "One section that folds. Short stepped motion, none under reduced motion. Composed from parts, with a props shorthand.",
     imports: ["Collapsible", "CollapsibleTrigger", "CollapsibleContent"],
     props: [
       {
@@ -595,7 +657,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "accordion",
     name: "Accordion",
     summary:
-      "Collapsibles stacked: one open at a time, or several. Up and Down move between headers.",
+      "Collapsibles stacked: one open at a time, or several. Up and Down move between headers. Composed from parts, with a props shorthand.",
     imports: ["Accordion", "AccordionItem", "AccordionTrigger", "AccordionContent"],
     props: [
       {
@@ -625,7 +687,8 @@ export const entries: ReadonlyArray<Atom> = [
   {
     slug: "split-pane",
     name: "Split pane",
-    summary: "Two panes and a divider to drag or move with the arrows. Size controlled or not.",
+    summary:
+      "Two panes and a divider to drag or move with the arrows. Size controlled or not. Composed from parts, with a props shorthand.",
     imports: ["SplitPane", "SplitPanePanel", "SplitPaneHandle"],
     props: [
       {
@@ -666,6 +729,70 @@ export const entries: ReadonlyArray<Atom> = [
         default: "16",
         description:
           "An arrow moves by this; Shift ×4. Home and End go to the limits; double click resets.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "resizable",
+    name: "Resizable",
+    summary:
+      "Panels and the handles between them, as in shadcn: percent layout, N panels, collapsible panels, a WAI-ARIA window splitter. SplitPane is its px preset.",
+    imports: ["ResizablePanelGroup", "ResizablePanel", "ResizableHandle"],
+    props: [
+      {
+        name: "ResizablePanelGroup direction / orientation",
+        type: '"horizontal" | "vertical"',
+        default: '"horizontal"',
+        description: "Side by side, or one above the other. `orientation` is the newer name.",
+      },
+      {
+        name: "ResizablePanelGroup layout / defaultLayout",
+        type: "number[]",
+        description: "The size of each panel in percent, when you own it / at the start.",
+      },
+      {
+        name: "ResizablePanelGroup onLayout",
+        type: "(layout: number[]) => void",
+        description: "On every change of the layout.",
+      },
+      {
+        name: "ResizablePanelGroup onLayoutChanged",
+        type: "(layout: number[]) => void",
+        description: "A drag ended or a key was pressed: save it.",
+      },
+      {
+        name: "ResizablePanelGroup storageKey",
+        type: "string",
+        description: "Keeps the layout in localStorage under this key (not when controlled).",
+      },
+      {
+        name: "ResizablePanelGroup unit / keyStep",
+        type: '"percent" | "px" / number',
+        default: '"percent" / 5',
+        description: "px: every panel but the last in px, the last takes the rest (SplitPane).",
+      },
+      {
+        name: "ResizablePanel defaultSize / minSize / maxSize",
+        type: "number",
+        default: "shared / 0 / 100",
+        description: "In percent. Panels without a defaultSize share what is left.",
+      },
+      {
+        name: "ResizablePanel collapsible / collapsedSize",
+        type: "boolean / number",
+        default: "false / 0",
+        description: "Collapses when dragged under half way to its minimum, or on Enter.",
+      },
+      {
+        name: "ResizablePanel order / id",
+        type: "number / string",
+        description: "`order` is accepted; the order is the one of the children.",
+      },
+      {
+        name: "ResizableHandle withHandle / disabled",
+        type: "boolean",
+        description: "Draws a grip; takes the handle out of reach.",
       },
       className,
     ],

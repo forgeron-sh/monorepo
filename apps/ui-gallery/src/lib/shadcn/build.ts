@@ -542,7 +542,6 @@ function baseStylesheet(input: BuildInput, tokens: ReadonlyMap<string, string>):
     "ui/src/atoms.css",
     "ui/src/components.css",
     "ui/src/fields.css",
-    "ui/src/shaders/shaders.css",
     ...[
       "forms",
       "display",
@@ -561,6 +560,12 @@ function baseStylesheet(input: BuildInput, tokens: ReadonlyMap<string, string>):
       "collection",
       "sortable",
       "shell",
+      "resizable",
+      "input-group",
+      "period-nav",
+      "event-grid",
+      "day-grid",
+      "slot-list",
     ].map((g) => `ui/src/parts-${g}.css`),
   ];
   const names = [...tokens.keys()];

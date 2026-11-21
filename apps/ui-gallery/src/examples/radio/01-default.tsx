@@ -1,15 +1,14 @@
-import { RadioGroup } from "@forgeron/ui";
+import { RadioGroup, RadioGroupItem } from "@forgeron/ui";
 
-export default function Default() {
+export default function Composed() {
   return (
-    <RadioGroup
-      label="Who can open this tool"
-      defaultValue="team"
-      options={[
-        { value: "me", label: "Only me" },
-        { value: "team", label: "My team", hint: "Sales, 6 people" },
-        { value: "workspace", label: "Everyone in the workspace" },
-      ]}
-    />
+    <RadioGroup defaultValue="comfortable">
+      {["default", "comfortable", "compact"].map((value) => (
+        <div key={value} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <RadioGroupItem value={value} id={`r-${value}`} />
+          <label htmlFor={`r-${value}`}>{value}</label>
+        </div>
+      ))}
+    </RadioGroup>
   );
 }

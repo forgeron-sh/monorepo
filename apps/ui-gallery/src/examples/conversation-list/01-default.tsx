@@ -1,4 +1,14 @@
-import { ConversationList, type ConversationListItem } from "@forgeron/ui";
+import {
+  ConversationList,
+  ConversationListCount,
+  ConversationListGroups,
+  ConversationListPreview,
+  ConversationListRow,
+  ConversationListTime,
+  ConversationListTitle,
+  ConversationListWho,
+  type ConversationListItem,
+} from "@forgeron/ui";
 import { useState } from "react";
 
 const items: ConversationListItem[] = [
@@ -30,18 +40,9 @@ const items: ConversationListItem[] = [
     typing: true,
     at: "2026-11-18T17:00:00Z",
   },
-  {
-    id: "4",
-    title: "Ops alerts",
-    people: ["Ops"],
-    preview: "Build 214 passed",
-    at: "2026-11-15T10:00:00Z",
-    muted: true,
-    unread: 5,
-  },
 ];
 
-export default function Default() {
+export default function Composed() {
   const [selected, setSelected] = useState<string | null>("1");
   return (
     <div style={{ width: "100%", maxWidth: 380, border: "1px solid var(--line-strong)" }}>
@@ -51,7 +52,19 @@ export default function Default() {
         onSelect={setSelected}
         now="2026-11-19T12:00:00Z"
         timeZone="UTC"
-      />
+      >
+        <ConversationListGroups
+          renderRow={(item) => (
+            <ConversationListRow item={item}>
+              <ConversationListWho />
+              <ConversationListTitle />
+              <ConversationListTime />
+              <ConversationListPreview />
+              <ConversationListCount />
+            </ConversationListRow>
+          )}
+        />
+      </ConversationList>
     </div>
   );
 }
