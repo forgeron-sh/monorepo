@@ -68,7 +68,13 @@ let host: HTMLElement | undefined;
 beforeEach(() => {
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
 });
-afterEach(() => {
+const roots: Array<ReturnType<typeof createRoot>> = [];
+// Unmount, not only remove: a portalled popup left open keeps its focus trap on the body and
+// takes the focus of the next test.
+afterEach(async () => {
+  await act(async () => {
+    for (const root of roots.splice(0)) root.unmount();
+  });
   host?.remove();
   host = undefined;
   vi.restoreAllMocks();
@@ -77,6 +83,7 @@ const mount = async (element: Parameters<ReturnType<typeof createRoot>["render"]
   host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
+  roots.push(root);
   await act(async () => root.render(element));
   return host;
 };
