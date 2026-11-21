@@ -124,12 +124,29 @@ Services a model turns on (`services: { activity: true, … }`, see [framework](
 
 Shared entities are not kernel. **Contacts** (people and organisations) is a tool; others link to it.
 
+## 6b. Observability
+
+What happened in a tool, for the person who has to fix it. Usage (section 4) says how much; observability says what and why.
+
+| Signal        | Scope                         | Today                                  |
+| ------------- | ----------------------------- | -------------------------------------- |
+| Calls         | per tool, action, interface   | counted (D-093)                        |
+| Time per call | per step of the call path     | measured, in a response header (D-142) |
+| Errors        | per tool and channel          | not collected                          |
+| Logs          | per tool and channel          | not collected                          |
+| Traces        | across a bridge, tool to tool | not collected                          |
+
+- A tool writes nothing special: the runtime records calls, timings and errors, and captures what the tool logs.
+- It is a contract (`observability`, wave 2), so the shell reads the same shape on both platforms: Cloudflare's own observability on one side, Anvil's store on the other, with an OpenTelemetry export for teams that have their own stack.
+- A trace follows a call through a bridge, so a failure in one tool caused by another can be read in one place.
+- Retention is a setting of the workspace; logs may hold personal data and follow the same policy as the AI gateway's.
+
 ## 7. The shell
 
 `apps/shell` replaces the console. Its reference is `docs/prototypes/console-home.html`.
 
 - **For everyone**: the tools they may use, an inbox (requests for a secret, an approval, a build to look at), search across tools.
-- **For admins**: members and teams, access by team and action, the vault, usage and budgets, the audit log, the catalog with Add and Fork ([distribution](distribution.md)), sign-in and domains.
+- **For admins**: members and teams, access by team and action, the vault, usage and budgets, observability (calls, time per call, errors, logs), bridges, the audit log, the catalog with Add and Fork ([distribution](distribution.md)), sign-in and domains.
 - Built on `@forgeron/ui`, served by the gateway, talking to the platform API through `@forgeron/platform-contract`, which stays.
 - Every admin action stays available in the admin MCP and the CLI. The shell is one of three doors, never the only one.
 

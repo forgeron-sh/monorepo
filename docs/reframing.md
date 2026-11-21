@@ -24,6 +24,12 @@ Second round, same day:
 - **D7 settled: a catalog tool is added by a pull request.** From the catalog, one button either adds the tool to the workspace's catalog as it is, or forks it: the platform opens a pull request that writes the tool's source into the customer's repository, at the place the repository's layout prescribes. See [`next/distribution.md`](next/distribution.md).
 - **D8 settled: both repository shapes are supported, one is recommended.** A suite of tools that must be coherent and reach one another lives in one workspace repository; this is what `forgeron init` creates by default and what the documentation teaches. A tool that stands apart (a test, a niche tool for one person or one team, no interconnection) may live in a repository of its own. See [`next/framework.md`](next/framework.md).
 
+Third round, same day:
+
+- **The prototypes are the reference.** Every tool and every screen of the shell is built from its mock in `docs/prototypes/`; an issue that builds one names its mock. The mocks' charter and sources live outside the repository today and are brought in (R-08).
+- **Three pilot tools are carried through every milestone: Notes, CRM and Tasks.** They are not built at the end. Each milestone ends with an issue that ports them to what the milestone delivered (C-13, A-12, F-10, E-12), so each milestone is proved on real tools; M5 finishes them from their mocks and adds Contacts and Helpdesk.
+- **Observability is added.** It was only an export from Anvil (V-04). It becomes a contract of wave 2, a collection on both providers (E-13) and the screens the `console-home` mock already draws (E-14).
+
 Found while writing the contracts, and changing the size of M1: **of the six wave-1 resources, only the database reaches a deployed tool today.** The generated Worker passes `env.DB` and nothing else; `ctx.cache` throws, `ctx.files` does not exist, queues are not provisioned, no cron trigger is registered, and `ctx.secrets` is empty once deployed. M1 is therefore the first real implementation of five resources, not a change of vocabulary, and the landing shows them as available. Each contract's "Open questions" section lists what must be decided before its issue starts.
 
 Found while choosing libraries, in [`next/libraries.md`](next/libraries.md): the gateway's OAuth provider is Cloudflare-only and has no drop-in replacement; no durable-workflow library fits both targets; several expected libraries are deprecated or stalled.
@@ -359,14 +365,16 @@ M2 and M3 run in parallel once M1 has frozen the manifest. The shell starts as s
 
 The repository says what we are building, and the old surface is gone.
 
-| Id   | Issue                                                                                                                             | Mode |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| R-01 | Done: D-165 records the eight decisions                                                                                           | HITL |
-| R-02 | Delete `apps/console`; the gateway serves a placeholder; build, CI, release artifact and knip follow; `console-ux.md` archived    | AFK  |
-| R-03 | Issue forms, labels, types, milestones as in §5; `CONTRIBUTING.md` and `AGENTS.md` carry the rules; install and set up the skills | AFK  |
-| R-04 | Rewrite `README.md`, `white-paper.md` and `ARCHITECTURE.md` to the five layers; fix the licence line on the site                  | HITL |
-| R-05 | Rename `templates/` to `tools/`; drop `dashboard` or fold it into CRM; dependency rules and CI follow                             | AFK  |
-| R-06 | Add layer tags to every `moon.yml` and the dependency rules of §4.2 with their self-tests                                         | AFK  |
+| Id   | Issue                                                                                                                                                                     | Mode |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| R-01 | Done: D-165 records the eight decisions                                                                                                                                   | HITL |
+| R-02 | Delete `apps/console`; the gateway serves a placeholder; build, CI, release artifact and knip follow; `console-ux.md` archived                                            | AFK  |
+| R-03 | Issue forms, labels, types, milestones as in §5; `CONTRIBUTING.md` and `AGENTS.md` carry the rules; install and set up the skills                                         | AFK  |
+| R-04 | Rewrite `README.md`, `white-paper.md` and `ARCHITECTURE.md` to the five layers; fix the licence line on the site                                                          | HITL |
+| R-05 | Rename `templates/` to `tools/`; drop `dashboard` or fold it into CRM; dependency rules and CI follow                                                                     | AFK  |
+| R-06 | Add layer tags to every `moon.yml` and the dependency rules of §4.2 with their self-tests                                                                                 | AFK  |
+| R-07 | Rebuild the landing's opening around a company on disparate tools; decide what becomes of `/wild-erp`                                                                     | HITL |
+| R-08 | Bring the prototypes' charter (`BRIEF.md`) and sources into the repository beside `docs/prototypes/`, so an agent building from a mock can read the rules it was drawn by | AFK  |
 
 ### M1 — Contracts
 
@@ -385,7 +393,8 @@ A tool's manifest names no Cloudflare product, every wave-1 resource works on a 
 | C-09 | `secret`: values reach a deployed tool; a permanent channel has its own secrets                                                                                                                                                     | AFK  |
 | C-10 | A probe Worker and a scheduled job that run the suite against real Cloudflare                                                                                                                                                       | AFK  |
 | C-11 | Site: the resources shown as available match what is; `Soon` on the rest until C-06 to C-09 land                                                                                                                                    | AFK  |
-| C-12 | Wave 2 specifications and interfaces: `realtime`, `workflow`, `ai`, `email`                                                                                                                                                         | HITL |
+| C-12 | Wave 2 specifications and interfaces: `realtime`, `workflow`, `ai`, `email`, `observability`                                                                                                                                        | HITL |
+| C-13 | Pilots on contracts: CRM ported, Notes and Tasks created small; between them they use every wave-1 resource on a deployed channel                                                                                                   | AFK  |
 
 ### M2 — Anvil dev
 
@@ -404,50 +413,55 @@ A tool's manifest names no Cloudflare product, every wave-1 resource works on a 
 | A-09 | Chaos mode: redelivery and delayed reads behind a flag                                                                                                                                | AFK  |
 | A-10 | Release: cross-compiled binaries, checksums, `npx forgeron` fetches the right one                                                                                                     | AFK  |
 | A-11 | `realtime` and `workflow` on Anvil                                                                                                                                                    | AFK  |
+| A-12 | Pilots on Anvil: the three bundles built for Cloudflare run unchanged, and their tests pass on both targets                                                                           | AFK  |
 
 ### M3 — Framework 2
 
 An agent given one sentence adds a model, a view and a bridge to a tool, and the checks tell it when it is wrong.
 
-| Id   | Issue                                                                                                              | Mode |
-| ---- | ------------------------------------------------------------------------------------------------------------------ | ---- |
-| F-01 | Spec: `defineModel` and the file conventions, written into `sdk.md` after a grilling session                       | HITL |
-| F-02 | `defineModel`: table, validators, default list and form, MCP schema from one definition                            | AFK  |
-| F-03 | Load-time validation and the error catalogue: code, file, fix, `--json`                                            | AFK  |
-| F-04 | `forgeron plan` and `apply`; `--json` and `--yes` on every command                                                 | AFK  |
-| F-05 | `forgeron add` for resources, models, views, jobs                                                                  | AFK  |
-| F-06 | `@forgeron/harness`: skills pack, lint rules, `llms.txt`, Markdown docs; the scaffolded `AGENTS.md` points at them | AFK  |
-| F-07 | Plugins: the typed contribution contract and one real plugin (kanban on any model)                                 | HITL |
-| F-08 | Recipes: the format and three recipes (add a field, a renewal page, a weekly digest)                               | AFK  |
-| F-09 | Testing harness: in-memory providers, a typed test client, fixtures                                                | AFK  |
+| Id   | Issue                                                                                                                                       | Mode |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| F-01 | Spec: `defineModel` and the file conventions, written into `sdk.md` after a grilling session                                                | HITL |
+| F-02 | `defineModel`: table, validators, default list and form, MCP schema from one definition                                                     | AFK  |
+| F-03 | Load-time validation and the error catalogue: code, file, fix, `--json`                                                                     | AFK  |
+| F-04 | `forgeron plan` and `apply`; `--json` and `--yes` on every command                                                                          | AFK  |
+| F-05 | `forgeron add` for resources, models, views, jobs                                                                                           | AFK  |
+| F-06 | `@forgeron/harness`: skills pack, lint rules, `llms.txt`, Markdown docs; the scaffolded `AGENTS.md` points at them                          | AFK  |
+| F-07 | Plugins: the typed contribution contract and one real plugin (kanban on any model)                                                          | HITL |
+| F-08 | Recipes: the format and three recipes (add a field, a renewal page, a weekly digest)                                                        | AFK  |
+| F-09 | Testing harness: in-memory providers, a typed test client, fixtures                                                                         | AFK  |
+| F-10 | Pilots on framework 2: CRM, Notes and Tasks rewritten with `defineModel` and the new layout, in a workspace repository shape under `tools/` | AFK  |
 
 ### M4 — Engine services
 
 What makes separate tools one product.
 
-| Id   | Issue                                                                                               | Mode |
-| ---- | --------------------------------------------------------------------------------------------------- | ---- |
-| E-01 | Bridges, events: versioned schemas, the outbox, cross-tool subscription                             | AFK  |
-| E-02 | Bridges, links: `defineLink`, the link store, graph read with permission checks                     | HITL |
-| E-03 | `@forgeron/metering`: usage events, the unit, budgets and their enforcement                         | HITL |
-| E-04 | `@forgeron/ai-gateway`: the interface, `ctx.ai`, keys, budgets, allow-lists; the Cloudflare backend | AFK  |
-| E-05 | The AI gateway's Anvil backend                                                                      | AFK  |
-| E-06 | `@forgeron/kernel`: activity timeline and attachments                                               | AFK  |
-| E-07 | `@forgeron/kernel`: search, custom fields, sequences                                                | AFK  |
-| E-08 | `apps/shell`: frame, navigation, inbox, installed tools, from the `console-home` mock               | HITL |
-| E-09 | `apps/shell`: administration — members, teams, access, vault, usage and budgets, audit              | AFK  |
-| E-10 | Record-level permissions: the model and its check on every interface                                | HITL |
-| E-11 | Sync connectors: the frame, and Microsoft 365 contacts as the first                                 | AFK  |
+| Id   | Issue                                                                                                                                                       | Mode |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| E-01 | Bridges, events: versioned schemas, the outbox, cross-tool subscription                                                                                     | AFK  |
+| E-02 | Bridges, links: `defineLink`, the link store, graph read with permission checks                                                                             | HITL |
+| E-03 | `@forgeron/metering`: usage events, the unit, budgets and their enforcement                                                                                 | HITL |
+| E-04 | `@forgeron/ai-gateway`: the interface, `ctx.ai`, keys, budgets, allow-lists; the Cloudflare backend                                                         | AFK  |
+| E-05 | The AI gateway's Anvil backend                                                                                                                              | AFK  |
+| E-06 | `@forgeron/kernel`: activity timeline and attachments                                                                                                       | AFK  |
+| E-07 | `@forgeron/kernel`: search, custom fields, sequences                                                                                                        | AFK  |
+| E-08 | `apps/shell`: frame, navigation, inbox, installed tools, from the `console-home` mock                                                                       | HITL |
+| E-09 | `apps/shell`: administration — members, teams, access, vault, usage and budgets, audit                                                                      | AFK  |
+| E-10 | Record-level permissions: the model and its check on every interface                                                                                        | HITL |
+| E-11 | Sync connectors: the frame, and Microsoft 365 contacts as the first                                                                                         | AFK  |
+| E-12 | Pilots bridged: a link and an event between CRM and Tasks, Notes attached to both, one AI call through the gateway with a budget                            | AFK  |
+| E-13 | Observability, collection: logs, errors, time per call and traces, per tool and channel, on both providers, behind the `observability` contract             | AFK  |
+| E-14 | `apps/shell`: the Observability and Usage screens of the `console-home` mock (calls, time per call, errors, logs; consumption and budgets by team and tool) | AFK  |
 
 ### M5 — Suite, wave 1
 
 | Id   | Issue                                                                          | Mode |
 | ---- | ------------------------------------------------------------------------------ | ---- |
 | S-01 | Contacts: people and organisations, the entity others link to                  | AFK  |
-| S-02 | CRM rebuilt on framework 2 from `crm.html`, linked to Contacts                 | AFK  |
+| S-02 | CRM finished from `crm.html`, linked to Contacts                               | AFK  |
 | S-03 | Helpdesk from `helpdesk.html`                                                  | AFK  |
-| S-04 | Tasks from `tasks.html`                                                        | AFK  |
-| S-05 | Notes from `notes.html`, on `@forgeron/richtext`                               | AFK  |
+| S-04 | Tasks finished from `tasks.html`                                               | AFK  |
+| S-05 | Notes finished from `notes.html`, on `@forgeron/richtext`                      | AFK  |
 | S-06 | The demo workspace: seeded data, the five tools bridged, runs with `anvil dev` | AFK  |
 
 ### M6 — Anvil serve
