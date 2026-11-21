@@ -4,8 +4,80 @@
     {
       "name": "site",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "apps/site", "dev"],
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "apps/site",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "icon-gallery",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "apps/icon-gallery",
+        "dev"
+      ],
+      "port": 5179
+    },
+    {
+      "name": "ui-gallery",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "apps/ui-gallery",
+        "dev"
+      ],
+      "port": 5181
+    },
+    {
+      "name": "blueprint",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "apps/blueprint",
+        "dev"
+      ],
+      "port": 5182
+    },
+    {
+      "name": "font",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "apps/font",
+        "dev"
+      ],
+      "port": 5180
+    },
+    {
+      "name": "lab",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "apps/lab",
+        "dev"
+      ],
+      "port": 5184
+    },
+    {
+      "name": "prototypes",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5197",
+        "--directory",
+        "docs/prototypes"
+      ],
+      "port": 5197
     }
   ]
 }

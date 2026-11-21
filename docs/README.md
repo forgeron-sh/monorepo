@@ -11,6 +11,8 @@ This folder imagines the Forgeron SDK starting from concrete cases. Each example
 - [`DECISIONS.md`](DECISIONS.md) — the decision log, dated, with what was ruled out and why.
 - [`self-host.md`](self-host.md) — installing the platform on your own Cloudflare account with `forgeron platform install`.
 - [`design-system.md`](design-system.md) — the guidelines: colors, typography, logo, components. The files (tokens, fonts, logos) are in `../assets/`.
+- [`design-taste.md`](design-taste.md) — what the owner likes and doesn't in the lab design language, as before → after pairs.
+- [`icons.md`](icons.md) — drawing a pixel icon for `@forgeron/icons`: the protocol, the review checklist, the grid decision, the sources.
 
 | File                                                   | Starting constraint                                         | What the example brings out                                                                                                                                                                     |
 | ------------------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

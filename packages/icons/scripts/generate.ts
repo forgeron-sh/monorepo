@@ -1,0 +1,66 @@
+// Generates src/generated/ from the drawn icons of src/drawn/ and the tables of src/generator/.
+//
+//   bun scripts/generate.ts            regenerate
+//   bun scripts/generate.ts --check    fail if src/generated/ is not what the generator writes
+//
+// It only writes under src/generated/: a drawn icon is never touched, and running it twice
+// writes the same files.
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { generate, type DrawnInfo } from "../src/generator/core";
+import { SAME_AS } from "../src/generator/same-as";
+import { hasDuotone } from "../src/render";
+import type { IconDefinition } from "../src/types";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const DRAWN = join(root, "src/drawn");
+const OUT = join(root, "src/generated");
+
+const args = new Set(process.argv.slice(2));
+
+async function drawnIcons(): Promise<DrawnInfo[]> {
+  const files = readdirSync(DRAWN).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+  const out: DrawnInfo[] = [];
+  for (const file of files.sort()) {
+    const name = file.slice(0, -3);
+    const mod = (await import(join(DRAWN, file))) as { default?: IconDefinition };
+    const icon = mod.default;
+    if (!icon || !Array.isArray(icon.rows))
+      throw new Error(`src/drawn/${file} has no drawn default export.`);
+    if (icon.name !== name) throw new Error(`src/drawn/${file} is named "${icon.name}".`);
+    out.push({ name, style: icon.style, duo: hasDuotone(icon), grid: icon.grid, rows: icon.rows });
+  }
+  return out;
+}
+
+for (const name of Object.keys(SAME_AS)) {
+  if (existsSync(join(DRAWN, `${name}.ts`)))
+    throw new Error(`"${name}" has its own drawing: remove it from src/generator/same-as.ts.`);
+}
+
+const { manifest, files } = generate({ drawn: await drawnIcons(), sameAs: SAME_AS });
+
+if (args.has("--check")) {
+  const stale = Object.entries(files).filter(
+    ([path, content]) =>
+      !existsSync(join(OUT, path)) || readFileSync(join(OUT, path), "utf8") !== content,
+  );
+  const extra = existsSync(OUT) ? readdirSync(OUT).filter((f) => !(f in files)) : [];
+  if (stale.length > 0 || extra.length > 0) {
+    console.error(
+      `src/generated/ is out of date (${[...stale.map(([p]) => p), ...extra].join(", ")}): run \`bun run generate\` in packages/icons.`,
+    );
+    process.exit(1);
+  }
+  console.log("src/generated/ is up to date.");
+} else {
+  mkdirSync(OUT, { recursive: true });
+  for (const file of readdirSync(OUT)) if (!(file in files)) rmSync(join(OUT, file));
+  for (const [path, content] of Object.entries(files)) {
+    const target = join(OUT, path);
+    if (!existsSync(target) || readFileSync(target, "utf8") !== content)
+      writeFileSync(target, content);
+  }
+  console.log(`${manifest.length} icons in ${Object.keys(files).length} files.`);
+}

@@ -1,0 +1,29 @@
+---
+import { BookOpen01Icon, Shield01Icon, UserGroupIcon } from "@forgeron/icons";
+import { FONT_LICENCE } from "../config/licence";
+import PxIcon from "./PxIcon.astro";
+
+const l = FONT_LICENCE;
+const items = [
+  { icon: BookOpen01Icon, label: l.name },
+  { icon: UserGroupIcon, label: `© ${l.years} ${l.holder}` },
+  { icon: Shield01Icon, label: l.reservedFontName ? `Reserved name: ${l.reservedFontName}` : "No reserved font name" },
+];
+---
+
+<ul class="bento licence">
+  {
+    items.map((it) => (
+      <li class="cell ticks lic-item">
+        <PxIcon icon={it.icon} size={20} />
+        <span class="t-mono">{it.label}</span>
+      </li>
+    ))
+  }
+  <li class="cell ticks lic-item lic-action">
+    <span class="t-mono dim">Free to use, open to change</span>
+    <button type="button" class="btn btn-sm" data-modal-open="licence-details" aria-haspopup="dialog">
+      <PxIcon icon={BookOpen01Icon} size={14} />Licence details
+    </button>
+  </li>
+</ul>

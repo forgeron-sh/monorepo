@@ -1,0 +1,22 @@
+---
+import Layout from "../components/Layout.astro";
+import Tester from "../components/Tester.astro";
+import { loadSpecimen } from "../lib/specimen";
+
+const { specimen: s } = loadSpecimen();
+---
+
+<Layout
+  title="Playground — Forgeron Sans"
+  description="Set your own text in Forgeron Sans: presets, weights, sharp sizes, colours and the pixel grid."
+  specimen={s}
+  home={false}
+>
+  <section class="rail playground" aria-labelledby="pg-title">
+    <div class="pg-head">
+      <h1 id="pg-title" class="t-mono"><span class="accent">■</span> Playground · Forgeron Sans</h1>
+      <a class="t-mono dim" href="/">← Specimen</a>
+    </div>
+    <Tester specimen={s} />
+  </section>
+</Layout>

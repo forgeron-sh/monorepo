@@ -1,0 +1,761 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shaders.forgeron.sh/schema/preset.v1.json",
+  "title": "Forgeron shader preset",
+  "description": "A source and a chain of passes (docs/shaders/design.md). Each pass has a GLSL and a CPU version with the same result.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The site's generator fields (ember, globe, dissolve, field): a value per cell.",
+          "properties": {
+            "type": {
+              "const": "field"
+            },
+            "mode": {
+              "description": "Which field.",
+              "enum": ["ember", "globe", "dissolve", "field"],
+              "default": "ember"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "The dither field's heat, rising from the bottom right (CPU only).",
+          "properties": {
+            "type": {
+              "const": "heat"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A picture, one pixel per cell.",
+          "properties": {
+            "type": {
+              "const": "image"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A tone function of the cell, given at run time (CPU only).",
+          "properties": {
+            "type": {
+              "const": "tone"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "The footer's hearth: a wordmark of iron on a bed of embers (tone indices, CPU).",
+          "properties": {
+            "type": {
+              "const": "hearth"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "One value in every cell.",
+          "properties": {
+            "type": {
+              "const": "constant"
+            },
+            "value": {
+              "description": "The value.",
+              "type": "number",
+              "default": 0.5
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A moving edge (rectangle or lobed ring) as the level the dither reads.",
+          "properties": {
+            "type": {
+              "const": "front"
+            },
+            "shape": {
+              "description": "A rectangle closing onto a band, or a lobed ring from the centre.",
+              "enum": ["rect", "lobed"],
+              "default": "rect"
+            },
+            "direction": {
+              "description": "Burn the picture away, or let it in.",
+              "enum": ["close", "open"],
+              "default": "close"
+            },
+            "progress": {
+              "description": "Progress, 0 to 1.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.5
+            },
+            "cycle": {
+              "description": "Seconds per run; 0 holds the progress.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120,
+              "default": 0
+            },
+            "hold": {
+              "description": "Seconds held.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 60,
+              "default": 0.9
+            },
+            "driven": {
+              "description": "Progress comes from the page (the input set while it runs).",
+              "type": "boolean",
+              "default": false
+            },
+            "ring": {
+              "description": "Cells per ring.",
+              "type": "number",
+              "minimum": 1,
+              "maximum": 16,
+              "default": 4
+            },
+            "left": {
+              "description": "Closes onto: left (rect).",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0
+            },
+            "top": {
+              "description": "Closes onto: top (rect).",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.33
+            },
+            "right": {
+              "description": "Closes onto: right (rect).",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 1
+            },
+            "bottom": {
+              "description": "Closes onto: bottom (rect).",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.67
+            },
+            "outside": {
+              "description": "Cover what lies outside the edge, or leave it to the page.",
+              "enum": ["page", "keep"],
+              "default": "page"
+            },
+            "grow": {
+              "description": "Ring growth, cells (lobed).",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 16,
+              "default": 3
+            },
+            "amp": {
+              "description": "Lobe depth (lobed).",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.5,
+              "default": 0.18
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "passes": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Cell size: the source is computed once per cell of `size` CSS pixels.",
+            "properties": {
+              "type": {
+                "const": "pixelate"
+              },
+              "size": {
+                "description": "Side of one cell in CSS pixels.",
+                "type": "integer",
+                "minimum": 1,
+                "default": 1
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Ordered (Bayer) dither of the value into tone indices.",
+            "properties": {
+              "type": {
+                "const": "ordered"
+              },
+              "matrix": {
+                "description": "Side of the Bayer matrix.",
+                "enum": [2, 4, 8],
+                "default": 8
+              },
+              "centered": {
+                "description": "Thresholds at (m + 0.5) / n² instead of m / n².",
+                "type": "boolean",
+                "default": true
+              },
+              "origin": {
+                "description": "Row the matrix starts on.",
+                "enum": ["top", "bottom"],
+                "default": "top"
+              },
+              "steps": {
+                "description": "[offset, scale] per tone above the background: tone k when the value passes k consecutive steps.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "default": [[0, 1]]
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A picture to grey and ember tone indices, through the 4×4 Bayer matrix.",
+            "properties": {
+              "type": {
+                "const": "image-dither"
+              },
+              "gain": {
+                "description": "Luminance gain.",
+                "type": "number",
+                "minimum": 0,
+                "default": 1.1
+              },
+              "greys": {
+                "description": "Greys in the palette; ember is the tone after them.",
+                "type": "integer",
+                "minimum": 2,
+                "default": 5
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Tone indices to colours.",
+            "properties": {
+              "type": {
+                "const": "palette"
+              },
+              "tones": {
+                "description": "One colour per tone index.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "description": "A CSS colour (\"#rrggbb\", \"rgb(…)\") or a token (\"--accent\")."
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "var": {
+                          "type": "string"
+                        },
+                        "fallback": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["var", "fallback"],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "default": [
+                  {
+                    "var": "--bg",
+                    "fallback": "#0a0a0a"
+                  },
+                  {
+                    "var": "--ink",
+                    "fallback": "#ededed"
+                  },
+                  {
+                    "var": "--accent",
+                    "fallback": "#ff4f1f"
+                  }
+                ]
+              },
+              "transparent": {
+                "description": "Tone indices drawn transparent.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": []
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A gap on the right and top edge of each cell, in output pixels.",
+            "properties": {
+              "type": {
+                "const": "grid"
+              },
+              "gap": {
+                "description": "Share of a cell.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.5,
+                "default": 0.16
+              },
+              "min": {
+                "description": "No gap below this many device pixels per cell.",
+                "type": "number",
+                "minimum": 0,
+                "default": 4
+              },
+              "tone": {
+                "description": "Tone of the gap.",
+                "type": "integer",
+                "minimum": 0,
+                "default": 0
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Diagonal stripes of whole cells over chosen tones, drifting with time.",
+            "properties": {
+              "type": {
+                "const": "hatch"
+              },
+              "tone": {
+                "description": "Tone of the stripes.",
+                "type": "integer",
+                "minimum": 0,
+                "default": 1
+              },
+              "over": {
+                "description": "Tones the stripes may cover.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": [0]
+              },
+              "period": {
+                "description": "Cells between two stripes.",
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "default": 4
+              },
+              "width": {
+                "description": "Cells of a stripe.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 63,
+                "default": 2
+              },
+              "speed": {
+                "description": "Cells per second.",
+                "type": "number",
+                "minimum": -60,
+                "maximum": 60,
+                "default": 0
+              },
+              "direction": {
+                "description": "Lean of the stripes.",
+                "enum": ["down", "up"],
+                "default": "down"
+              },
+              "x0": {
+                "description": "Left edge of the area.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0
+              },
+              "x1": {
+                "description": "Right edge of the area.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 1
+              },
+              "y0": {
+                "description": "Top edge of the area.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0
+              },
+              "y1": {
+                "description": "Bottom edge of the area.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 1
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Cells switch to one tone in Bayer order as progress grows: a pixel transition.",
+            "properties": {
+              "type": {
+                "const": "dissolve"
+              },
+              "tone": {
+                "description": "Tone taken.",
+                "type": "integer",
+                "minimum": 0,
+                "default": 0
+              },
+              "over": {
+                "description": "Tones that may dissolve; none: all.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": []
+              },
+              "progress": {
+                "description": "Share dissolved.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.5
+              },
+              "cycle": {
+                "description": "Seconds for a round trip; 0 holds the progress.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 60,
+                "default": 0
+              },
+              "matrix": {
+                "description": "Bayer matrix.",
+                "enum": [2, 4, 8],
+                "default": 8
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A ring of whole pixels that spreads from a point and dies out.",
+            "properties": {
+              "type": {
+                "const": "ring"
+              },
+              "cx": {
+                "description": "Centre, left to right.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.5
+              },
+              "cy": {
+                "description": "Centre, top to bottom.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.5
+              },
+              "speed": {
+                "description": "Width per second.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 4,
+                "default": 0.45
+              },
+              "width": {
+                "description": "Half thickness.",
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 16,
+                "default": 2.5
+              },
+              "start": {
+                "description": "Second it starts at.",
+                "type": "number",
+                "default": 0
+              },
+              "life": {
+                "description": "Seconds it lives.",
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 30,
+                "default": 1
+              },
+              "repeat": {
+                "description": "Seconds between rings.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 600,
+                "default": 0
+              },
+              "tones": {
+                "description": "Tone per slice of its life.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": [3, 2, 1]
+              },
+              "matrix": {
+                "description": "Bayer matrix.",
+                "enum": [2, 4, 8],
+                "default": 8
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Tones appear along a Bayer-jittered front that scans the rows.",
+            "properties": {
+              "type": {
+                "const": "reveal"
+              },
+              "duration": {
+                "description": "Seconds of sweep.",
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 30,
+                "default": 1.5
+              },
+              "hold": {
+                "description": "Seconds settled.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 60,
+                "default": 1.5
+              },
+              "loop": {
+                "description": "Restart after the hold.",
+                "type": "boolean",
+                "default": false
+              },
+              "front": {
+                "description": "Tones worn at the front.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": [3, 2]
+              },
+              "band": {
+                "description": "Share per tone.",
+                "type": "number",
+                "minimum": 0.005,
+                "maximum": 0.5,
+                "default": 0.06
+              },
+              "dither": {
+                "description": "Bayer jitter.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.12
+              },
+              "matrix": {
+                "description": "Bayer matrix.",
+                "enum": [2, 4, 8],
+                "default": 8
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Embers and flying sparks along the edge of a front.",
+            "properties": {
+              "type": {
+                "const": "sparks"
+              },
+              "tick": {
+                "description": "Seconds per draw.",
+                "type": "number",
+                "minimum": 0.02,
+                "maximum": 5,
+                "default": 0.18
+              },
+              "offset": {
+                "description": "Ember depth, cells.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 32,
+                "default": 6
+              },
+              "wobble": {
+                "description": "Wave amplitude, cells.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 8,
+                "default": 1
+              },
+              "density": {
+                "description": "Chance, nearest layer.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.5
+              },
+              "falloff": {
+                "description": "Chance lost a layer.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.5,
+                "default": 0.07
+              },
+              "fly": {
+                "description": "Flying spark chance.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.1,
+                "default": 0.003
+              },
+              "reach": {
+                "description": "Flight distance, cells.",
+                "type": "number",
+                "minimum": 1,
+                "maximum": 40,
+                "default": 10
+              },
+              "tones": {
+                "description": "Levels written: outer, middle, inner.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": [2, 3, 4]
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A dithered halo around the glowing tones (binomial kernel, two passes).",
+            "properties": {
+              "type": {
+                "const": "glow"
+              },
+              "tones": {
+                "description": "Tones that glow.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": [2]
+              },
+              "over": {
+                "description": "Tones the halo may cover.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": [0]
+              },
+              "tone": {
+                "description": "Tone of the halo.",
+                "type": "integer",
+                "minimum": 0,
+                "default": 2
+              },
+              "radius": {
+                "description": "Reach, in cells.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 6,
+                "default": 2
+              },
+              "strength": {
+                "description": "Density.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 8,
+                "default": 1.5
+              },
+              "matrix": {
+                "description": "Bayer matrix.",
+                "enum": [2, 4, 8],
+                "default": 4
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": ["version", "source", "passes"],
+  "additionalProperties": false
+}

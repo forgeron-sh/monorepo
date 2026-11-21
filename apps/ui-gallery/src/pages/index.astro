@@ -1,0 +1,91 @@
+---
+import { Logo } from "@forgeron/ui";
+import EntryGrid from "../components/EntryGrid.astro";
+import Layout from "../components/Layout.astro";
+import { highlight } from "../lib/highlight";
+import { colors, identity } from "../lib/identity";
+import { atoms, blocks, charts } from "../registry";
+
+const install = "bun add @forgeron/ui";
+const swatches = colors.filter((c) => !c.value.dark.startsWith("var")).slice(0, 10);
+---
+
+<Layout
+  title="Forgeron UI — components"
+  description="The React components of Forgeron apps, in the lab design language: identity, atoms, charts and blocks."
+  page="home"
+>
+  <section class="rail hero">
+    <header class="sec-head">
+      <div class="sec-index" aria-hidden="true">/0.0</div>
+      <div class="sec-title">
+        <span class="tag"><b>@forgeron/ui</b></span>
+        <h1 class="f-title f-h1">The parts of<br />every app.</h1>
+        <div class="hero-cmd">
+          <div class="hero-cmd-code" id="hero-install" set:html={highlight(install, "shellscript")} />
+          <button type="button" class="btn btn-sm" data-copy="hero-install">Copy</button>
+        </div>
+      </div>
+    </header>
+    <canvas class="hero-dither" data-dither data-px="4" aria-hidden="true"></canvas>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.1 → Identity</span><span>[ Logo · colours · type · tokens · landing ]</span></div>
+  <section class="rail" aria-label="Identity">
+    <ul class="grid">
+      {
+        identity.map((p, i) => (
+          <li class="card">
+            <div class="card-art dots-bg" aria-hidden="true">
+              {p.slug === "logo" && <Logo size={28} />}
+              {p.slug === "colors" && (
+                <span class="id-strip">
+                  {swatches.map((c) => (
+                    <span style={`background:${c.value.dark}`} />
+                  ))}
+                </span>
+              )}
+              {p.slug === "typography" && <span class="f-title f-h2">Aa</span>}
+              {p.slug === "tokens" && (
+                <span class="id-steps">
+                  {[4, 8, 12, 16, 24, 32, 48].map((w) => (
+                    <span style={`width:${w}px`} />
+                  ))}
+                </span>
+              )}
+            </div>
+            <div class="card-copy">
+              <span class="t-mono dim">/0.1.{String(i + 1).padStart(2, "0")}</span>
+              <a class="card-name card-link" href={`/identity/${p.slug}`}>
+                {p.name}
+              </a>
+              <span class="t-small">{p.summary}</span>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.2 → Atoms</span><span>[ Ready ]</span></div>
+  <section class="rail" aria-label="Atoms">
+    <EntryGrid entries={atoms} index="/0.2" />
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.3 → Charts</span><span>[ Ready ]</span></div>
+  <section class="rail" aria-label="Charts">
+    <EntryGrid entries={charts} index="/0.3" />
+    <a class="rail-more t-mono" href="/charts">Every chart →</a>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.4 → Blocks</span><span>[ Ready ]</span></div>
+  <section class="rail" aria-label="Blocks">
+    <EntryGrid entries={blocks} index="/0.4" />
+    <a class="rail-more t-mono" href="/blocks">Every block →</a>
+  </section>
+</Layout>
+
+<script>
+  // The hero's dither field: only this page has one, so only this page loads its mount.
+  import "../lib/dither-field";
+</script>

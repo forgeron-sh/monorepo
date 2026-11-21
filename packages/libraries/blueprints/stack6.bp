@@ -1,0 +1,15 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/stack6",
+  "parts": { "static": { "prims": [] } },
+  "scenes": {
+    "stack6": {
+      "title": "stack6",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] },
+      "vars": { "active": { "type": "int", "default": -1 } }
+    }
+  }
+}

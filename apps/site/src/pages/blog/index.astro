@@ -1,0 +1,124 @@
+---
+import { SectionBand, SectionHead } from "@forgeron/ui";
+import PagesNav from "../../components/PagesNav.astro";
+import PostArt from "../../components/blog/PostArt.astro";
+import PostCard from "../../components/blog/PostCard.astro";
+import Footer from "../../components/Footer.astro";
+import { CATEGORIES } from "../../content.config";
+import { GITHUB } from "../../data/plans";
+import Site from "../../layouts/Site.astro";
+import { authorsOf, getPosts, isoDate, lead, longDate } from "../../lib/blog";
+import "../../styles/blog.css";
+
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+const posts = await getPosts();
+const top = lead(posts);
+const topAuthors = top ? await authorsOf(top) : [];
+/** The filter offers the categories that have posts, in the schema's order. */
+const categories = CATEGORIES.filter((c) => posts.some((p) => p.data.category === c));
+const slug = (c: string) => c.toLowerCase();
+/** Hatched cells close the last row of three; the filter's script recounts them. */
+const fillers = (3 - (posts.length % 3)) % 3;
+---
+
+<Site
+  title="Blog — Forgeron"
+  description="Engineering, product and company notes from the people building Forgeron."
+  bodyClass="home"
+>
+  <link slot="head" rel="alternate" type="application/rss+xml" title="Forgeron blog" href="/blog/rss.xml" />
+  <PagesNav current="/blog" />
+
+  <main class="blog">
+    <section class="fg-rail">
+      <SectionHead
+        index="/0.1"
+        title={["Notes from", "the forge."]}
+        titleAs="h1"
+        lead="Engineering, product and company notes from the people building Forgeron."
+      />
+
+      {
+        top ? (
+          <a class="blog-lead" href={`/blog/${top.id}`}>
+            <PostArt
+              class="blog-lead-art"
+              scene={top.data.scene}
+              image={top.data.cover}
+              alt={top.data.coverAlt}
+              field
+              fill={0.78}
+              sizes="(max-width: 900px) 100vw, 60vw"
+              eager
+            />
+            <div class="blog-lead-text">
+              <div class="blog-meta text-eyebrow">
+                <span class="fg-tag">
+                  <b>{top.data.category}</b>
+                </span>
+                <time datetime={isoDate(top.data.date)}>{longDate(top.data.date)}</time>
+                {top.data.draft ? <span class="blog-draft">Draft</span> : null}
+              </div>
+              <h2 class="blog-lead-title">{top.data.title}</h2>
+              <p class="blog-lead-desc">{top.data.description}</p>
+              <p class="blog-lead-by text-eyebrow">{topAuthors.map((a) => a.data.name).join(", ")}</p>
+              <span class="blog-read text-eyebrow" aria-hidden="true">
+                Read the post →
+              </span>
+            </div>
+          </a>
+        ) : (
+          <p class="blog-empty">The first post is on the anvil.</p>
+        )
+      }
+    </section>
+
+    {
+      posts.length > 0 ? (
+        <>
+          <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="All posts" />
+          <section id="posts" class="fg-rail blog-all">
+            <div class="blog-bar">
+              <div class="blog-filter" role="group" aria-label="Filter by category">
+                <button type="button" class="fg-btn fg-btn-sm" data-filter="all" aria-pressed="true">
+                  All
+                </button>
+                {categories.map((c) => (
+                  <button type="button" class="fg-btn fg-btn-sm" data-filter={slug(c)} aria-pressed="false">
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <a class="blog-rss text-eyebrow" href="/blog/rss.xml">
+                RSS
+              </a>
+            </div>
+
+            <ul class="fg-cards blog-cards">
+              {posts.map((p) => (
+                <PostCard post={p} />
+              ))}
+              {[0, 1].map((i) => (
+                <li class="blog-card-fill" data-fill aria-hidden="true" hidden={i >= fillers} />
+              ))}
+            </ul>
+            <p class="blog-empty" data-empty hidden>
+              No post in this category yet.
+            </p>
+          </section>
+        </>
+      ) : null
+    }
+  </main>
+
+  <Footer github={GITHUB} docs={DOCS} from="/0.2" />
+</Site>
+
+<script>
+  // The scenes and the fields of the page, and the category filter (`?category=`).
+  import "../../illustrations/canvas";
+  import { mountFilter } from "../../lib/filter";
+
+  mountFilter("#posts", "category");
+</script>

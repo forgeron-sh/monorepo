@@ -1,0 +1,3069 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/hero-line",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-60, -110, 0],
+            [-60, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-56, -110, 0],
+            [-56, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-52, -110, 0],
+            [-52, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-48, -110, 0],
+            [-48, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-44, -110, 0],
+            [-44, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -110, 0],
+            [-40, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-36, -110, 0],
+            [-36, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-32, -110, 0],
+            [-32, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-28, -110, 0],
+            [-28, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-24, -110, 0],
+            [-24, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-20, -110, 0],
+            [-20, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, -110, 0],
+            [-16, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, -110, 0],
+            [-12, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-8, -110, 0],
+            [-8, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, -110, 0],
+            [-4, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, -110, 0],
+            [0, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -110, 0],
+            [4, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8, -110, 0],
+            [8, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [12, -110, 0],
+            [12, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [16, -110, 0],
+            [16, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [20, -110, 0],
+            [20, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [24, -110, 0],
+            [24, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [28, -110, 0],
+            [28, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [32, -110, 0],
+            [32, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [36, -110, 0],
+            [36, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [40, -110, 0],
+            [40, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [44, -110, 0],
+            [44, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [48, -110, 0],
+            [48, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [52, -110, 0],
+            [52, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [56, -110, 0],
+            [56, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [60, -110, 0],
+            [60, 60, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -110, 0],
+            [60, -110, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -106, 0],
+            [60, -106, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -102, 0],
+            [60, -102, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -98, 0],
+            [60, -98, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -94, 0],
+            [60, -94, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -90, 0],
+            [60, -90, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -86, 0],
+            [60, -86, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -82, 0],
+            [60, -82, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -78, 0],
+            [60, -78, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -74, 0],
+            [60, -74, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -70, 0],
+            [60, -70, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -66, 0],
+            [60, -66, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -62, 0],
+            [60, -62, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -58, 0],
+            [60, -58, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -54, 0],
+            [60, -54, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -50, 0],
+            [60, -50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -46, 0],
+            [60, -46, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -42, 0],
+            [60, -42, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -38, 0],
+            [60, -38, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -34, 0],
+            [60, -34, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -30, 0],
+            [60, -30, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -26, 0],
+            [60, -26, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -22, 0],
+            [60, -22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -18, 0],
+            [60, -18, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -14, 0],
+            [60, -14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -10, 0],
+            [60, -10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -6, 0],
+            [60, -6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, -2, 0],
+            [60, -2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 2, 0],
+            [60, 2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 6, 0],
+            [60, 6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 10, 0],
+            [60, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 14, 0],
+            [60, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 18, 0],
+            [60, 18, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 22, 0],
+            [60, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 26, 0],
+            [60, 26, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 30, 0],
+            [60, 30, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 34, 0],
+            [60, 34, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 38, 0],
+            [60, 38, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 42, 0],
+            [60, 42, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 46, 0],
+            [60, 46, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 50, 0],
+            [60, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 54, 0],
+            [60, 54, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-60, 58, 0],
+            [60, 58, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -68.00000000000001, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -64.60000000000001, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -61.20000000000001, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -57.80000000000001, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -54.40000000000001, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -51.000000000000014, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -47.600000000000016, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -44.20000000000002, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -40.80000000000002, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -37.40000000000002, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -34.00000000000002, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -30.600000000000023, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -27.200000000000024, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -23.800000000000026, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -20.400000000000027, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -17.00000000000003, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -13.600000000000028, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -10.200000000000028, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -6.800000000000027, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -3.400000000000027, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, -2.708944180085382e-14, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, 3.3999999999999724, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-16.4, 6.799999999999972, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-24, -81, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, -81, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -77, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -73, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -69, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, -69, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -65, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -61, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -57, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, -57, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -53, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -49, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -45, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, -45, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -41, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -37, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -33, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, -33, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -29, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -25, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -21, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, -21, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -17, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -13, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -9, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, -9, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -5, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, -1, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, 3, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, 3, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, 7, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, 11, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, 15, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, 15, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, 19, 0],
+          "size": [3, 3, 12],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, 23, 0],
+          "size": [3, 3, 15],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-24, 27, 0],
+          "size": [3, 3, 9],
+          "tone": [0.03, 0.08, 0.18],
+          "floors": 1.5,
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-36, 27, 0],
+          "size": [6, 6, 16],
+          "tone": [0.03, 0.06, 0.14],
+          "floors": 4,
+          "vents": "+x",
+          "layer": -1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -75, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, -75, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -77, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -66, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, -66, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -63, 2.4],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -68, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -57, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -59, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -48, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, -48, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -50, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -39, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, -39, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -36, 2.4],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -41, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -30, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -32, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -21, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, -21, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -23, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -12, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, -12, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -9, 2.4],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -14, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, -3, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, -5, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, 6, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, 6, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, 4, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, 15, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [31, 15, 0],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [28, 18, 2.4],
+          "size": [2.6, 2.6, 2.2],
+          "tone": [0.08, 0.18, 0.32],
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [36, 13, 0],
+          "size": [5, 5, 0.6],
+          "tone": [0.05, 0.12, 0.2],
+          "decor": true
+        },
+        { "kind": "box", "at": [4, 9.9, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [6.2, 9.9, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [4, 10.1, 2], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [6.2, 10.1, 2], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [4, 10.3, 4], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [6.2, 10.3, 4], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [17, -59.4, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [19.2, -59.4, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        {
+          "kind": "box",
+          "at": [17, -59.199999999999996, 2],
+          "size": [2, 2, 2],
+          "tone": [0.12, 0.25, 0.4]
+        },
+        {
+          "kind": "box",
+          "at": [19.2, -59.199999999999996, 2],
+          "size": [2, 2, 2],
+          "tone": [0.12, 0.25, 0.4]
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, 6.3, 0.6],
+            [4.8, -64.8, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [7.2, 6.3, 0.6],
+            [7.2, -64.8, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -64.8, 0.6],
+            [7.2, -64.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -63.3, 0.6],
+            [7.2, -63.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -61.8, 0.6],
+            [7.2, -61.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -60.3, 0.6],
+            [7.2, -60.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -58.8, 0.6],
+            [7.2, -58.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -57.3, 0.6],
+            [7.2, -57.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -55.8, 0.6],
+            [7.2, -55.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -54.3, 0.6],
+            [7.2, -54.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -52.8, 0.6],
+            [7.2, -52.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -51.3, 0.6],
+            [7.2, -51.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -49.8, 0.6],
+            [7.2, -49.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -48.3, 0.6],
+            [7.2, -48.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -46.8, 0.6],
+            [7.2, -46.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -45.3, 0.6],
+            [7.2, -45.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -43.8, 0.6],
+            [7.2, -43.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -42.3, 0.6],
+            [7.2, -42.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -40.8, 0.6],
+            [7.2, -40.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -39.3, 0.6],
+            [7.2, -39.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -37.8, 0.6],
+            [7.2, -37.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -36.3, 0.6],
+            [7.2, -36.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -34.8, 0.6],
+            [7.2, -34.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -33.3, 0.6],
+            [7.2, -33.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -31.799999999999997, 0.6],
+            [7.2, -31.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -30.299999999999997, 0.6],
+            [7.2, -30.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -28.799999999999997, 0.6],
+            [7.2, -28.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -27.299999999999997, 0.6],
+            [7.2, -27.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -25.799999999999997, 0.6],
+            [7.2, -25.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -24.299999999999997, 0.6],
+            [7.2, -24.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -22.799999999999997, 0.6],
+            [7.2, -22.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -21.299999999999997, 0.6],
+            [7.2, -21.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -19.799999999999997, 0.6],
+            [7.2, -19.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -18.299999999999997, 0.6],
+            [7.2, -18.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -16.799999999999997, 0.6],
+            [7.2, -16.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -15.299999999999997, 0.6],
+            [7.2, -15.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -13.799999999999997, 0.6],
+            [7.2, -13.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -12.299999999999997, 0.6],
+            [7.2, -12.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -10.799999999999997, 0.6],
+            [7.2, -10.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -9.299999999999997, 0.6],
+            [7.2, -9.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -7.799999999999997, 0.6],
+            [7.2, -7.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -6.299999999999997, 0.6],
+            [7.2, -6.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -4.799999999999997, 0.6],
+            [7.2, -4.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -3.299999999999997, 0.6],
+            [7.2, -3.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -1.7999999999999972, 0.6],
+            [7.2, -1.7999999999999972, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, -0.29999999999999716, 0.6],
+            [7.2, -0.29999999999999716, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, 1.2000000000000028, 0.6],
+            [7.2, 1.2000000000000028, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, 2.700000000000003, 0.6],
+            [7.2, 2.700000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, 4.200000000000003, 0.6],
+            [7.2, 4.200000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4.8, 5.700000000000003, 0.6],
+            [7.2, 5.700000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, 6.3, 0.6],
+            [8.3, -64.8, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [10.7, 6.3, 0.6],
+            [10.7, -64.8, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -64.8, 0.6],
+            [10.7, -64.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -63.3, 0.6],
+            [10.7, -63.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -61.8, 0.6],
+            [10.7, -61.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -60.3, 0.6],
+            [10.7, -60.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -58.8, 0.6],
+            [10.7, -58.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -57.3, 0.6],
+            [10.7, -57.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -55.8, 0.6],
+            [10.7, -55.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -54.3, 0.6],
+            [10.7, -54.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -52.8, 0.6],
+            [10.7, -52.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -51.3, 0.6],
+            [10.7, -51.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -49.8, 0.6],
+            [10.7, -49.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -48.3, 0.6],
+            [10.7, -48.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -46.8, 0.6],
+            [10.7, -46.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -45.3, 0.6],
+            [10.7, -45.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -43.8, 0.6],
+            [10.7, -43.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -42.3, 0.6],
+            [10.7, -42.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -40.8, 0.6],
+            [10.7, -40.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -39.3, 0.6],
+            [10.7, -39.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -37.8, 0.6],
+            [10.7, -37.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -36.3, 0.6],
+            [10.7, -36.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -34.8, 0.6],
+            [10.7, -34.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -33.3, 0.6],
+            [10.7, -33.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -31.799999999999997, 0.6],
+            [10.7, -31.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -30.299999999999997, 0.6],
+            [10.7, -30.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -28.799999999999997, 0.6],
+            [10.7, -28.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -27.299999999999997, 0.6],
+            [10.7, -27.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -25.799999999999997, 0.6],
+            [10.7, -25.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -24.299999999999997, 0.6],
+            [10.7, -24.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -22.799999999999997, 0.6],
+            [10.7, -22.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -21.299999999999997, 0.6],
+            [10.7, -21.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -19.799999999999997, 0.6],
+            [10.7, -19.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -18.299999999999997, 0.6],
+            [10.7, -18.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -16.799999999999997, 0.6],
+            [10.7, -16.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -15.299999999999997, 0.6],
+            [10.7, -15.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -13.799999999999997, 0.6],
+            [10.7, -13.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -12.299999999999997, 0.6],
+            [10.7, -12.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -10.799999999999997, 0.6],
+            [10.7, -10.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -9.299999999999997, 0.6],
+            [10.7, -9.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -7.799999999999997, 0.6],
+            [10.7, -7.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -6.299999999999997, 0.6],
+            [10.7, -6.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -4.799999999999997, 0.6],
+            [10.7, -4.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -3.299999999999997, 0.6],
+            [10.7, -3.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -1.7999999999999972, 0.6],
+            [10.7, -1.7999999999999972, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, -0.29999999999999716, 0.6],
+            [10.7, -0.29999999999999716, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, 1.2000000000000028, 0.6],
+            [10.7, 1.2000000000000028, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, 2.700000000000003, 0.6],
+            [10.7, 2.700000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, 4.200000000000003, 0.6],
+            [10.7, 4.200000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8.3, 5.700000000000003, 0.6],
+            [10.7, 5.700000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, 6.3, 0.6],
+            [11.8, -64.8, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [14.2, 6.3, 0.6],
+            [14.2, -64.8, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -64.8, 0.6],
+            [14.2, -64.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -63.3, 0.6],
+            [14.2, -63.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -61.8, 0.6],
+            [14.2, -61.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -60.3, 0.6],
+            [14.2, -60.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -58.8, 0.6],
+            [14.2, -58.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -57.3, 0.6],
+            [14.2, -57.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -55.8, 0.6],
+            [14.2, -55.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -54.3, 0.6],
+            [14.2, -54.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -52.8, 0.6],
+            [14.2, -52.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -51.3, 0.6],
+            [14.2, -51.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -49.8, 0.6],
+            [14.2, -49.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -48.3, 0.6],
+            [14.2, -48.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -46.8, 0.6],
+            [14.2, -46.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -45.3, 0.6],
+            [14.2, -45.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -43.8, 0.6],
+            [14.2, -43.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -42.3, 0.6],
+            [14.2, -42.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -40.8, 0.6],
+            [14.2, -40.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -39.3, 0.6],
+            [14.2, -39.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -37.8, 0.6],
+            [14.2, -37.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -36.3, 0.6],
+            [14.2, -36.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -34.8, 0.6],
+            [14.2, -34.8, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -33.3, 0.6],
+            [14.2, -33.3, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -31.799999999999997, 0.6],
+            [14.2, -31.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -30.299999999999997, 0.6],
+            [14.2, -30.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -28.799999999999997, 0.6],
+            [14.2, -28.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -27.299999999999997, 0.6],
+            [14.2, -27.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -25.799999999999997, 0.6],
+            [14.2, -25.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -24.299999999999997, 0.6],
+            [14.2, -24.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -22.799999999999997, 0.6],
+            [14.2, -22.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -21.299999999999997, 0.6],
+            [14.2, -21.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -19.799999999999997, 0.6],
+            [14.2, -19.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -18.299999999999997, 0.6],
+            [14.2, -18.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -16.799999999999997, 0.6],
+            [14.2, -16.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -15.299999999999997, 0.6],
+            [14.2, -15.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -13.799999999999997, 0.6],
+            [14.2, -13.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -12.299999999999997, 0.6],
+            [14.2, -12.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -10.799999999999997, 0.6],
+            [14.2, -10.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -9.299999999999997, 0.6],
+            [14.2, -9.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -7.799999999999997, 0.6],
+            [14.2, -7.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -6.299999999999997, 0.6],
+            [14.2, -6.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -4.799999999999997, 0.6],
+            [14.2, -4.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -3.299999999999997, 0.6],
+            [14.2, -3.299999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -1.7999999999999972, 0.6],
+            [14.2, -1.7999999999999972, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, -0.29999999999999716, 0.6],
+            [14.2, -0.29999999999999716, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, 1.2000000000000028, 0.6],
+            [14.2, 1.2000000000000028, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, 2.700000000000003, 0.6],
+            [14.2, 2.700000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, 4.200000000000003, 0.6],
+            [14.2, 4.200000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11.8, 5.700000000000003, 0.6],
+            [14.2, 5.700000000000003, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        { "kind": "box", "at": [-6, -2.5, 0], "size": [4, 5, 3], "floors": 1.5, "vents": "+x" },
+        {
+          "kind": "line",
+          "points": [
+            [-2, 0, 0.05],
+            [4, 0, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, 0, 0.05],
+            [4, 1.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        { "kind": "box", "at": [-6, -11.5, 0], "size": [4, 5, 7], "floors": 1.5, "vents": "+x" },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -9, 0.05],
+            [4, -9, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -9, 0.05],
+            [4, -7.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        { "kind": "box", "at": [-6, -20.5, 0], "size": [4, 5, 5], "floors": 1.5, "vents": "+x" },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -18, 0.05],
+            [4, -18, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -18, 0.05],
+            [4, -16.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        { "kind": "box", "at": [-6, -29.5, 0], "size": [4, 5, 6], "floors": 1.5, "vents": "+x" },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -27, 0.05],
+            [4, -27, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -27, 0.05],
+            [4, -25.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        { "kind": "box", "at": [-6, -38.5, 0], "size": [4, 5, 4], "floors": 1.5, "vents": "+x" },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -36, 0.05],
+            [4, -36, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -36, 0.05],
+            [4, -34.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        { "kind": "box", "at": [-6, -47.5, 0], "size": [4, 5, 3], "floors": 1.5, "vents": "+x" },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -45, 0.05],
+            [4, -45, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -45, 0.05],
+            [4, -43.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        { "kind": "box", "at": [-6, -56.5, 0], "size": [4, 5, 9], "floors": 1.5, "vents": "+x" },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -54, 0.05],
+            [4, -54, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -54, 0.05],
+            [4, -52.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        { "kind": "box", "at": [3.6, -9.6, 0], "size": [1.2, 1.2, 8] },
+        { "kind": "box", "at": [15, -9.6, 0], "size": [1.2, 1.2, 8] },
+        { "kind": "box", "at": [3.6, -19.2, 0], "size": [1.2, 2.4, 6] },
+        { "kind": "box", "at": [15, -19.2, 0], "size": [1.2, 2.4, 6] },
+        { "kind": "box", "at": [3.6, -19.2, 6], "size": [12.6, 2.4, 1], "floors": 0.5 },
+        { "kind": "box", "at": [3.6, -29.5, 0], "size": [1.2, 5, 3.6] },
+        { "kind": "box", "at": [15, -29.5, 0], "size": [1.2, 5, 3.6] },
+        { "kind": "box", "at": [17.5, -39, 0], "size": [6, 6, 1], "look": "ghost" },
+        { "kind": "box", "at": [17.5, -39, 1.6], "size": [6, 6, 1], "look": "ghost" },
+        {
+          "kind": "line",
+          "points": [
+            [14.5, -36, 0.05],
+            [17.5, -36, 0.05]
+          ],
+          "ink": "accent",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [17.5, -36, 0.05],
+            [17.5, -36, 0.05]
+          ],
+          "ink": "accent",
+          "dash": 2
+        },
+        { "kind": "box", "at": [3.6, -45.5, 0], "size": [1, 1, 5.5], "floors": 1 },
+        { "kind": "box", "at": [15.2, -45.5, 0], "size": [1, 1, 5.5], "floors": 1 },
+        { "kind": "box", "at": [4.4, -62.6, 0], "size": [3.2, 3.2, 7], "floors": 1 },
+        { "kind": "box", "at": [11.4, -62.6, 0], "size": [3.2, 3.2, 10], "floors": 1 },
+        {
+          "kind": "line",
+          "points": [
+            [9.5, -61, 10],
+            [9.5, -61, 14]
+          ],
+          "ink": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "hero-line": {
+      "title": "hero-line",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

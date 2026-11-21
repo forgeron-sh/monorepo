@@ -1,34 +1,67 @@
 ---
-import { Label, Logo } from "@forgeron/ui";
+import { GithubIcon } from "@forgeron/icons";
+import { SiteFooter } from "@forgeron/ui";
+
+interface Props {
+  /** The public repository. */
+  github: string;
+  /** The SDK documentation. */
+  docs: string;
+  /** The coordinate of the page's last section, for the band above the footer. */
+  from: string;
+}
+const { github, docs, from } = Astro.props;
 ---
 
-<footer id="docs" class="site-footer">
-  <div class="wrap">
-    <div class="stack-3" style="max-width: 280px;">
-      <Logo size={20} />
-      <span class="text-small muted">
-        The last platform you'll need for your internal tools.
-      </span>
-    </div>
-    <div class="footer-cols">
-      <div class="footer-col">
-        <Label>Product</Label>
-        <a class="navlink" href="#sdk">SDK</a>
-        <a class="navlink" href="#templates">Templates</a>
-        <a class="navlink" href="#hosting">Hosting</a>
-      </div>
-      <div class="footer-col">
-        <Label>Developers</Label>
-        <a class="navlink" href="#docs">Documentation</a>
-        <a class="navlink" href="#github">GitHub</a>
-        <a class="navlink" href="#docs">Changelog</a>
-      </div>
-      <div class="footer-col">
-        <Label>Company</Label>
-        <a class="navlink" href="#docs">About</a>
-        <a class="navlink" href="#docs">Contact</a>
-        <a class="navlink" href="#docs">Legal notice</a>
-      </div>
-    </div>
-  </div>
-</footer>
+<!--
+  The hearth: the site's index in glued cells over a bed of embers, and the wordmark as iron just
+  out of the forge (`mountHearth` of @forgeron/shaders, loaded when the footer nears the screen).
+  Without JavaScript the wordmark is the static pixel drawing in cold iron, at the same place.
+-->
+<SiteFooter
+  from={from}
+  columns={[
+    {
+      title: "Product",
+      links: [
+        { href: "/#how", label: "How it works" },
+        { href: "/#ship", label: "Interfaces" },
+        { href: "/#resources", label: "Resources" },
+        { href: "/pricing", label: "Pricing" },
+        { href: "/blog", label: "Blog" },
+      ],
+    },
+    {
+      title: "Developers",
+      links: [
+        { href: "/#develop", label: "CLI and MCP" },
+        { href: "/#anatomy", label: "Framework" },
+        { href: "/#pick", label: "Catalog" },
+        { href: docs, label: "Docs" },
+      ],
+    },
+    {
+      title: "Open source",
+      links: [
+        { href: github, label: "GitHub", icon: GithubIcon },
+        { href: github, label: "License · Apache-2.0" },
+        { href: "/changelog", label: "Changelog" },
+      ],
+    },
+  ]}
+  legal={["Open source · Apache-2.0", "Runs on Cloudflare Workers", "forgeron.sh"]}
+/>
+
+<script>
+  import { whenNear } from "../illustrations/near";
+
+  // The hearth's code loads when the footer comes within a screen's height of the viewport.
+  const hearth = document.querySelector<HTMLElement>("[data-hearth]");
+  if (hearth)
+    whenNear(hearth, () => {
+      import("../illustrations/footer-hearth").then(
+        (m) => m.mountFooterHearth(hearth),
+        (error: unknown) => console.error(`The hearth could not load (${String(error)}).`),
+      );
+    });
+</script>

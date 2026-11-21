@@ -1,0 +1,17 @@
+---
+interface Props {
+  index: string;
+  label: string;
+  meta?: string;
+}
+const { index, label, meta } = Astro.props;
+---
+
+<header class="sec-head">
+  <div class="sec-index" aria-hidden="true">{index}</div>
+  <div class="sec-title">
+    <span class="tag"><b>{label}</b></span>
+    <slot />
+  </div>
+  {meta && <span class="sec-meta t-mono">{meta}</span>}
+</header>

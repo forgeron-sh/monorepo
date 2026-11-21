@@ -1,0 +1,573 @@
+{
+  "captured": "2026-11-18",
+  "how": "The site (astro dev) loaded in iframes 1440, 1024, 768 and 390 CSS pixels wide and 900 tall; for every canvas[data-iso] of /, /pricing and /machine, its clientWidth and clientHeight (what mount() rasterises) and its data-* options. Sizes are [viewport, width, height]; a mount is a page and its options.",
+  "scenes": {
+    "ai-gateway": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.86,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 406],
+          [1024, 340, 406],
+          [768, 766, 406],
+          [390, 388, 406]
+        ]
+      }
+    ],
+    "api": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.6,
+          "labels": true
+        },
+        "sizes": [
+          [1440, 162, 179],
+          [1024, 125, 179],
+          [768, 168, 179],
+          [390, 356, 179]
+        ]
+      }
+    ],
+    "approval-plug": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.84,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 406],
+          [1024, 340, 406],
+          [768, 766, 406],
+          [390, 388, 406]
+        ]
+      }
+    ],
+    "badge-gate": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 279],
+          [1024, 340, 279],
+          [768, 766, 279],
+          [390, 388, 279]
+        ]
+      }
+    ],
+    "bolt": [
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 239],
+          [1024, 340, 239],
+          [768, 766, 239],
+          [390, 388, 239]
+        ]
+      }
+    ],
+    "cli": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.6,
+          "labels": true
+        },
+        "sizes": [
+          [1440, 162, 179],
+          [1024, 125, 179],
+          [768, 167, 179],
+          [390, 178, 179]
+        ]
+      }
+    ],
+    "dashboard": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 279],
+          [1024, 340, 279],
+          [768, 766, 279],
+          [390, 388, 279]
+        ]
+      },
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 239],
+          [1024, 340, 239],
+          [768, 766, 239],
+          [390, 388, 239]
+        ]
+      }
+    ],
+    "drawer": [
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 239],
+          [1024, 340, 239],
+          [768, 766, 239],
+          [390, 388, 239]
+        ]
+      }
+    ],
+    "erp-village": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.98,
+          "unit": "any",
+          "labels": true,
+          "signal": "--success"
+        },
+        "sizes": [
+          [1440, 1440, 900],
+          [1024, 1024, 900],
+          [768, 768, 900],
+          [390, 390, 900]
+        ]
+      }
+    ],
+    "forge-cta": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.9,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 555, 559],
+          [1024, 1022, 299],
+          [768, 766, 299],
+          [390, 388, 299]
+        ]
+      }
+    ],
+    "fuel-month": [
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      }
+    ],
+    "fuel-pool": [
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      }
+    ],
+    "fuel-topup": [
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      }
+    ],
+    "host-cloud": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      },
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      },
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 239],
+          [1024, 340, 239],
+          [768, 766, 239],
+          [390, 388, 239]
+        ]
+      }
+    ],
+    "host-self": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      },
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      }
+    ],
+    "host-servers": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      },
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 219],
+          [1024, 340, 219],
+          [768, 766, 219],
+          [390, 388, 219]
+        ]
+      }
+    ],
+    "isolated": [
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 239],
+          [1024, 340, 239],
+          [768, 766, 239],
+          [390, 388, 239]
+        ]
+      }
+    ],
+    "ledger": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.8,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 279],
+          [1024, 340, 279],
+          [768, 766, 279],
+          [390, 388, 279]
+        ]
+      }
+    ],
+    "machine": [
+      {
+        "page": "/machine",
+        "options": {
+          "pixel": 2,
+          "fill": 0.94,
+          "unit": "any",
+          "labels": false
+        },
+        "sizes": [
+          [1440, 1198, 748],
+          [1024, 990, 618],
+          [768, 734, 458],
+          [390, 356, 222]
+        ]
+      }
+    ],
+    "market": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.82,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 406],
+          [1024, 340, 406],
+          [768, 766, 406],
+          [390, 388, 406]
+        ]
+      }
+    ],
+    "mcp": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.6,
+          "labels": true
+        },
+        "sizes": [
+          [1440, 162, 179],
+          [1024, 125, 179],
+          [768, 167, 179],
+          [390, 178, 179]
+        ]
+      }
+    ],
+    "permissions-iso": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.84,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 406],
+          [1024, 340, 406],
+          [768, 766, 406],
+          [390, 388, 406]
+        ]
+      }
+    ],
+    "production-line": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.84,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 1278, 323],
+          [1024, 1022, 323],
+          [768, 766, 323],
+          [390, 388, 259]
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.94,
+          "unit": "any",
+          "labels": true,
+          "cycle": {
+            "every": 2.0,
+            "count": 9
+          }
+        },
+        "sizes": [
+          [1440, 745, 809],
+          [1024, 595, 809],
+          [768, 766, 379],
+          [390, 388, 379]
+        ]
+      }
+    ],
+    "safe": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 406],
+          [1024, 340, 403],
+          [768, 766, 406],
+          [390, 388, 406]
+        ]
+      },
+      {
+        "page": "/pricing",
+        "options": {
+          "pixel": 2,
+          "fill": 0.74,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 239],
+          [1024, 340, 239],
+          [768, 766, 239],
+          [390, 388, 239]
+        ]
+      }
+    ],
+    "stack6": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.78,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 501, 560],
+          [1024, 401, 560],
+          [768, 766, 459],
+          [390, 388, 459]
+        ]
+      }
+    ],
+    "usage-iso": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.86,
+          "unit": "any",
+          "labels": true
+        },
+        "sizes": [
+          [1440, 425, 403],
+          [1024, 340, 383],
+          [768, 766, 406],
+          [390, 388, 403]
+        ]
+      }
+    ],
+    "web": [
+      {
+        "page": "/",
+        "options": {
+          "pixel": 2,
+          "fill": 0.6,
+          "labels": true
+        },
+        "sizes": [
+          [1440, 162, 179],
+          [1024, 125, 179],
+          [768, 168, 179],
+          [390, 356, 179]
+        ]
+      }
+    ]
+  }
+}

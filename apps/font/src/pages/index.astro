@@ -1,0 +1,46 @@
+---
+import Anatomy from "../components/Anatomy.astro";
+import GlyphSet from "../components/GlyphSet.astro";
+import Hero from "../components/Hero.astro";
+import InUse from "../components/InUse.astro";
+import Layout from "../components/Layout.astro";
+import Licence from "../components/Licence.astro";
+import Sizes from "../components/Sizes.astro";
+import { loadSpecimen } from "../lib/specimen";
+
+const { specimen: s } = loadSpecimen();
+const count = s.codepoints.length;
+---
+
+<Layout
+  title="Forgeron Sans — a pixel typeface"
+  description={`Forgeron Sans, the pixel typeface of Forgeron: ${s.weights.length} weights, ${count} characters on a 5-pixel grid.`}
+  specimen={s}
+>
+  <Hero specimen={s} />
+
+  <div class="rail spacer t-mono dim"><span>/0.1 → Anatomy</span><span>[ Grid · guides · metrics ]</span></div>
+  <section class="rail sec" id="anatomy" aria-label="Anatomy">
+    <Anatomy specimen={s} />
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.2 → Glyphs</span><span>[ {count} characters ]</span></div>
+  <section class="rail sec" id="glyphs" aria-label="Glyph set">
+    <div class="sec-body"><GlyphSet specimen={s} /></div>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.3 → Sizes</span><span>[ 10 · 20 · 30 · 40 · 50 · 70 ]</span></div>
+  <section class="rail sec" id="sizes" aria-label="Sizes">
+    <div class="sec-body"><Sizes /></div>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.4 → In use</span><span>[ Wordmark · indices · interface ]</span></div>
+  <section class="rail sec" id="in-use" aria-label="In use">
+    <InUse />
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.5 → Licence</span><span>[ OFL-1.1 ]</span></div>
+  <section class="rail sec" id="licence" aria-label="Licence">
+    <Licence />
+  </section>
+</Layout>

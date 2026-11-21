@@ -1,0 +1,28 @@
+# The Rust workspace of the monorepo: crates live in `crates/`, one `target/` at the root.
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+# Size first: the module ships to the browser (D-148 aims at 150–300 KB).
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# The same, tuned for speed: the benchmark compares both.
+[profile.release-speed]
+inherits = "release"
+opt-level = 3
+
+# Blueprint's raster runs every frame: speed (fg-blueprint-raster, fg-math). The rest of the
+# engine (the SceneBin reader, the scene, timelines, machines, rigs) runs a little per frame and
+# builds for size: the module stays within its 150 KB raw / 60 KB gzip (D-150, P3 notes).
+[profile.release.package.fg-blueprint-raster]
+opt-level = 3
+
+[profile.release.package.fg-blueprint]
+opt-level = "z"
+
+[profile.release.package.fg-math]
+opt-level = 3

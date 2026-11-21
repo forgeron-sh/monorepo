@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// Child: a big round head over a short body with arms out.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "kid",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    "....####",
+    "...######",
+    "...######",
+    "....####",
+    "",
+    "..########",
+    ".##.####.##",
+    "....####",
+    "....#..#",
+    "....#..#",
+  ],
+};
+
+export default icon;

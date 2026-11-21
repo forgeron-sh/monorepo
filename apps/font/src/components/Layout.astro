@@ -1,0 +1,57 @@
+---
+import "../styles/lab.css";
+import "../styles/font.css";
+import type { Specimen } from "../lib/specimen";
+import DownloadDialog from "./DownloadDialog.astro";
+import LicenceDialog from "./LicenceDialog.astro";
+import Nav from "./Nav.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  specimen: Specimen;
+  /** The home page; other pages link back to its sections. */
+  home?: boolean;
+}
+const { title, description, specimen, home = true } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/ForgeronSans-Regular.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" href="/fonts/ForgeronSans-Medium.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Silkscreen&display=swap"
+    />
+  </head>
+  <body>
+    <a class="skip btn btn-sm" href="#main">Skip to content</a>
+    <Nav home={home} />
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="rail foot t-mono dim">
+      <span>Forgeron Sans {specimen.version} · OFL-1.1</span>
+      <span>5-pixel grid · 1 px = 0.1 em</span>
+      <span>font.forgeron.sh</span>
+    </footer>
+    <DownloadDialog specimen={specimen} />
+    <LicenceDialog specimen={specimen} />
+    <script>
+      import "../lib/dither-field";
+      import "../lib/modal";
+    </script>
+  </body>
+</html>

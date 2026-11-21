@@ -1,18 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { cx } from "./cx";
 
-export interface CopyBlockProps {
+export interface CopyBlockProps extends Omit<ComponentProps<"div">, "children"> {
   /** What gets copied: a command, a URL. Shown in mono. */
   value: string;
   /** Names the block for assistive technology, e.g. "Sign in from your terminal". */
   label: string;
   /** Where it goes: a `$` before a command, say. Not copied. */
   prefix?: string;
-  className?: string;
 }
 
 /** A `surface-sunken` block with the text to copy and a button that copies it. */
-export function CopyBlock({ value, label, prefix, className }: CopyBlockProps) {
+export function CopyBlock({ value, label, prefix, className, ...rest }: CopyBlockProps) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -30,7 +29,7 @@ export function CopyBlock({ value, label, prefix, className }: CopyBlockProps) {
   };
 
   return (
-    <div className={cx("fg-copy", className)}>
+    <div data-slot="copy-block" {...rest} className={cx("fg-copy", className)}>
       <div className="fg-copy-head">
         <span>{label}</span>
         <button type="button" className="fg-copy-btn" onClick={copy}>

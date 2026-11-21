@@ -1,9 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignore": ["assets/**"],
+  "ignore": ["assets/**", "docs/prototypes/**"],
   "workspaces": {
     ".": {
-      "entry": ["scripts/*.ts"]
+      "entry": ["scripts/*.ts", "scripts/blueprint/*.ts", "scripts/shaders/*.ts"]
     },
     "packages/*": {},
     "templates/*": {
@@ -28,8 +28,42 @@
     "packages/sdk": {
       "ignore": ["fixtures/**"]
     },
+    "packages/blueprint": {
+      "entry": ["test/browser/presenters.page.ts"],
+      "ignore": ["wasm/*.d.ts", "wasm/debug/**"]
+    },
+    "packages/shaders": {
+      "entry": ["test/browser/agreement.page.ts"]
+    },
+    "packages/canvas": {
+      "entry": ["bench/run.ts", "bench/browser.ts", "bench/build-wasm.ts", "bench/browser/main.ts"]
+    },
+    "packages/flow": {
+      "entry": ["bench/layout.ts"]
+    },
     "apps/*": {},
     "apps/site": {
+      "ignore": ["src/explorations/**"],
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/icon-gallery": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/font": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/ui-gallery": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/lab": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/blueprint": {
+      "entry": ["scripts/check-links.ts"],
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/richtext": {
+      "entry": ["scripts/check-links.ts"],
       "ignoreDependencies": ["@astrojs/check"]
     },
     "apps/cli": {

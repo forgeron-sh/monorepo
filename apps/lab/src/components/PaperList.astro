@@ -1,0 +1,48 @@
+---
+import type { Paper } from "../data/papers";
+import { projectBySlug } from "../data/projects";
+import { sceneSvg } from "../lib/render";
+import { COVERS } from "../lib/scenes";
+
+/**
+ * The papers as cards, three to a row: a square Blueprint cover with the number and the kind,
+ * then the date, the title, the question and the projects. Newest first; the empty end of the
+ * last row is hatched.
+ */
+interface Props {
+  papers: readonly Paper[];
+}
+const { papers } = Astro.props;
+const cover = (id: string) => {
+  const scene = COVERS[id];
+  return scene ? sceneSvg(scene, 360, 360) : "";
+};
+const empty = (3 - (papers.length % 3)) % 3;
+---
+
+<ul class="fg-bento lab-papers">
+  {
+    papers.map((p) => (
+      <li class="fg-cell fg-ticks lab-paper">
+        <div class="lab-paper-cover fg-dots">
+          <div class="lab-paper-art" aria-hidden="true" set:html={cover(p.id)} />
+          <span class="lab-paper-id text-eyebrow">{p.id}</span>
+          <span class="lab-paper-kind text-eyebrow">[ {p.kind} ]</span>
+        </div>
+        <div class="lab-paper-copy">
+          <span class="lab-paper-date text-eyebrow">{p.date}</span>
+          <h3 class="text-title-3">
+            <a href={`/papers/${p.slug}`} class="lab-paper-link">
+              {p.title}
+            </a>
+          </h3>
+          <p class="text-small lab-paper-line">{p.line}</p>
+          <span class="lab-paper-projects text-eyebrow">
+            {p.projects.map((s) => projectBySlug(s)?.name ?? s).join(" · ")}
+          </span>
+        </div>
+      </li>
+    ))
+  }
+  {Array.from({ length: empty }, () => <li class="fg-cell lab-paper-empty" aria-hidden="true" />)}
+</ul>

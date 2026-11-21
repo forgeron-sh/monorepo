@@ -1,0 +1,319 @@
+/* Styles of the "navigation" blocks. Values come from tokens/tokens.css. */
+
+/* ---------------------------------------------------------------- AppSidebar */
+
+.fg-aside {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  padding: var(--space-2) var(--space-3) 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+/* The Sidebar parts bring their own padding and rules: the aside keeps its own. */
+.fg-aside > .fg-sidebar-head,
+.fg-aside > .fg-sidebar-foot {
+  border: 0;
+}
+.fg-aside > .fg-aside-head {
+  padding: 0;
+}
+.fg-aside > .fg-aside-foot {
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-aside .fg-sidebar-menu {
+  gap: 0;
+}
+.fg-aside .fg-sidebar-group + .fg-sidebar-group {
+  margin-top: var(--space-4);
+}
+.fg-aside .fg-sidebar-group-label {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.fg-aside .fg-aside-h {
+  padding: 0 var(--space-2);
+  color: var(--ink-dim);
+  font: 500 10.5px/16px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-aside > .fg-aside-nav {
+  display: block;
+  flex: 1;
+  margin: 0 calc(-1 * var(--space-1));
+  padding: 0 var(--space-1) var(--space-3);
+}
+.fg-aside-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  margin-bottom: var(--space-3);
+}
+.fg-aside-head .fg-iconbtn {
+  width: 28px;
+  height: 28px;
+}
+.fg-aside-switcher {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  height: 28px;
+  padding: 0 var(--space-2) 0 var(--space-1);
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fg-aside-switcher:hover,
+.fg-aside-switcher[data-popup-open] {
+  border-color: var(--line-strong);
+}
+.fg-aside-static {
+  cursor: default;
+}
+.fg-aside-static:hover {
+  border-color: transparent;
+}
+.fg-aside-app {
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-aside-chev {
+  color: var(--ink-dim);
+}
+.fg-aside-nav {
+  flex: 1;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--space-1));
+  padding: 0 var(--space-1) var(--space-3);
+  overflow: auto;
+  scrollbar-width: none;
+}
+.fg-aside-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-aside-sec {
+  margin-top: var(--space-4);
+}
+.fg-aside-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 24px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font: 500 10.5px/16px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+}
+button.fg-aside-h {
+  cursor: pointer;
+}
+button.fg-aside-h:hover {
+  color: var(--ink-muted);
+}
+.fg-aside-caret {
+  color: var(--ink-dim);
+}
+.fg-aside-h .fg-aside-caret {
+  margin-left: auto;
+}
+.fg-aside-item .fg-aside-caret {
+  margin-left: auto;
+}
+[aria-expanded="false"] > .fg-aside-caret {
+  transform: rotate(-90deg);
+}
+.fg-aside-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fg-aside-item:hover {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-aside-item[aria-current="page"] {
+  border-color: var(--line);
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-aside-item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: -5px;
+  width: 2px;
+  background: var(--accent);
+}
+.fg-aside-sub {
+  padding-left: 28px;
+}
+.fg-aside-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-aside-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 var(--space-1);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 500 10.5px/1 var(--font-mono);
+}
+.fg-aside-item .fg-aside-badge + .fg-aside-caret {
+  margin-left: 0;
+}
+.fg-aside-initial {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink);
+  font: 700 8px/1 var(--font-pixel);
+}
+.fg-aside-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 44px;
+  margin: 0 calc(-1 * var(--space-3));
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--line);
+}
+:where(.fg-aside-switcher, .fg-aside-h, .fg-aside-item):focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+/* ---------------------------------------------------------------- InboxList */
+
+.fg-inbox {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+  outline: none;
+}
+.fg-inbox:focus-visible,
+.fg-inbox:focus-visible .fg-inbox-row[aria-selected="true"] {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+/* With a selection, the ring moves from the list to the selected row. */
+.fg-inbox[aria-activedescendant]:focus-visible {
+  outline: none;
+}
+.fg-inbox-empty {
+  padding: var(--space-6) var(--space-3);
+  color: var(--ink-dim);
+  text-align: center;
+}
+.fg-inbox-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  padding: 10px 12px 10px 14px;
+  border-bottom: var(--border-width) solid var(--line);
+  cursor: pointer;
+}
+.fg-inbox-row:hover {
+  background: var(--bg-raised);
+}
+.fg-inbox-row[aria-selected="true"] {
+  background: var(--bg-raised);
+  box-shadow: inset 2px 0 var(--accent);
+}
+.fg-inbox-who {
+  display: inline-grid;
+  grid-row: span 2;
+  align-self: start;
+  margin-top: 1px;
+}
+.fg-inbox-sys {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink-muted);
+}
+.fg-inbox-title {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-weight: 400;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-inbox-unread .fg-inbox-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+.fg-inbox-ref {
+  margin-right: 6px;
+  color: var(--ink-dim);
+  font: 400 11.5px/16px var(--font-mono);
+}
+.fg-inbox-unread .fg-inbox-ref {
+  color: var(--ink-muted);
+}
+.fg-inbox-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-dim);
+  font: 400 11.5px/18px var(--font-mono);
+}
+.fg-inbox-preview {
+  grid-column: 2 / 4;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

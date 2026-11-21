@@ -1,0 +1,232 @@
+---
+import { codepointLabel, GROUP_LABELS } from "../lib/charmap";
+import type { Specimen } from "../lib/specimen";
+
+interface Props {
+  specimen: Specimen;
+}
+const { specimen: s } = Astro.props;
+const data = {
+  metrics: { ascender: s.ascender, capHeight: s.capHeight, xHeight: s.xHeight, descender: s.descender },
+  unitsPerEm: s.unitsPerEm,
+  groups: Object.fromEntries(s.groups.flatMap((g) => g.cps.map((cp) => [cp, GROUP_LABELS[g.group]]))),
+  weights: s.weights.map((w) => ({
+    style: w.style,
+    unit: w.unit,
+    bitmaps: w.bitmaps,
+    advances: w.advances,
+    names: w.names,
+  })),
+};
+const show = (cp: number) => (cp === 0x20 ? "␠" : String.fromCodePoint(cp));
+---
+
+<div class="glyphs" data-glyphs>
+  <p class="t-mono dim glyph-note">Select a glyph · arrows to move</p>
+
+  {
+    s.groups.map((g) => (
+      <section class="glyph-group" aria-labelledby={`g-${g.group}`}>
+        <h3 id={`g-${g.group}`} class="glyph-group-head t-mono">
+          <span>{GROUP_LABELS[g.group]}</span>
+          <span class="dim">{g.cps.length}</span>
+        </h3>
+        <div class="glyph-grid" role="group" aria-label={GROUP_LABELS[g.group]}>
+          {g.cps.map((cp) => (
+            <button type="button" class="glyph-cell" data-cp={cp} tabindex="-1" aria-label={`${codepointLabel(cp)} ${cp === 0x20 ? "space" : String.fromCodePoint(cp)}`}>
+              <span class="glyph-char" aria-hidden="true">{show(cp)}</span>
+              <span class="glyph-code t-mono" aria-hidden="true">{codepointLabel(cp).slice(2)}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+
+  <dialog class="glyph-dialog" data-dialog aria-labelledby="gd-title">
+    <div class="gd-head">
+      <h3 id="gd-title" class="t-mono"><span data-gd-fig>FIG.</span> · <span class="gd-label" data-gd-label></span></h3>
+      <button type="button" class="btn btn-sm" data-gd-close aria-label="Close">Esc ×</button>
+    </div>
+    <div class="gd-body">
+      <div class="gd-drawing" data-gd-drawing></div>
+      <div class="gd-side">
+        <p class="gd-char" data-gd-char aria-hidden="true"></p>
+        <div class="seg" role="group" aria-label="Weight">
+          {
+            s.weights.map((w, i) => (
+              <button type="button" data-gd-weight={i} aria-pressed={i === 0 ? "true" : "false"}>
+                {w.style}
+              </button>
+            ))
+          }
+        </div>
+        <dl class="gd-info t-mono">
+          <div><dt>Code point</dt><dd data-gd-cp></dd></div>
+          <div><dt>Glyph name</dt><dd data-gd-name></dd></div>
+          <div><dt>Group</dt><dd data-gd-group></dd></div>
+          <div><dt>Advance</dt><dd data-gd-adv></dd></div>
+          <div><dt>Grid</dt><dd data-gd-grid></dd></div>
+        </dl>
+        <div class="gd-actions">
+          <button type="button" class="btn btn-primary btn-sm" data-gd-copy="char"><span class="sq"></span>Copy character</button>
+          <button type="button" class="btn btn-sm" data-gd-copy="cp">Copy U+</button>
+        </div>
+        <div class="gd-nav">
+          <button type="button" class="btn btn-sm" data-gd-step="-1" aria-label="Previous glyph">← Prev</button>
+          <button type="button" class="btn btn-sm" data-gd-step="1" aria-label="Next glyph">Next →</button>
+        </div>
+        <p class="t-mono gd-status" data-gd-status role="status"></p>
+      </div>
+    </div>
+  </dialog>
+  <script type="application/json" data-glyph-data set:html={JSON.stringify(data)} />
+</div>
+
+<script>
+  import { codepointLabel } from "../lib/charmap";
+  import { glyphSvg, type LineMetrics } from "../lib/plate";
+
+  interface Data {
+    metrics: LineMetrics;
+    unitsPerEm: number;
+    groups: Record<string, string>;
+    weights: {
+      style: string;
+      unit: number;
+      bitmaps: Record<string, string[]>;
+      advances: Record<string, number>;
+      names: Record<string, string>;
+    }[];
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-glyphs]")) {
+    const data = JSON.parse(root.querySelector("[data-glyph-data]")?.textContent ?? "{}") as Data;
+    const cells = [...root.querySelectorAll<HTMLButtonElement>(".glyph-cell")];
+    const dialog = root.querySelector<HTMLDialogElement>("[data-dialog]")!;
+    const $ = (sel: string) => dialog.querySelector<HTMLElement>(sel)!;
+    let index = 0;
+    let weight = 0;
+    let opener: HTMLButtonElement | null = null;
+
+    if (cells[0]) cells[0].tabIndex = 0;
+    const focusCell = (i: number) => {
+      const next = cells[(i + cells.length) % cells.length];
+      if (!next) return;
+      for (const c of cells) c.tabIndex = -1;
+      next.tabIndex = 0;
+      next.focus();
+    };
+    const columns = (cell: HTMLElement) => {
+      const grid = cell.parentElement;
+      if (!grid) return 1;
+      return getComputedStyle(grid).gridTemplateColumns.split(" ").length;
+    };
+
+    const render = () => {
+      const cell = cells[index];
+      if (!cell) return;
+      const cp = Number(cell.dataset.cp);
+      const w = data.weights[weight]!;
+      const rows = w.bitmaps[cp] ?? [];
+      const advance = w.advances[cp] ?? 0;
+      const ch = String.fromCodePoint(cp);
+      const label = codepointLabel(cp);
+      $("[data-gd-fig]").textContent = `FIG.3.${String(index + 1).padStart(3, "0")}`;
+      $("[data-gd-label]").textContent = `${cp === 0x20 ? "Space" : ch} ${w.style}`;
+      $("[data-gd-drawing]").innerHTML = glyphSvg(rows, {
+        unit: w.unit,
+        advance,
+        metrics: data.metrics,
+        title: `${label} in Forgeron Sans ${w.style}, on its pixel grid`,
+      });
+      const charEl = $("[data-gd-char]");
+      charEl.textContent = cp === 0x20 ? "␠" : ch;
+      charEl.style.fontWeight = String([400, 500, 700][weight]);
+      $("[data-gd-cp]").textContent = label;
+      $("[data-gd-name]").textContent = w.names[cp] ?? "";
+      $("[data-gd-group]").textContent = data.groups[cp] ?? "";
+      // One pixel of the face is a tenth of the em.
+      const pixel = data.unitsPerEm / 10;
+      $("[data-gd-adv]").textContent = `${advance} units · ${advance / pixel} px`;
+      $("[data-gd-grid]").textContent = `${w.unit} units · ${w.unit === pixel ? "whole" : `${w.unit / pixel}`} pixel`;
+      $("[data-gd-status]").textContent = "";
+      for (const b of dialog.querySelectorAll<HTMLButtonElement>("[data-gd-weight]"))
+        b.setAttribute("aria-pressed", String(Number(b.dataset.gdWeight) === weight));
+    };
+
+    const open = (i: number) => {
+      index = i;
+      opener = cells[i] ?? null;
+      render();
+      if (!dialog.open) dialog.showModal();
+    };
+
+    cells.forEach((cell, i) => {
+      cell.addEventListener("click", () => open(i));
+      cell.addEventListener("keydown", (e) => {
+        const step: Record<string, number> = {
+          ArrowRight: 1,
+          ArrowLeft: -1,
+          ArrowDown: columns(cell),
+          ArrowUp: -columns(cell),
+        };
+        if (e.key in step) {
+          e.preventDefault();
+          focusCell(i + (step[e.key] ?? 0));
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          focusCell(0);
+        } else if (e.key === "End") {
+          e.preventDefault();
+          focusCell(cells.length - 1);
+        }
+      });
+    });
+
+    // Closing returns the focus to the glyph last shown, which may not be the one that opened it.
+    const closeDialog = () => {
+      dialog.close();
+      const back = cells[index] ?? opener;
+      if (back) focusCell(cells.indexOf(back));
+    };
+    $("[data-gd-close]").addEventListener("click", closeDialog);
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) closeDialog();
+    });
+    dialog.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      closeDialog();
+    });
+    dialog.addEventListener("keydown", (e) => {
+      if ((e.target as HTMLElement).closest(".seg")) return;
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        index = (index + (e.key === "ArrowRight" ? 1 : -1) + cells.length) % cells.length;
+        render();
+      }
+    });
+    for (const b of dialog.querySelectorAll<HTMLButtonElement>("[data-gd-step]"))
+      b.addEventListener("click", () => {
+        index = (index + Number(b.dataset.gdStep) + cells.length) % cells.length;
+        render();
+      });
+    for (const b of dialog.querySelectorAll<HTMLButtonElement>("[data-gd-weight]"))
+      b.addEventListener("click", () => {
+        weight = Number(b.dataset.gdWeight);
+        render();
+      });
+    for (const b of dialog.querySelectorAll<HTMLButtonElement>("[data-gd-copy]"))
+      b.addEventListener("click", async () => {
+        const cp = Number(cells[index]?.dataset.cp);
+        const value = b.dataset.gdCopy === "char" ? String.fromCodePoint(cp) : codepointLabel(cp);
+        const status = $("[data-gd-status]");
+        try {
+          await navigator.clipboard.writeText(value);
+          status.textContent = `Copied ${b.dataset.gdCopy === "char" ? "the character" : value}`;
+        } catch {
+          status.textContent = "Copy is not available here";
+        }
+      });
+  }
+</script>

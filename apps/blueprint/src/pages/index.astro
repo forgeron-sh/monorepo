@@ -1,0 +1,119 @@
+---
+import Layout from "../components/Layout.astro";
+import { exampleStillAsync, exampleText, libraryCounts } from "../lib/home";
+
+const counts = await libraryCounts();
+const example = await exampleStillAsync();
+const text = exampleText();
+
+const facts = [
+  ["Parts", "Prims in a part's own frame: box, line, dot, label and rig (wheel, arm, fan…). Params make them move."],
+  ["Assemblies", "Instances of parts and assemblies: placed, turned by quarter turns, scaled, snapped by sockets."],
+  ["Scenes", "An assembly with a camera (four iso views), vars from the page, timelines and state machines."],
+  ["One core", "A Rust engine in WebAssembly draws every frame: in the page, in the viewer, and at build time as SVG."],
+] as const;
+---
+
+<Layout
+  title="Blueprint — isometric pixel scenes as data"
+  description="Blueprint is a JSON format for isometric pixel scenes: parts, assemblies and scenes, drawn by one Rust core in WebAssembly. The format, its schema, the part library and a viewer."
+  page="home"
+>
+  <section class="rail bp-hero">
+    <div class="bp-hero-copy">
+      <span class="tag"><b>.bp</b> format v1</span>
+      <h1 class="f-title f-h1">Blueprint</h1>
+      <p class="t-lead">
+        Isometric pixel scenes, written as data. One JSON file holds Parts, Assemblies and Scenes; one
+        engine draws them, frame by frame in the page and as static SVG at build time.
+      </p>
+      <div class="bp-actions">
+        <a class="btn btn-primary" href="/format"><span class="sq"></span>Read the format</a>
+        <a class="btn" href="/library">Browse parts</a>
+        <a class="btn" href="/viewer">Open the viewer</a>
+      </div>
+      <dl class="bp-stats t-mono">
+        <div><dt class="dim">Files</dt><dd>{counts.files}</dd></div>
+        <div><dt class="dim">Parts</dt><dd>{counts.parts}</dd></div>
+        <div><dt class="dim">Assemblies</dt><dd>{counts.assemblies}</dd></div>
+        <div><dt class="dim">Scenes</dt><dd>{counts.scenes}</dd></div>
+      </dl>
+    </div>
+    <figure class="bp-hero-art ticks">
+      <canvas
+        data-live="host-servers"
+        role="img"
+        aria-label="A room of server racks, its lights blinking, played live by the Blueprint engine"
+      ></canvas>
+      <figcaption class="t-mono dim">
+        <span>host-servers.bp</span><span class="bp-live"><span class="led ok"></span>live</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/01 → In a few lines</span><span>JSON · no code</span></div>
+
+  <section class="rail bento bp-facts" aria-label="The format in a few lines">
+    {
+      facts.map(([title, body], i) => (
+        <article class="cell c3">
+          <div class="copy">
+            <span class="t-mono accent">0{i + 1}</span>
+            <h2 class="t-title">{title}</h2>
+            <p class="t-small">{body}</p>
+          </div>
+        </article>
+      ))
+    }
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/02 → A whole file</span><span>example.bp</span></div>
+
+  <section class="rail bp-example" aria-label="A whole file and its picture">
+    <pre class="bp-code t-code"><code>{text}</code></pre>
+    <figure class="bp-example-art ticks">
+      <div class="bp-svg" set:html={example.svg} />
+      <figcaption class="t-mono dim">
+        <span>scene rack · t = 0.6 s · drawn at build time</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/03 → Validate your files</span><span>JSON Schema 2020-12</span></div>
+
+  <section class="rail bp-schema" aria-label="The schema">
+    <div class="bp-schema-copy">
+      <h2 class="f-title f-h3">The schema</h2>
+      <p class="t-small">
+        Every <code>.bp</code> file names its schema in <code>$schema</code>. Editors that read JSON
+        Schema complete and check the file as you type; in VS Code, tell it that <code>.bp</code> is
+        JSON.
+      </p>
+      <a class="btn btn-sm" href="/schema/v1.json">/schema/v1.json</a>
+    </div>
+    <pre class="bp-code t-code"><code>{`// .vscode/settings.json
+{
+  "files.associations": { "*.bp": "json" }
+}
+
+// first line of every file
+"$schema": "https://blueprint.forgeron.sh/schema/v1.json"`}</code></pre>
+  </section>
+</Layout>
+
+<script>
+  import { dither, initBlueprint, pixelate } from "@forgeron/blueprint";
+  import { playCompiled } from "@forgeron/blueprint/dom";
+  import servers from "@forgeron/libraries/blueprints/host-servers.bp?compiled";
+
+  // The palette is the page's: the default one reads --bg, --ink, --accent… from the CSS.
+  const canvas = document.querySelector<HTMLCanvasElement>("canvas[data-live]");
+  if (canvas)
+    void initBlueprint().then(() =>
+      playCompiled(
+        canvas,
+        { compiled: servers, scene: "host-servers" },
+        { filters: [pixelate(2), dither({ matrix: 4 })], fill: 0.8 },
+      ),
+    );
+</script>

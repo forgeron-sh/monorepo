@@ -1,0 +1,53 @@
+{
+  "name": "@forgeron/draw",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react/index.ts",
+    "./plugins": "./src/plugins/index.ts",
+    "./plugins/editor": "./src/plugins/editor/index.ts",
+    "./plugins/docs": "./src/plugins/docs/index.ts",
+    "./plugins/shapes": "./src/plugins/shapes.ts",
+    "./plugins/notes": "./src/plugins/notes.ts",
+    "./plugins/lines": "./src/plugins/lines.ts",
+    "./plugins/layout": "./src/plugins/layout.ts",
+    "./plugins/media": "./src/plugins/media.ts",
+    "./plugins/export": "./src/plugins/export.ts",
+    "./plugins/ui": "./src/plugins/ui.ts",
+    "./plugins/editor/shapes": "./src/plugins/editor/shapes.tsx",
+    "./plugins/editor/notes": "./src/plugins/editor/notes.tsx",
+    "./plugins/editor/lines": "./src/plugins/editor/lines.ts",
+    "./plugins/editor/layout": "./src/plugins/editor/layout.ts",
+    "./plugins/editor/media": "./src/plugins/editor/media.tsx",
+    "./plugins/editor/export": "./src/plugins/editor/export.ts",
+    "./plugins/editor/ui": "./src/plugins/editor/ui.tsx",
+    "./styles.css": "./src/react/draw.css"
+  },
+  "dependencies": {
+    "@forgeron/canvas": "workspace:*",
+    "@forgeron/icons": "workspace:*",
+    "@forgeron/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "jsdom": "30.1.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

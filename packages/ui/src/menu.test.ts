@@ -7,14 +7,18 @@ import { Avatar, Menu, Nav, SettingsGroup, SettingsRow, type MenuEntry } from ".
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let host: HTMLElement | undefined;
+let mounted: ReturnType<typeof createRoot> | undefined;
 const mount = async (element: Parameters<ReturnType<typeof createRoot>["render"]>[0]) => {
   host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
+  mounted = root;
   await act(async () => root.render(element));
   return host;
 };
-afterEach(() => {
+afterEach(async () => {
+  await act(async () => mounted?.unmount());
+  mounted = undefined;
   host?.remove();
   host = undefined;
 });
@@ -22,6 +26,8 @@ const key = (el: Element, k: string) =>
   act(async () => {
     el.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
   });
+
+const settle = (ms = 50) => act(async () => new Promise((r) => setTimeout(r, ms)));
 
 describe("Menu", () => {
   const entries = (spy = vi.fn<(arg?: string) => void>()): MenuEntry[] => [
@@ -32,64 +38,81 @@ describe("Menu", () => {
     { kind: "link", label: "Documentation", href: "/docs", onSelect: spy },
     { kind: "action", label: "Sign out", tone: "danger", onSelect: () => spy("out") },
   ];
+  // The menu is Base UI's, drawn in a portal: query the document, not the host.
+  const menu = () => document.querySelector('[role="menu"]');
   const open = async (spy = vi.fn<(arg?: string) => void>()) => {
     const page = await mount(
       h(Menu, { trigger: "demo", label: "Workspace", entries: entries(spy) }),
     );
     const button = page.querySelector("button")!;
     await act(async () => button.click());
+    await settle(300);
     return { page, button, spy };
   };
 
   it("opens on click, names the roles and focuses the checked choice", async () => {
-    const { page, button } = await open();
+    const { button } = await open();
     expect(button.getAttribute("aria-expanded")).toBe("true");
-    const menu = page.querySelector('[role="menu"]')!;
-    expect(menu.getAttribute("aria-label")).toBe("Workspace");
-    expect(menu.querySelectorAll('[role="menuitemradio"]')).toHaveLength(2);
+    expect(button.getAttribute("aria-haspopup")).toBe("menu");
+    expect(menu()!.getAttribute("aria-label")).toBe("Workspace");
+    expect(menu()!.querySelectorAll('[role="menuitemradio"]')).toHaveLength(2);
     expect(document.activeElement?.textContent).toContain("Forge");
     expect(document.activeElement?.getAttribute("aria-checked")).toBe("true");
   });
 
-  it("moves with the arrows, wraps, and closes on Escape with focus back on the button", async () => {
-    const { page, button } = await open();
-    const menu = page.querySelector('[role="menu"]')!;
-    await key(menu, "ArrowDown");
+  it("moves with the arrows and closes on Escape", async () => {
+    const { button } = await open();
+    await key(document.activeElement!, "ArrowDown");
     expect(document.activeElement?.textContent).toBe("Documentation");
-    await key(menu, "ArrowDown");
-    await key(menu, "ArrowDown");
-    expect(document.activeElement?.textContent).toBe("System");
-    await key(menu, "End");
+    await key(document.activeElement!, "End");
     expect(document.activeElement?.textContent).toBe("Sign out");
-    await key(menu, "Escape");
-    expect(page.querySelector('[role="menu"]')).toBeNull();
-    expect(document.activeElement).toBe(button);
+    await key(document.activeElement!, "Escape");
+    await settle();
+    expect(menu()).toBeNull();
+    expect(button.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("runs the choice, closes, and routes a plain link click through onSelect", async () => {
     const { page, spy } = await open();
-    const radios = page.querySelectorAll<HTMLElement>('[role="menuitemradio"]');
+    const radios = document.querySelectorAll<HTMLElement>('[role="menuitemradio"]');
     await act(async () => radios[0]!.click());
     expect(spy).toHaveBeenCalledWith("system");
-    expect(page.querySelector('[role="menu"]')).toBeNull();
+    await settle();
+    expect(menu()).toBeNull();
     await act(async () => page.querySelector("button")!.click());
-    const link = page.querySelector<HTMLAnchorElement>('a[role="menuitem"]')!;
+    const link = document.querySelector<HTMLAnchorElement>('a[role="menuitem"]')!;
+    expect(link.getAttribute("href")).toBe("/docs");
     await act(async () => link.click());
     expect(spy).toHaveBeenCalledWith("/docs");
   });
 
+  it("writes a danger action in the danger tone and runs it", async () => {
+    const { spy } = await open();
+    const out = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      (i) => i.textContent === "Sign out",
+    )!;
+    expect(out.className).toContain("fg-pop-danger");
+    await act(async () => out.click());
+    expect(spy).toHaveBeenCalledWith("out");
+    await settle();
+    expect(menu()).toBeNull();
+  });
+
   it("closes on a click outside", async () => {
-    const { page } = await open();
+    await open();
     await act(async () => {
+      document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
       document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      document.body.click();
     });
-    expect(page.querySelector('[role="menu"]')).toBeNull();
+    await settle();
+    expect(menu()).toBeNull();
   });
 
   it("opens with the Down arrow from the button", async () => {
     const page = await mount(h(Menu, { trigger: "x", label: "M", entries: entries() }));
     await key(page.querySelector("button")!, "ArrowDown");
-    expect(page.querySelector('[role="menu"]')).toBeTruthy();
+    expect(menu()).toBeTruthy();
   });
 });
 

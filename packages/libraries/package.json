@@ -1,0 +1,18 @@
+{
+  "name": "@forgeron/libraries",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./package.json": "./package.json",
+    "./blueprints": "./blueprints/index.ts",
+    "./blueprints/*": "./blueprints/*",
+    "./boards/*": "./boards/*"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*",
+    "vite": "8.3.5"
+  }
+}

@@ -1,0 +1,7 @@
+language: typescript
+
+tasks:
+  generate:
+    command: bun scripts/generate.ts
+    inputs: ["data/**/*", "scripts/**/*", "src/drawn/**/*", "src/generator/**/*"]
+    outputs: ["src/generated"]

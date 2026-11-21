@@ -1,0 +1,55 @@
+---
+// Tokens, atoms and blocks of @forgeron/ui, then the lab's own composition.
+import "@forgeron/ui/styles.css";
+import "../styles/lab.css";
+import pixelMedium from "@forgeron/ui/fonts/ForgeSans-Medium.otf?url";
+import Footer from "./Footer.astro";
+import Nav from "./Nav.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  /** The nav link marked as the current page. */
+  current?: string;
+  /** The coordinate of the page's last section, for the band above the footer. */
+  last: string;
+}
+const { title, description, current, last } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href={pixelMedium} as="font" type="font/otf" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Silkscreen&display=swap"
+    />
+  </head>
+  <body>
+    <a class="fg-skip" href="#main">Skip to content</a>
+    <Nav current={current} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer from={last} />
+    <script>
+      import { mountDitherField } from "@forgeron/shaders/dom";
+
+      // `canvas[data-dither]`: the grey dither field of the lab's heroes and of the Shaders card.
+      // `data-px` sets the size of a cell. Still under `prefers-reduced-motion`.
+      for (const canvas of document.querySelectorAll<HTMLCanvasElement>("canvas[data-dither]"))
+        mountDitherField(canvas, { pixel: Number(canvas.dataset.px ?? 4) });
+    </script>
+  </body>
+</html>

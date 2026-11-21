@@ -1,0 +1,141 @@
+// Blocks of the "time" group: the grid of an agenda, hours of availability, the choice of a slot,
+// recurrence, time zones and durations, and a schedule of resources. Each block lives in its own
+// file next to this one; this barrel re-exports them. None of them knows an app: records are read
+// through accessors and values are plain strings (`YYYY-MM-DD`, `HH:mm`).
+
+export {
+  TimeGrid,
+  TimeGridBody,
+  TimeGridNext,
+  TimeGridPrevious,
+  TimeGridTitle,
+  TimeGridToday,
+  TimeGridToolbar,
+  TimeGridViews,
+  TimeGridWeekNumber,
+  useTimeGrid,
+} from "./time-grid";
+export type {
+  TimeGridChange,
+  TimeGridEventInfo,
+  TimeGridProps,
+  TimeGridResource,
+  TimeGridRootProps,
+} from "./time-grid";
+export {
+  AvailabilityEditor,
+  AvailabilityEditorCopy,
+  AvailabilityEditorDay,
+  AvailabilityEditorDayBody,
+  AvailabilityEditorDayHead,
+  AvailabilityEditorException,
+  AvailabilityEditorExceptionAdd,
+  AvailabilityEditorExceptionList,
+  AvailabilityEditorExceptions,
+  AvailabilityEditorRanges,
+  AvailabilityEditorWeek,
+  AvailabilityEditorZone,
+  useAvailabilityEditor,
+} from "./time-availability";
+export type {
+  AvailabilityEditorDayProps,
+  AvailabilityEditorExceptionProps,
+  AvailabilityEditorProps,
+  AvailabilityEditorRangesProps,
+  AvailabilityEditorRootProps,
+} from "./time-availability";
+export {
+  SlotPicker,
+  SlotPickerBody,
+  SlotPickerCalendar,
+  SlotPickerConfirm,
+  SlotPickerDay,
+  SlotPickerDays,
+  SlotPickerDuration,
+  SlotPickerHeader,
+  SlotPickerList,
+  SlotPickerStrip,
+  SlotPickerSummary,
+  SlotPickerTimes,
+  SlotPickerTitle,
+  SlotPickerZone,
+  useSlotPicker,
+} from "./time-slots";
+export type {
+  SlotChoice,
+  SlotPickerDayProps,
+  SlotPickerProps,
+  SlotPickerRootProps,
+} from "./time-slots";
+export {
+  RecurrenceEditor,
+  RecurrenceEditorDays,
+  RecurrenceEditorEnd,
+  RecurrenceEditorEvery,
+  RecurrenceEditorNext,
+  RecurrenceEditorStatus,
+  RecurrenceEditorSummary,
+  RecurrenceEditorToggle,
+  useRecurrenceEditor,
+} from "./time-recurrence";
+export type { RecurrenceEditorProps, RecurrenceEditorRootProps } from "./time-recurrence";
+export {
+  ResourceSchedule,
+  ResourceScheduleBody,
+  ResourceScheduleConflicts,
+  ResourceScheduleToolbar,
+  scheduleConflicts,
+  useResourceSchedule,
+} from "./time-resources";
+export type {
+  ResourceScheduleProps,
+  ResourceScheduleRootProps,
+  ScheduleResource,
+} from "./time-resources";
+export {
+  clockIn,
+  convertTime,
+  daySlots,
+  defaultWeekly,
+  describeRecurrence,
+  expandRecurrence,
+  findConflicts,
+  formatMinutes,
+  formatOffset,
+  fromMinutes,
+  isTimezone,
+  layoutOverlaps,
+  listTimezones,
+  nextOccurrences,
+  nextSpan,
+  normalizeSpans,
+  parseMinutes,
+  parseRrule,
+  recurrenceToRrule,
+  slotsOnDay,
+  snapMinutes,
+  spanErrors,
+  spansOn,
+  stepView,
+  timezoneOffset,
+  toMinutes,
+  totalMinutes,
+  viewDays,
+  zonedParts,
+  zonedToUtc,
+} from "./time-model";
+export type {
+  Availability,
+  AvailabilityException,
+  Booking,
+  BusyBlock,
+  GridView,
+  Placed,
+  Recurrence,
+  RecurrenceEnd,
+  RecurrenceFrequency,
+  SlotItem,
+  SlotReason,
+  TimeSlot,
+  TimeSpan,
+} from "./time-model";

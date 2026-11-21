@@ -1,0 +1,426 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/market",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-14, -14, 0],
+            [-14, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-10, -14, 0],
+            [-10, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, -14, 0],
+            [-6, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -14, 0],
+            [-2, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [2, -14, 0],
+            [2, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [6, -14, 0],
+            [6, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [10, -14, 0],
+            [10, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [14, -14, 0],
+            [14, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, -14, 0],
+            [14, -14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, -10, 0],
+            [14, -10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, -6, 0],
+            [14, -6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, -2, 0],
+            [14, -2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, 2, 0],
+            [14, 2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, 6, 0],
+            [14, 6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, 10, 0],
+            [14, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-14, 14, 0],
+            [14, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-12, -12, 0],
+          "size": [24, 24, 0.4],
+          "tone": [0.03, 0.08, 0.16],
+          "layer": -2
+        },
+        {
+          "kind": "box",
+          "at": [-10, -10, 0.4],
+          "size": [4, 4, 3.4],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 1.7
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, -8.4, 0.5],
+            [-6, -8.4, 2.27]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, -7.4, 0.5],
+            [-6, -7.4, 2.27]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "box",
+          "at": [-3, -10, 0.4],
+          "size": [5, 4, 4.4],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 2.2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [2, -8.4, 0.5],
+            [2, -8.4, 2.8200000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [2, -7.4, 0.5],
+            [2, -7.4, 2.8200000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "box",
+          "at": [5, -10, 0.4],
+          "size": [4, 4, 3],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 1.5
+        },
+        {
+          "kind": "line",
+          "points": [
+            [9, -8.4, 0.5],
+            [9, -8.4, 2.0500000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [9, -7.4, 0.5],
+            [9, -7.4, 2.0500000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "box",
+          "at": [-10, -2, 0.4],
+          "size": [4, 5, 3.8],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 1.9
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 0, 0.5],
+            [-6, 0, 2.4899999999999998]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 1.25, 0.5],
+            [-6, 1.25, 2.4899999999999998]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "box",
+          "at": [5, -1, 0.4],
+          "size": [4, 4, 4.8],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 2.4
+        },
+        {
+          "kind": "line",
+          "points": [
+            [9, 0.6000000000000001, 0.5],
+            [9, 0.6000000000000001, 3.04]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [9, 1.6, 0.5],
+            [9, 1.6, 3.04]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "box",
+          "at": [-10, 6, 0.4],
+          "size": [5, 4, 3],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 1.5
+        },
+        { "kind": "box", "at": [-10.2, 5.8, 3.4], "size": [5.4, 4.4, 0.5] },
+        { "kind": "box", "at": [-9.4, 6.6, 3.9], "size": [3.8, 2.8, 0.6] },
+        {
+          "kind": "line",
+          "points": [
+            [-5, 7.6, 0.5],
+            [-5, 7.6, 2.0500000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-5, 8.6, 0.5],
+            [-5, 8.6, 2.0500000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "box",
+          "at": [-2, 6, 0.4],
+          "size": [4, 4, 3.6],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 1.8
+        },
+        {
+          "kind": "line",
+          "points": [
+            [2, 7.6, 0.5],
+            [2, 7.6, 2.3800000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [2, 8.6, 0.5],
+            [2, 8.6, 2.3800000000000003]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "box",
+          "at": [5, 6, 0.4],
+          "size": [4, 4, 4],
+          "tone": [0.06, 0.2, 0.1],
+          "floors": 2
+        },
+        { "kind": "box", "at": [4.8, 5.8, 4.4], "size": [4.4, 4.4, 0.5] },
+        { "kind": "box", "at": [5.6, 6.6, 4.9], "size": [2.8, 2.8, 0.6] },
+        {
+          "kind": "line",
+          "points": [
+            [9, 7.6, 0.5],
+            [9, 7.6, 2.6]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [9, 8.6, 0.5],
+            [9, 8.6, 2.6]
+          ],
+          "ink": "ink",
+          "layer": 1
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -3, 0.42],
+            [3, -3, 0.42]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [3, -3, 0.42],
+            [3, 4, 0.42]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [3, 4, 0.42],
+            [-2, 4, 0.42]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-2, 4, 0.42],
+            [-2, -3, 0.42]
+          ],
+          "ink": "dim",
+          "dash": 2
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "market": {
+      "title": "market",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

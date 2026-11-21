@@ -1,0 +1,154 @@
+---
+import { ArrowDown01Icon, BookOpen01Icon, Layers01Icon, Settings01Icon, TableIcon } from "@forgeron/icons";
+import { haloCells, revealCells } from "@forgeron/shaders";
+import { joinRows, layoutText } from "../lib/plate";
+import type { Specimen } from "../lib/specimen";
+import PxIcon from "./PxIcon.astro";
+
+interface Props {
+  specimen: Specimen;
+}
+const { specimen: s } = Astro.props;
+const regular = s.weights[0]!;
+const stats = [
+  { icon: Layers01Icon, label: `${s.weights.length} weights` },
+  { icon: TableIcon, label: `${s.codepoints.length} characters` },
+  { icon: Settings01Icon, label: `1 px = ${regular.unit / s.unitsPerEm} em` },
+  { icon: ArrowDown01Icon, label: "OTF" },
+  { icon: BookOpen01Icon, label: "OFL-1.1" },
+];
+const words = ["Forgeron", "Sans"];
+// The pixels of each line, read from the font, their halo, and the time each one appears.
+const lines = words.map((w) =>
+  joinRows(layoutText(w.toUpperCase(), regular.bitmaps, regular.advances).glyphs.map((g) => g.rows)),
+);
+const ink = revealCells(lines);
+const halo = haloCells(lines);
+const revealData = lines.map((rows, i) => ({
+  cols: rows[0]!.length,
+  rows: rows.length,
+  cells: ink[i]!.map((c) => [c.x, c.y, Number(c.t.toFixed(3))]),
+  halo: halo[i]!.map((c) => [c.x, c.y, Number(c.t.toFixed(3))]),
+}));
+---
+
+<section class="rail hero" aria-labelledby="hero-title">
+  <canvas class="hero-dither" data-dither data-px="5" aria-hidden="true"></canvas>
+  <div class="hero-top t-mono dim">
+    <span>Plate 01 · Specimen · Regular</span>
+    <span>Forgeron type foundry · v{s.version}</span>
+  </div>
+  <h1 id="hero-title" class="specimen" data-reveal>
+    <span class="sr-only">Forgeron Sans</span>
+    {
+      words.map((word) => (
+        <span class="spec-line" aria-hidden="true">
+          <span class="spec-grid" />
+          <span class="spec-word">{word}</span>
+          <canvas class="spec-reveal" />
+        </span>
+      ))
+    }
+  </h1>
+  <script type="application/json" data-reveal-data set:html={JSON.stringify(revealData)} />
+  <script is:inline>
+    // Hide the title before the first paint while its reveal waits; never for long, never when
+    // motion is reduced.
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const h = document.querySelector("[data-reveal]");
+      h.classList.add("revealing");
+      setTimeout(() => h.classList.remove("revealing"), 2500);
+    }
+  </script>
+  <ul class="stats bento">
+    {
+      stats.map((st) => (
+        <li class="cell ticks stat">
+          <PxIcon icon={st.icon} size={20} />
+          <span class="t-mono">{st.label}</span>
+        </li>
+      ))
+    }
+    <li class="cell hatch stat-fill" aria-hidden="true"></li>
+  </ul>
+</section>
+
+<script>
+  import {
+    REVEAL_END as END,
+    REVEAL_MARGIN as MARGIN,
+    type RevealCell,
+    revealFrame as frame,
+  } from "@forgeron/shaders";
+
+  // The reveal of @forgeron/shaders (`revealCells` and `haloCells` at build time, `revealFrame`
+  // per frame), drawn here on one canvas per line laid over that line of the title, which
+  // `mountReveal` (one canvas, lines stacked) cannot do. Whole font pixels at the screen's own
+  // resolution; then the canvases go and the text itself stays.
+  const DURATION = 1500;
+  const DARK_EMBER = "#b8360f"; // the second ember of the lab palette
+  const title = document.querySelector<HTMLElement>("[data-reveal]");
+  if (title?.classList.contains("revealing")) {
+    const canvases = [...title.querySelectorAll<HTMLCanvasElement>(".spec-reveal")];
+    const finish = () => {
+      title.classList.remove("revealing");
+      for (const c of canvases) c.remove();
+    };
+    const box = title.getBoundingClientRect();
+    if (box.bottom < 0 || box.top > innerHeight) finish();
+    else
+      document.fonts.ready.then(() => {
+        interface Line {
+          cols: number;
+          rows: number;
+          cells: [number, number, number][];
+          halo: [number, number, number][];
+        }
+        const data = JSON.parse(
+          document.querySelector("[data-reveal-data]")?.textContent ?? "[]",
+        ) as Line[];
+        const css = getComputedStyle(document.documentElement);
+        const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+        const colours = [
+          token("--accent", "#ff4f1f"),
+          DARK_EMBER,
+          token("--ink-dim", "#5e5e5e"),
+          token("--ink-muted", "#8f8f8f"),
+          getComputedStyle(title).color,
+        ];
+        const dpr = window.devicePixelRatio || 1;
+        const cell = Number.parseFloat(getComputedStyle(title).fontSize) / 10;
+        const size = Math.round(cell * dpr);
+        const toCells = (list: [number, number, number][]): RevealCell[] =>
+          list.map(([x, y, t]) => ({ x, y, t }));
+        const layers = canvases.map((canvas, i) => {
+          const line = data[i] ?? { cols: 0, rows: 0, cells: [], halo: [] };
+          const w = line.cols + 2 * MARGIN;
+          const h = line.rows + 2 * MARGIN;
+          canvas.style.left = `${-MARGIN * cell}px`;
+          canvas.style.top = `${-MARGIN * cell}px`;
+          canvas.style.width = `${w * cell}px`;
+          canvas.style.height = `${h * cell}px`;
+          canvas.width = w * size;
+          canvas.height = h * size;
+          return { ctx: canvas.getContext("2d"), cells: toCells(line.cells), halo: toCells(line.halo), w, h };
+        });
+        const start = performance.now();
+        const draw = (now: number) => {
+          const p = Math.min(END, ((now - start) / DURATION) * END);
+          for (const layer of layers) {
+            const { ctx } = layer;
+            if (!ctx) continue;
+            ctx.clearRect(0, 0, layer.w * size, layer.h * size);
+            for (const px of frame(layer.cells, layer.halo, p)) {
+              ctx.fillStyle = colours[px.band] ?? colours[4]!;
+              ctx.fillRect((px.x + MARGIN) * size, (px.y + MARGIN) * size, size, size);
+            }
+          }
+          if (p < END) requestAnimationFrame(draw);
+          else finish();
+        };
+        requestAnimationFrame(draw);
+      });
+  }
+</script>

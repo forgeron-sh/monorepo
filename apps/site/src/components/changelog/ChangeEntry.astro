@@ -1,0 +1,58 @@
+---
+import { PixelFigure } from "@forgeron/ui";
+import { render } from "astro:content";
+import { type Change, slug } from "../../lib/changelog";
+import { isoDate, longDate } from "../../lib/blog";
+import PostArt from "../blog/PostArt.astro";
+
+interface Props {
+  change: Change;
+  /** On the index, the title links to the entry's page; on its page, it is the page's heading. */
+  standalone?: boolean;
+}
+const { change, standalone = false } = Astro.props;
+const { data } = change;
+const { Content } = await render(change);
+const Heading = standalone ? "h1" : "h2";
+const href = `/changelog/${change.id}`;
+---
+
+<!--
+  One change on the timeline: on the left, its node on the rail, its date, its version and its
+  type; on the right, its areas, its title, its summary, its scene for a large release, and its
+  notes.
+-->
+<article
+  class:list={["change", `change-${slug(data.type)}`]}
+  id={change.id}
+  data-category={data.areas.map(slug).join(" ")}
+>
+  <div class="change-side">
+    <span class="change-node" aria-hidden="true"></span>
+    <div class="change-side-inner">
+      <time class="text-eyebrow" datetime={isoDate(data.date)}>{longDate(data.date)}</time>
+      {data.version ? <PixelFigure className="change-version" text={`v${data.version}`} size="sm" tone="ink" /> : null}
+      <span class="change-type text-eyebrow">{data.type}</span>
+    </div>
+  </div>
+  <div class="change-main">
+    <ul class="change-areas" aria-label="Areas">
+      {
+        data.areas.map((a) => (
+          <li>
+            <span class="fg-tag">{a}</span>
+          </li>
+        ))
+      }
+      {data.draft ? <li class="blog-draft">Draft</li> : null}
+    </ul>
+    <Heading class="change-title">
+      {standalone ? data.title : <a href={href}>{data.title}</a>}
+    </Heading>
+    <p class="change-summary">{data.summary}</p>
+    {data.scene ? <PostArt class="change-art fg-ticks" scene={data.scene} fill={0.76} /> : null}
+    <div class="prose change-body">
+      <Content />
+    </div>
+  </div>
+</article>

@@ -1,0 +1,13 @@
+---
+import { iconSvg } from "./icons";
+
+interface Props {
+  name: string;
+  /** Size in px; a multiple of 12 keeps every pixel crisp. */
+  size?: number;
+  class?: string;
+}
+const { name, size = 24, class: className } = Astro.props;
+---
+
+<span class:list={["icon", className]} style={`width:${size}px;height:${size}px`} set:html={iconSvg(name)} />

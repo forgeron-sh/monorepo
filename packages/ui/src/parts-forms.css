@@ -1,0 +1,210 @@
+/* shadcn parts of the "forms" group (D-156). */
+/* Checkbox (shadcn shape): same square as the native one. */
+.fg-checkbox {
+  display: inline-grid;
+  flex: none;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  cursor: pointer;
+}
+.fg-checkbox[data-checked],
+.fg-checkbox[data-indeterminate] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.fg-checkbox[data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--line-strong);
+}
+.fg-checkbox:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-checkbox-indicator {
+  display: block;
+}
+.fg-checkbox-indicator[data-checked] {
+  width: 8px;
+  height: 4px;
+  margin-top: -2px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+  transform: rotate(-45deg);
+}
+.fg-checkbox-indicator[data-indeterminate] {
+  width: 8px;
+  height: 2px;
+  background: var(--accent-ink);
+}
+.fg-checkbox[data-invalid] {
+  border-color: var(--danger);
+}
+
+/* Switch (shadcn shape). */
+.fg-sw {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 28px;
+  height: 16px;
+  padding: 0;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast);
+}
+.fg-sw[data-checked] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.fg-sw[data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--line-strong);
+}
+.fg-sw:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-sw-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  background: var(--ink-muted);
+  transition: transform var(--motion-fast) steps(3, end);
+}
+.fg-sw-thumb[data-checked] {
+  background: var(--accent-ink);
+  transform: translateX(12px);
+}
+.fg-sw[data-disabled] .fg-sw-thumb {
+  background: var(--line-strong);
+}
+.fg-sw-sm {
+  width: 22px;
+  height: 12px;
+}
+.fg-sw-sm .fg-sw-thumb {
+  width: 6px;
+  height: 6px;
+}
+.fg-sw-sm .fg-sw-thumb[data-checked] {
+  transform: translateX(10px);
+}
+
+/* RadioGroup (shadcn shape). */
+.fg-radio-group {
+  display: grid;
+  gap: var(--space-2);
+}
+.fg-radio-item {
+  display: inline-grid;
+  flex: none;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  cursor: pointer;
+}
+.fg-radio-item[data-checked] {
+  border-color: var(--accent);
+}
+.fg-radio-item[data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--line-strong);
+}
+.fg-radio-item:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-radio-item-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+}
+
+/* Slider (shadcn shape): the root is the wrapper. */
+.fg-slider[data-orientation="vertical"] {
+  min-width: 0;
+  height: 160px;
+}
+
+/* Progress (shadcn shape): the bare bar. */
+.fg-progress > .fg-progress-track {
+  width: 100%;
+}
+.fg-progress-fill[style*="width: 0%"] {
+  visibility: hidden;
+}
+
+/* Toggle and ToggleGroup. */
+.fg-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast);
+}
+.fg-toggle-outline {
+  border-color: var(--line-strong);
+}
+.fg-toggle-sm {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 var(--space-2);
+}
+.fg-toggle-lg {
+  height: 40px;
+  min-width: 40px;
+  padding: 0 var(--space-4);
+}
+.fg-toggle:hover:not([data-pressed]):not([data-disabled]) {
+  color: var(--ink);
+  background: var(--bg-raised);
+}
+.fg-toggle[data-pressed] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.fg-toggle[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fg-toggle:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-toggle-group {
+  display: inline-flex;
+  align-items: stretch;
+}
+.fg-toggle-group > .fg-toggle-outline + .fg-toggle-outline {
+  margin-left: calc(var(--border-width) * -1);
+}

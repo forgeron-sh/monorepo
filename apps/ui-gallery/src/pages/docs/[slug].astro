@@ -1,0 +1,74 @@
+---
+import DocsLayout from "../../components/DocsLayout.astro";
+import Frame from "../../components/Frame.astro";
+import PropsTable from "../../components/PropsTable.astro";
+import { examplesOf } from "../../lib/examples";
+import { highlight } from "../../lib/highlight";
+import { shadcnImportsOf } from "../../lib/shadcn/registry";
+import { sourceOf } from "../../lib/sources";
+import { atoms, blocks, charts, groupOf, hooks } from "../../registry";
+import type { Atom } from "../../types";
+
+export function getStaticPaths() {
+  const all = [...atoms, ...charts, ...blocks, ...hooks];
+  return all.map((atom, i) => ({
+    params: { slug: atom.slug },
+    props: { atom, prev: all[i - 1], next: all[i + 1] },
+  }));
+}
+
+interface Props {
+  atom: Atom;
+  prev?: Atom;
+  next?: Atom;
+}
+const { atom, prev, next } = Astro.props;
+const examples = examplesOf(atom.slug).map((e, i) => ({
+  ...e,
+  index: `/${String(i + 1).padStart(2, "0")}`,
+  code: highlight(sourceOf(e.id)),
+}));
+const importLine = `import { ${atom.imports.join(", ")} } from "@forgeron/ui";`;
+// D-156: the same entry from the shadcn registry, and where its files land.
+const shadcnLine = `npx shadcn@latest add ${new URL(`/r/${atom.slug}.json`, Astro.site ?? "https://ui.forgeron.sh").href}`;
+const shadcnImport = shadcnImportsOf(atom.imports).join("\n");
+---
+
+<DocsLayout title={`${atom.name} — Forgeron UI`} description={atom.summary} current={atom.slug}
+  page={groupOf(atom.slug) === "Blocks" ? "blocks" : groupOf(atom.slug) === "Charts" ? "charts" : "docs"}>
+  <header class="doc-head">
+    <span class="t-mono dim">{groupOf(atom.slug)} <span class="accent">/</span> {atom.name}</span>
+    <h1 class="f-title f-h3">{atom.name}</h1>
+    <p class="t-lead">{atom.summary}</p>
+    <div class="hero-cmd">
+      <div class="hero-cmd-code" id="import-line" set:html={highlight(importLine)} />
+      <button type="button" class="btn btn-sm" data-copy="import-line">Copy</button>
+    </div>
+  </header>
+
+  <section class="api" aria-labelledby="shadcn-title">
+    <div class="spacer-sm t-mono dim">
+      <span id="shadcn-title">Install with shadcn</span> <a href="/docs/installation#shadcn">→ how</a>
+    </div>
+    <div class="hero-cmd">
+      <div class="hero-cmd-code" id="shadcn-add" set:html={highlight(shadcnLine, "shellscript")} />
+      <button type="button" class="btn btn-sm" data-copy="shadcn-add">Copy</button>
+    </div>
+    <div class="hero-cmd">
+      <div class="hero-cmd-code" id="shadcn-import" set:html={highlight(shadcnImport)} />
+      <button type="button" class="btn btn-sm" data-copy="shadcn-import">Copy</button>
+    </div>
+  </section>
+
+  {examples.map((e) => <Frame id={e.id} index={e.index} title={e.title} code={e.code} />)}
+
+  <section class="api" aria-labelledby="api-title">
+    <div class="spacer-sm t-mono dim"><span id="api-title">API → Props</span></div>
+    <PropsTable props={atom.props} />
+  </section>
+
+  <nav class="pager-nav t-mono" aria-label="Previous and next atom">
+    {prev ? <a href={`/docs/${prev.slug}`}>← {prev.name}</a> : <a href="/docs/installation">← Installation</a>}
+    {next ? <a href={`/docs/${next.slug}`}>{next.name} →</a> : <a href="/blocks">More blocks →</a>}
+  </nav>
+</DocsLayout>

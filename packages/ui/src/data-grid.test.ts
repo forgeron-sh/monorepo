@@ -1,7 +1,31 @@
-import { createElement as h } from "react";
+// @vitest-environment jsdom
+import { act, createElement as h, type ReactElement } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup as html } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConstraintChip, DataGrid, Drawer, Pager, cellText } from "./index";
+import {
+  DataGridBody,
+  DataGridCell,
+  DataGridEmpty,
+  DataGridHeader,
+  DataGridHeaderCell,
+  DataGridRow,
+} from "./parts-grid";
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+let host: HTMLElement | undefined;
+afterEach(() => {
+  host?.remove();
+  host = undefined;
+});
+const mount = async (element: ReactElement) => {
+  host = document.createElement("div");
+  document.body.append(host);
+  await act(async () => createRoot(host!).render(element));
+  return host;
+};
 import type { GridColumn } from "./index";
 
 const columns: GridColumn[] = [
@@ -101,5 +125,82 @@ describe("Drawer", () => {
     expect(out).toContain("Row k1");
     expect(out).toContain("Close");
     expect(out).toContain("aria-labelledby=");
+  });
+});
+
+describe("DataGrid parts", () => {
+  const parts = (props: Record<string, unknown> = {}) =>
+    h(
+      DataGrid,
+      { label: "Contacts", className: "mine", ...props },
+      h(
+        DataGridHeader,
+        null,
+        h(DataGridHeaderCell, { sorted: "ascending", onSort: () => {} }, "id"),
+        h(DataGridHeaderCell, { numeric: true }, "visits"),
+      ),
+      h(
+        DataGridBody,
+        null,
+        h(
+          DataGridRow,
+          { onOpen: () => {}, selected: true },
+          h(DataGridCell, { cell: null }),
+          h(DataGridCell, { numeric: true }, "7"),
+        ),
+        h(DataGridEmpty, { colSpan: 2 }, "Nothing"),
+      ),
+    );
+
+  it("draws a named, focusable region over a table", () => {
+    const out = html(parts());
+    expect(out).toContain('role="region"');
+    expect(out).toContain('aria-label="Contacts"');
+    expect(out).toContain('tabindex="0"');
+    expect(out).toContain("fg-grid-wrap mine");
+    expect(out).toContain('aria-sort="ascending"');
+    expect(out).toContain("<button");
+    expect(out).toContain("fg-table-head");
+    expect(out).toContain('class="fg-cell-null">NULL');
+    expect(out).toContain('colSpan="2"');
+  });
+
+  it("makes a row focusable and marks it selected", () => {
+    const out = html(parts());
+    expect(out).toContain('aria-selected="true"');
+    expect(out).toContain("fg-table-click fg-grid-selected");
+  });
+
+  it("opens a row on a click and on Enter, copies a cell on a double click", async () => {
+    const open = vi.fn<() => void>();
+    const copy = vi.fn<(text: string) => void>();
+    const root = await mount(
+      h(
+        DataGrid,
+        { label: "x" },
+        h(
+          DataGridBody,
+          null,
+          h(DataGridRow, { onOpen: open }, h(DataGridCell, { onCopyText: copy, cell: 5 })),
+        ),
+      ),
+    );
+    const row = root.querySelector("tr")!;
+    await act(async () => {
+      row.click();
+      row.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      root.querySelector("td")!.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(copy).toHaveBeenCalledWith("5");
+  });
+});
+
+describe("Pager parts", () => {
+  it("is a Pagination nav with its steps as buttons", () => {
+    const out = html(h(Pager, { page: 1, pageSize: 5, count: 5, hasMore: true, onPage: () => {} }));
+    expect(out).toContain("fg-pagination");
+    expect(out).toContain('aria-label="Pages"');
+    expect(out).toContain("<li");
   });
 });

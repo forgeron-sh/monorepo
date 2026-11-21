@@ -1,0 +1,16 @@
+{
+  "name": "@forgeron/quill",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./registry.json": "./registry.json"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*",
+    "@types/node": "24.19.2"
+  }
+}

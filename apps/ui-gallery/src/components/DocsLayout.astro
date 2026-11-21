@@ -1,0 +1,23 @@
+---
+import Layout from "./Layout.astro";
+import Sidebar from "./Sidebar.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  current: string;
+  page?: "docs" | "identity" | "blocks" | "charts";
+  /** The whole width right of the sidebar, for a page that shows a page. */
+  wide?: boolean;
+}
+const { title, description, current, page = "docs", wide = false } = Astro.props;
+---
+
+<Layout title={title} description={description} page={page}>
+  <div class="rail docs">
+    <Sidebar current={current} />
+    <article class:list={["doc", wide && "doc-wide"]}>
+      <slot />
+    </article>
+  </div>
+</Layout>

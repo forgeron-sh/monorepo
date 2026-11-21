@@ -1,0 +1,241 @@
+---
+import {
+  ArrowUpRight03Icon,
+  Atom02Icon,
+  BellIcon,
+  BookOpenTextIcon,
+  BoxIcon,
+  CalendarCheck01Icon,
+  FileTextIcon,
+  FlowIcon,
+  Grid3x3Icon,
+  Image03Icon,
+  LabsIcon,
+  Layers02Icon,
+  MagicWand04Icon,
+  Notebook01Icon,
+  Package02Icon,
+  PaletteIcon,
+  PenTool03Icon,
+  WhiteboardIcon,
+} from "@forgeron/icons";
+import { Badge, Button, Chip, Icon, Led, Switch } from "@forgeron/ui";
+import type { Art } from "../data/projects";
+
+/**
+ * The specimen of a project in its card: the real thing where it can be shown (icons, components,
+ * the face, a live shader), a small drawing of the editor otherwise. Never interactive: the card
+ * marks it `inert`.
+ */
+interface Props {
+  art: Art;
+}
+const { art } = Astro.props;
+
+const icons = [
+  Grid3x3Icon,
+  Layers02Icon,
+  FlowIcon,
+  WhiteboardIcon,
+  PaletteIcon,
+  PenTool03Icon,
+  Image03Icon,
+  Package02Icon,
+  LabsIcon,
+  BellIcon,
+  BoxIcon,
+  Atom02Icon,
+  MagicWand04Icon,
+  Notebook01Icon,
+  FileTextIcon,
+  BookOpenTextIcon,
+  CalendarCheck01Icon,
+  ArrowUpRight03Icon,
+];
+
+/** An iso box on the 2:1 grid of Blueprint: top, left and right faces, in whole pixels. */
+const iso = (x: number, y: number, w: number, d: number, h: number) => {
+  const top = [
+    [x, y],
+    [x + 2 * w, y + w],
+    [x + 2 * w - 2 * d, y + w + d],
+    [x - 2 * d, y + d],
+  ];
+  const left = [
+    [x - 2 * d, y + d],
+    [x + 2 * w - 2 * d, y + w + d],
+    [x + 2 * w - 2 * d, y + w + d + h],
+    [x - 2 * d, y + d + h],
+  ];
+  const right = [
+    [x + 2 * w - 2 * d, y + w + d],
+    [x + 2 * w, y + w],
+    [x + 2 * w, y + w + h],
+    [x + 2 * w - 2 * d, y + w + d + h],
+  ];
+  const pts = (p: number[][]) => p.map(([a, b]) => `${a},${b}`).join(" ");
+  return { top: pts(top), left: pts(left), right: pts(right) };
+};
+const boxes = [iso(60, 20, 18, 14, 22), iso(118, 66, 10, 10, 12), iso(30, 78, 8, 8, 30)];
+---
+
+{
+  art === "icons" && (
+    <div class="art art-icons">
+      {icons.map((icon, i) => (
+        <span class:list={["art-icon", { on: i === 8 }]}>
+          <Icon icon={icon} size={24} />
+        </span>
+      ))}
+    </div>
+  )
+}
+{
+  art === "ui" && (
+    <div class="art art-ui">
+      <div class="art-ui-row">
+        <Button variant="primary" size="sm" marker>
+          Deploy
+        </Button>
+        <Button size="sm">Cancel</Button>
+      </div>
+      <div class="art-ui-row">
+        <Badge tone="success" dot>
+          Live
+        </Badge>
+        <Chip active>Draft</Chip>
+        <Led tone="accent" label="Building" />
+      </div>
+      <div class="art-ui-row">
+        <Switch label="Preview" defaultChecked />
+      </div>
+    </div>
+  )
+}
+{
+  art === "font" && (
+    <div class="art art-font" aria-hidden="true">
+      <span class="art-font-big">Aa</span>
+      <span class="art-font-line">ABCDEFGHIJ</span>
+      <span class="art-font-line dim">0123456789</span>
+    </div>
+  )
+}
+{art === "shaders" && <canvas class="art-fill" data-dither data-px="6" aria-hidden="true" />}
+{
+  art === "blueprint" && (
+    <svg class="art art-svg" viewBox="0 0 180 140" shape-rendering="crispEdges" aria-hidden="true">
+      <defs>
+        <pattern id="bp-dither" width="2" height="2" patternUnits="userSpaceOnUse">
+          <rect width="1" height="1" fill="var(--ink-dim)" />
+          <rect x="1" y="1" width="1" height="1" fill="var(--ink-dim)" />
+        </pattern>
+      </defs>
+      {boxes.map((b, i) => (
+        <g>
+          <polygon points={b.left} fill="url(#bp-dither)" stroke="var(--ink-muted)" stroke-width="1" />
+          <polygon points={b.right} fill="var(--bg-sunk)" stroke="var(--ink-muted)" stroke-width="1" />
+          <polygon
+            points={b.top}
+            fill={i === 0 ? "var(--accent)" : "var(--bg-raised)"}
+            stroke={i === 0 ? "var(--accent)" : "var(--ink)"}
+            stroke-width="1"
+          />
+        </g>
+      ))}
+    </svg>
+  )
+}
+{
+  art === "canvas" && (
+    <div class="art art-board" aria-hidden="true">
+      <span class="cv-item" style="left:14%;top:22%;width:30%;height:34%" />
+      <span class="cv-item cv-sel" style="left:52%;top:40%;width:32%;height:36%">
+        <i style="left:-3px;top:-3px" />
+        <i style="right:-3px;top:-3px" />
+        <i style="left:-3px;bottom:-3px" />
+        <i style="right:-3px;bottom:-3px" />
+      </span>
+      <span class="cv-lasso" style="left:8%;top:64%;width:30%;height:22%" />
+      <span class="cv-cursor" style="left:84%;top:76%" />
+    </div>
+  )
+}
+{
+  art === "draw" && (
+    <div class="art art-board" aria-hidden="true">
+      <span class="dr-note" style="left:12%;top:20%">
+        <b />
+        <b />
+        <b style="width:50%" />
+      </span>
+      <span class="dr-note dr-note-hot" style="left:62%;top:46%">
+        <b />
+        <b style="width:60%" />
+      </span>
+      <svg class="dr-ink" viewBox="0 0 200 120" shape-rendering="crispEdges">
+        <path d="M66 46h20v2h20v2h14v2h10v4h6v6h4" stroke="var(--ink-muted)" stroke-width="2" fill="none" />
+        <path d="M132 62l-6 -4M132 62l-6 4" stroke="var(--ink-muted)" stroke-width="2" />
+        <path d="M30 96h4v-2h6v2h4v2h8v-4h6v-2h6v4h4" stroke="var(--accent)" stroke-width="2" fill="none" />
+      </svg>
+    </div>
+  )
+}
+{
+  art === "flow" && (
+    <div class="art art-board" aria-hidden="true">
+      <svg class="fl-edges" viewBox="0 0 200 120" preserveAspectRatio="none" shape-rendering="crispEdges">
+        <path d="M60 34h20v40h20" stroke="var(--line-strong)" stroke-width="1" fill="none" />
+        <path d="M60 34h20v-14h20" stroke="var(--line-strong)" stroke-width="1" fill="none" />
+        <path d="M150 74h14v16h12" stroke="var(--accent)" stroke-width="1" fill="none" />
+      </svg>
+      <span class="fl-node" style="left:6%;top:20%">
+        <Led tone="success" />
+        Trigger
+      </span>
+      <span class="fl-node" style="left:50%;top:9%">
+        <Led tone="success" />
+        Fetch
+      </span>
+      <span class="fl-node fl-run" style="left:50%;top:54%">
+        <Led tone="accent" />
+        Transform
+      </span>
+      <span class="fl-node fl-idle" style="left:80%;top:70%">
+        <Led />
+        Send
+      </span>
+    </div>
+  )
+}
+{
+  art === "quill" && (
+    <div class="art art-doc art-quill" aria-hidden="true">
+      <span class="rt-h">Notes from the forge</span>
+      <span class="rt-l" style="width:90%" />
+      <span class="q-row">
+        <span class="rt-l q-cut" style="width:64%" />
+        <span class="q-need">[NEED: source]</span>
+      </span>
+      <span class="rt-l q-new" style="width:78%" />
+      <span class="rt-l" style="width:56%" />
+    </div>
+  )
+}
+{
+  art === "richtext" && (
+    <div class="art art-doc" aria-hidden="true">
+      <span class="rt-h">Field notes</span>
+      <span class="rt-l" style="width:88%" />
+      <span class="rt-l" style="width:72%" />
+      <span class="rt-slash">
+        /<span class="rt-caret" />
+      </span>
+      <span class="rt-menu">
+        <span class="on">Heading</span>
+        <span>To-do list</span>
+        <span>Code block</span>
+      </span>
+    </div>
+  )
+}

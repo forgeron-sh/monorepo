@@ -1,0 +1,65 @@
+---
+import { SectionBand } from "@forgeron/ui";
+import HeroScene from "../components/HeroScene.astro";
+import HeroTitle from "../components/HeroTitle.astro";
+import Layout from "../components/Layout.astro";
+import PaperList from "../components/PaperList.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import StatusTag from "../components/StatusTag.astro";
+import { PAPERS_BY_DATE } from "../data/papers";
+import { PROJECTS, STATUS } from "../data/projects";
+
+const stable = PROJECTS.filter((p) => p.status === "stable");
+const experimental = PROJECTS.filter((p) => p.status === "experimental");
+---
+
+<Layout
+  title="Forgeron Lab"
+  description="The workshop of Forgeron: icons, type, pixel graphics and editors, built in the open. Stable projects, experiments and papers."
+  last="/0.3"
+>
+  <section class="fg-rail lab-hero" aria-label="Forgeron Lab">
+    <canvas class="lab-hero-field" data-dither data-px="5" aria-hidden="true"></canvas>
+    <div class="lab-hero-main">
+      <HeroTitle text="Lab" />
+      <p class="text-lead lab-hero-lead">
+        The workshop behind Forgeron. Icons, type, pixel graphics and editors, built in the open.
+      </p>
+    </div>
+    <HeroScene />
+  </section>
+
+  <ul class="fg-rail fg-bento lab-legend">
+    {
+      (["stable", "experimental"] as const).map((s) => (
+        <li class="fg-cell fg-ticks lab-legend-cell">
+          <StatusTag status={s} />
+          <span class="text-small">{STATUS[s].line}</span>
+        </li>
+      ))
+    }
+    <li class="fg-cell fg-ticks lab-legend-cell">
+      <span class="lab-status"><span class="lab-status-led lab-status-paper" aria-hidden="true"></span>Papers</span>
+      <span class="text-small">Benchmarks, designs and specs, published from the repository.</span>
+    </li>
+  </ul>
+
+  <SectionBand className="fg-rail" from="/0.0" to="/0.1" label="Stable" />
+  <section id="stable" class="fg-rail" aria-label="Stable projects">
+    <div class="fg-bento lab-grid">
+      {stable.map((p) => <ProjectCard project={p} />)}
+    </div>
+  </section>
+
+  <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="Experimental" />
+  <section id="experimental" class="fg-rail" aria-label="Experimental projects">
+    <div class="fg-bento lab-grid">
+      {experimental.map((p) => <ProjectCard project={p} />)}
+    </div>
+  </section>
+
+  <SectionBand className="fg-rail" from="/0.2" to="/0.3" label="Papers" />
+  <section id="papers" class="fg-rail" aria-label="Papers">
+    <PaperList papers={PAPERS_BY_DATE} />
+  </section>
+</Layout>

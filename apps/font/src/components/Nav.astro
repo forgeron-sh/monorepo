@@ -1,0 +1,37 @@
+---
+import { ArrowDown01Icon, ForgeronIcon, toSvg } from "@forgeron/icons";
+
+interface Props {
+  /** Section links point at the home page from other pages. */
+  home?: boolean;
+}
+const { home = true } = Astro.props;
+const base = home ? "" : "/";
+const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
+const arrow = toSvg(ArrowDown01Icon, { size: 14 }) ?? "";
+const links = [
+  ["#anatomy", "/0.1 Anatomy"],
+  ["#glyphs", "/0.2 Glyphs"],
+  ["#sizes", "/0.3 Sizes"],
+  ["#in-use", "/0.4 In use"],
+  ["#licence", "/0.5 Licence"],
+] as const;
+---
+
+<nav class="nav" aria-label="Main navigation">
+  <div class="rail">
+    <a href="/" class="nav-brand" aria-label="Forgeron fonts, home">
+      <span set:html={mark} />
+      <span class="nav-word">Forgeron<span class="dim">/</span><span class="accent">Fonts</span></span>
+    </a>
+    <div class="nav-links t-mono">
+      {links.map(([href, label]) => <a href={`${base}${href}`}>{label}</a>)}
+      <a href="/playground" aria-current={home ? undefined : "page"}>Playground</a>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" data-modal-open="downloads" aria-haspopup="dialog" aria-label="See download options">
+      <span set:html={arrow} class="px-icon" />
+      <span class="nav-dl-long">See download options</span>
+      <span class="nav-dl-short" aria-hidden="true">Download</span>
+    </button>
+  </div>
+</nav>

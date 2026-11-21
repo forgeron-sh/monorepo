@@ -1,0 +1,25 @@
+---
+import { pixelText } from "./pixel";
+
+interface Props {
+  /** The title; a line break ("\n") starts a new line. Words wrap on narrow screens. */
+  text: string;
+  as?: "h1" | "h2" | "h3" | "p" | "span";
+  class?: string;
+}
+const { text, as: Tag = "h2", class: className } = Astro.props;
+const lines = text.split("\n").map((line) => line.split(" ").filter(Boolean));
+---
+
+<Tag class:list={["px-title", className]}>
+  <span class="sr-only">{text.replace(/\n/g, " ")}</span>
+  {
+    lines.map((words) => (
+      <span class="px-line" aria-hidden="true">
+        {words.map((word) => (
+          <span class="px-word" set:html={pixelText(word)} />
+        ))}
+      </span>
+    ))
+  }
+</Tag>

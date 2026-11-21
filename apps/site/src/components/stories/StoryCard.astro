@@ -1,0 +1,26 @@
+---
+import type { Story } from "../../lib/stories";
+import PostArt from "../blog/PostArt.astro";
+
+interface Props {
+  story: Story;
+}
+const { story } = Astro.props;
+const { data } = story;
+---
+
+<!-- A story in a `fg-cards` grid: the company's scene, its name, then the quote and who said it. -->
+<li class="blog-card" data-category={data.industry.toLowerCase().replace(/\s+/g, "-")}>
+  <a class="fg-artcard fg-ticks" href={`/customers/${story.id}`}>
+    <PostArt class="fg-artcard-art" scene={data.scene} fill={0.74} />
+    <div class="fg-artcard-copy story-card-copy">
+      <span class="blog-meta text-eyebrow">
+        <span class="fg-artcard-eyebrow">{data.industry}</span>
+        {data.draft ? <span class="blog-draft">Draft</span> : null}
+      </span>
+      <h3 class="text-title-3 blog-card-title">{data.company}</h3>
+      <p class="story-card-quote">“{data.quote.text}”</p>
+      <p class="text-eyebrow dim">{data.quote.name} · {data.quote.role}</p>
+    </div>
+  </a>
+</li>

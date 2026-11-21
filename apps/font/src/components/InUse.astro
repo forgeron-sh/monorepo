@@ -1,0 +1,51 @@
+---
+import { ForgeronIcon, toSvg } from "@forgeron/icons";
+
+const mark = toSvg(ForgeronIcon, { size: 48 }) ?? "";
+---
+
+<div class="bento in-use">
+  <figure class="cell c2 r2 ticks use-card">
+    <figcaption class="corner t-mono dim">FIG.03 · Wordmark</figcaption>
+    <span class="corner-r t-mono dim">Medium · 60 px</span>
+    <div class="art use-stage use-wordmark">
+      <span set:html={mark} />
+      <span class="f-title">Forgeron</span>
+    </div>
+  </figure>
+
+  <figure class="cell c2 r2 ticks use-card">
+    <figcaption class="corner t-mono dim">FIG.04 · Indices</figcaption>
+    <span class="corner-r t-mono dim">Medium · 40 px</span>
+    <div class="art use-stage use-index">
+      {
+        ["Deploy", "Access", "Audit"].map((label, i) => (
+          <div class="use-index-row">
+            <span class="f-title accent">/0.{i + 1}</span>
+            <span class="tag">
+              <b>{label}</b>
+            </span>
+          </div>
+        ))
+      }
+    </div>
+  </figure>
+
+  <figure class="cell c2 r2 ticks use-card">
+    <figcaption class="corner t-mono dim">FIG.05 · Interface</figcaption>
+    <span class="corner-r t-mono dim">Medium · 20 px</span>
+    <div class="art use-stage use-ui dots-bg">
+      <div class="ui-panel">
+        <div class="ui-head">
+          <span class="f-title">Tools</span>
+          <span class="chip"><span class="led ok"></span>Gateway</span>
+        </div>
+        <ul class="ui-rows t-mono">
+          <li><span>crm</span><span class="chip"><span class="led ok"></span>Live</span></li>
+          <li><span>inventory</span><span class="chip"><span class="led hot"></span>Preview</span></li>
+          <li><span>dashboard</span><span class="chip"><span class="led"></span>Draft</span></li>
+        </ul>
+      </div>
+    </div>
+  </figure>
+</div>

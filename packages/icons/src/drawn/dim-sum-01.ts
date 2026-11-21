@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// A bamboo steamer for dim sum: a domed lid with a knob over two stacked baskets.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "dim-sum-01",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".....##",
+    "...##..##",
+    ".##......##",
+    "############",
+    ".#........#",
+    ".#........#",
+    ".##########",
+    ".#........#",
+    ".#........#",
+    ".##########",
+  ],
+};
+
+export default icon;

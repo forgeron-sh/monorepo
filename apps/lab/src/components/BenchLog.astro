@@ -1,0 +1,43 @@
+---
+import { PROJECTS } from "../data/projects";
+import { recentCommits } from "../lib/git";
+import { REPO } from "../lib/links";
+
+/**
+ * The bench: the last commits on the lab's packages, read from git at build time. Date, scope
+ * (the project) and subject, each line linking to its commit.
+ */
+interface Props {
+  /** Only these folders; every project's by default. */
+  dirs?: readonly string[];
+  count?: number;
+  title?: string;
+}
+const { dirs = PROJECTS.map((p) => p.dir), count = 6, title = "On the bench" } = Astro.props;
+const commits = recentCommits(dirs, count);
+---
+
+{
+  commits.length > 0 && (
+    <div class="lab-bench fg-ticks">
+      <div class="lab-bench-head text-eyebrow">
+        <span>{title}</span>
+        <span class="lab-bench-live">
+          <span class="lab-status-led" aria-hidden="true" />
+          main
+        </span>
+      </div>
+      <ol class="lab-bench-list">
+        {commits.map((c) => (
+          <li>
+            <a href={`${REPO}/commit/${c.hash}`} class="lab-bench-row">
+              <span class="lab-bench-date">{c.date.slice(5)}</span>
+              <span class="lab-bench-scope">{c.scope ?? c.type}</span>
+              <span class="lab-bench-subject">{c.subject}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}

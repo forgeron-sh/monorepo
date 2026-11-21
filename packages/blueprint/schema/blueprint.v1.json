@@ -1,0 +1,817 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blueprint.forgeron.sh/schema/v1.json",
+  "title": "Blueprint file, version 1",
+  "description": "A library of Parts, Assemblies and Scenes for the Blueprint engine. See docs/blueprint/format.md.",
+  "type": "object",
+  "properties": {
+    "$schema": { "const": "https://blueprint.forgeron.sh/schema/v1.json" },
+    "version": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "imports": { "type": "array", "items": { "$ref": "#/$defs/Import" } },
+    "palette": { "$ref": "#/$defs/Palette" },
+    "parts": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/Part" }
+    },
+    "assemblies": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/Assembly" }
+    },
+    "scenes": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/Scene" }
+    }
+  },
+  "required": ["$schema", "version", "id"],
+  "additionalProperties": false,
+  "$defs": {
+    "Vec3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 3
+    },
+    "Turn": { "enum": [0, 1, 2, 3] },
+    "Ink": { "enum": ["ink", "dim", "faint", "accent", "signal", "alert"] },
+    "ParamRef": { "type": "string", "pattern": "^@[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+    "Num": {
+      "anyOf": [
+        { "type": "number" },
+        { "$ref": "#/$defs/ParamRef" },
+        {
+          "type": "object",
+          "properties": {
+            "p": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "k": { "type": "number" },
+            "b": { "type": "number" }
+          },
+          "required": ["p"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "NumVec": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/Num" },
+        { "$ref": "#/$defs/Num" },
+        { "$ref": "#/$defs/Num" }
+      ],
+      "items": false,
+      "minItems": 3
+    },
+    "Flag": {
+      "anyOf": [
+        { "type": "boolean" },
+        { "$ref": "#/$defs/ParamRef" },
+        {
+          "type": "object",
+          "properties": { "not": { "$ref": "#/$defs/ParamRef" } },
+          "required": ["not"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "InkRef": {
+      "anyOf": [
+        { "$ref": "#/$defs/Ink" },
+        {
+          "type": "object",
+          "properties": {
+            "if": { "$ref": "#/$defs/Flag" },
+            "then": { "$ref": "#/$defs/Ink" },
+            "else": { "$ref": "#/$defs/Ink" }
+          },
+          "required": ["if", "then", "else"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Import": {
+      "type": "object",
+      "properties": {
+        "from": { "type": "string", "minLength": 1 },
+        "use": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^([A-Za-z0-9_][A-Za-z0-9_-]*:)*[A-Za-z0-9_][A-Za-z0-9_-]*$"
+          }
+        },
+        "as": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" }
+      },
+      "required": ["from", "as"],
+      "additionalProperties": false
+    },
+    "Colour": {
+      "anyOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": { "var": { "type": "string" }, "fallback": { "type": "string" } },
+          "required": ["var", "fallback"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Palette": {
+      "type": "object",
+      "properties": {
+        "bg": { "$ref": "#/$defs/Colour" },
+        "ink": { "$ref": "#/$defs/Colour" },
+        "dim": { "$ref": "#/$defs/Colour" },
+        "faint": { "$ref": "#/$defs/Colour" },
+        "accent": { "$ref": "#/$defs/Colour" },
+        "signal": { "$ref": "#/$defs/Colour" },
+        "alert": { "$ref": "#/$defs/Colour" }
+      },
+      "additionalProperties": false
+    },
+    "Params": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": { "enum": ["number", "flag", "int"] },
+          "default": { "anyOf": [{ "type": "number" }, { "type": "boolean" }] }
+        },
+        "required": ["type", "default"],
+        "additionalProperties": false
+      }
+    },
+    "Facing": { "enum": ["+x", "-x", "+y", "-y", "+z", "-z"] },
+    "Part": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "params": { "$ref": "#/$defs/Params" },
+        "prims": { "type": "array", "items": { "$ref": "#/$defs/Prim" } },
+        "sockets": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "at": { "$ref": "#/$defs/NumVec" },
+              "facing": { "$ref": "#/$defs/Facing" }
+            },
+            "required": ["at"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["prims"],
+      "additionalProperties": false
+    },
+    "BoxLook": { "enum": ["plain", "accent", "signal", "alert", "ghost"] },
+    "Prim": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "box" },
+            "layer": { "type": "number" },
+            "decor": { "type": "boolean" },
+            "visible": { "$ref": "#/$defs/Flag" },
+            "tag": { "type": "string" },
+            "at": { "$ref": "#/$defs/NumVec" },
+            "size": { "$ref": "#/$defs/NumVec" },
+            "anchor": { "enum": ["corner", "base-centre"] },
+            "tone": {
+              "type": "array",
+              "prefixItems": [
+                { "$ref": "#/$defs/Num" },
+                { "$ref": "#/$defs/Num" },
+                { "$ref": "#/$defs/Num" }
+              ],
+              "items": false,
+              "minItems": 3
+            },
+            "look": {
+              "anyOf": [
+                { "$ref": "#/$defs/BoxLook" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "if": { "$ref": "#/$defs/Flag" },
+                    "then": { "$ref": "#/$defs/BoxLook" },
+                    "else": { "$ref": "#/$defs/BoxLook" }
+                  },
+                  "required": ["if", "then", "else"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "plate": { "type": "boolean" },
+            "floors": { "$ref": "#/$defs/Num" },
+            "vents": { "enum": ["+x", "+y", "-x", "-y"] }
+          },
+          "required": ["kind", "at", "size"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "line" },
+            "layer": { "type": "number" },
+            "decor": { "type": "boolean" },
+            "visible": { "$ref": "#/$defs/Flag" },
+            "tag": { "type": "string" },
+            "points": { "type": "array", "items": { "$ref": "#/$defs/NumVec" }, "minItems": 2 },
+            "ink": { "$ref": "#/$defs/InkRef" },
+            "dash": { "type": "number" }
+          },
+          "required": ["kind", "points"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "dot" },
+            "layer": { "type": "number" },
+            "decor": { "type": "boolean" },
+            "visible": { "$ref": "#/$defs/Flag" },
+            "tag": { "type": "string" },
+            "at": { "$ref": "#/$defs/NumVec" },
+            "ink": { "$ref": "#/$defs/InkRef" },
+            "size": { "type": "number" }
+          },
+          "required": ["kind", "at"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "label" },
+            "layer": { "type": "number" },
+            "decor": { "type": "boolean" },
+            "visible": { "$ref": "#/$defs/Flag" },
+            "tag": { "type": "string" },
+            "at": { "$ref": "#/$defs/NumVec" },
+            "text": { "type": "string" },
+            "to": { "$ref": "#/$defs/NumVec" },
+            "active": { "$ref": "#/$defs/Flag" },
+            "plain": { "type": "boolean" },
+            "fixed": { "type": "boolean" },
+            "ink": { "$ref": "#/$defs/InkRef" }
+          },
+          "required": ["kind", "at", "text"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "rig" },
+            "layer": { "type": "number" },
+            "decor": { "type": "boolean" },
+            "visible": { "$ref": "#/$defs/Flag" },
+            "tag": { "type": "string" },
+            "rig": {
+              "enum": [
+                "wheel",
+                "arm",
+                "fan",
+                "piston",
+                "pendulum",
+                "smoke",
+                "sparks",
+                "burst",
+                "mushroom",
+                "pile",
+                "fence",
+                "ash"
+              ]
+            },
+            "with": {
+              "type": "object",
+              "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+              "additionalProperties": {
+                "anyOf": [
+                  { "$ref": "#/$defs/Num" },
+                  { "$ref": "#/$defs/NumVec" },
+                  { "$ref": "#/$defs/Flag" },
+                  { "$ref": "#/$defs/InkRef" },
+                  { "type": "string", "pattern": "^[^@]" }
+                ]
+              }
+            }
+          },
+          "required": ["kind", "rig", "with"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "sprite" },
+            "layer": { "type": "number" },
+            "decor": { "type": "boolean" },
+            "visible": { "$ref": "#/$defs/Flag" },
+            "tag": { "type": "string" },
+            "at": { "$ref": "#/$defs/NumVec" },
+            "sprite": { "type": "string" }
+          },
+          "required": ["kind", "at", "sprite"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Instance": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+        "use": {
+          "type": "string",
+          "pattern": "^([A-Za-z0-9_][A-Za-z0-9_-]*:)*[A-Za-z0-9_][A-Za-z0-9_-]*$"
+        },
+        "at": { "$ref": "#/$defs/NumVec" },
+        "turn": { "$ref": "#/$defs/Turn" },
+        "scale": { "type": "number", "exclusiveMinimum": 0 },
+        "snap": {
+          "type": "object",
+          "properties": {
+            "socket": { "type": "string" },
+            "to": { "type": "string", "pattern": "^[^.]+\\.[^.]+$" }
+          },
+          "required": ["socket", "to"],
+          "additionalProperties": false
+        },
+        "params": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": {
+            "anyOf": [{ "$ref": "#/$defs/Num" }, { "$ref": "#/$defs/Flag" }]
+          }
+        },
+        "layer": { "type": "number" },
+        "tag": { "type": "string" },
+        "visible": { "$ref": "#/$defs/Flag" }
+      },
+      "required": ["use"],
+      "additionalProperties": false
+    },
+    "Assembly": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "params": { "$ref": "#/$defs/Params" },
+        "instances": { "type": "array", "items": { "$ref": "#/$defs/Instance" } },
+        "sockets": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": { "type": "string", "pattern": "^[^.]+\\.[^.]+$" }
+        }
+      },
+      "required": ["instances"],
+      "additionalProperties": false
+    },
+    "Camera": {
+      "type": "object",
+      "properties": {
+        "view": { "$ref": "#/$defs/Turn" },
+        "fit": {
+          "type": "object",
+          "properties": {
+            "fill": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "unit": { "enum": ["even", "any"] },
+            "box": {
+              "type": "object",
+              "properties": {
+                "min": { "$ref": "#/$defs/Vec3" },
+                "max": { "$ref": "#/$defs/Vec3" }
+              },
+              "required": ["min", "max"],
+              "additionalProperties": false
+            },
+            "at": {
+              "type": "object",
+              "properties": {
+                "t": { "type": "number" },
+                "vars": {
+                  "type": "object",
+                  "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+                  "additionalProperties": { "type": "number" }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "zooms": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 } },
+        "shots": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "at": { "$ref": "#/$defs/Vec3" },
+              "zoom": { "type": "number" },
+              "view": { "$ref": "#/$defs/Turn" }
+            },
+            "required": ["at", "zoom"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["view", "fit"],
+      "additionalProperties": false
+    },
+    "Var": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": { "type": { "const": "time" } },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": { "type": { "const": "progress" }, "default": { "type": "number" } },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "int" },
+            "default": { "type": "integer" },
+            "cycle": {
+              "type": "object",
+              "properties": {
+                "every": { "type": "number" },
+                "count": { "type": "integer", "minimum": 1 }
+              },
+              "required": ["every", "count"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["type", "default"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": { "type": { "const": "pointer" } },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Ease": { "enum": ["linear", "step", "smooth", "glide", "in", "out", "in-out"] },
+    "Track": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "key" },
+            "target": { "type": "string" },
+            "channel": {
+              "anyOf": [
+                { "enum": ["at", "turn", "scale"] },
+                { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" }
+              ]
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "t": { "type": "number" },
+                  "v": {
+                    "anyOf": [
+                      { "type": "number" },
+                      { "$ref": "#/$defs/Vec3" },
+                      { "type": "boolean" }
+                    ]
+                  },
+                  "ease": { "$ref": "#/$defs/Ease" }
+                },
+                "required": ["t", "v"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["kind", "target", "channel", "keys"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "visible" },
+            "target": { "type": "string" },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": { "t": { "type": "number" }, "v": { "type": "boolean" } },
+                "required": ["t", "v"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["kind", "target", "keys"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "spin" },
+            "target": { "type": "string" },
+            "channel": { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "rate": { "type": "number" },
+            "phase": { "type": "number" }
+          },
+          "required": ["kind", "target", "channel", "rate"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "path" },
+            "target": { "type": "string" },
+            "path": { "type": "array", "items": { "$ref": "#/$defs/Vec3" }, "minItems": 2 },
+            "duration": { "type": "number" },
+            "ease": { "$ref": "#/$defs/Ease" },
+            "delay": { "type": "number" }
+          },
+          "required": ["kind", "target", "path", "duration"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conveyor" },
+            "use": {
+              "type": "string",
+              "pattern": "^([A-Za-z0-9_][A-Za-z0-9_-]*:)*[A-Za-z0-9_][A-Za-z0-9_-]*$"
+            },
+            "path": { "type": "array", "items": { "$ref": "#/$defs/Vec3" }, "minItems": 2 },
+            "count": { "type": "integer", "minimum": 1 },
+            "speed": { "type": "number" },
+            "phase": { "type": "number" },
+            "params": {
+              "type": "object",
+              "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+              "additionalProperties": {
+                "anyOf": [{ "$ref": "#/$defs/Num" }, { "$ref": "#/$defs/Flag" }]
+              }
+            }
+          },
+          "required": ["kind", "use", "path", "count", "speed"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "blink" },
+            "target": { "type": "string" },
+            "channel": { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "rate": { "type": "number" },
+            "period": { "type": "integer", "minimum": 1 },
+            "on": { "type": "number" },
+            "seed": { "type": "number" },
+            "at": { "type": "number" }
+          },
+          "required": ["kind", "target", "channel", "rate", "period", "on", "seed"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "wave" },
+            "target": { "type": "string" },
+            "channel": { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "wave": { "enum": ["sin", "cos"] },
+            "rate": { "type": "number" },
+            "phase": { "type": "number" },
+            "amp": { "type": "number" },
+            "base": { "type": "number" },
+            "clip": { "type": "boolean" }
+          },
+          "required": ["kind", "target", "channel", "wave", "rate", "amp", "base"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "spring" },
+            "target": { "type": "string" },
+            "channel": { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "to": {
+              "type": "object",
+              "properties": {
+                "if": { "type": "string" },
+                "then": { "type": "number" },
+                "else": { "type": "number" }
+              },
+              "required": ["if", "then", "else"],
+              "additionalProperties": false
+            },
+            "rate": { "type": "number" }
+          },
+          "required": ["kind", "target", "channel", "to", "rate"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "calc" },
+            "target": { "type": "string" },
+            "channel": { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "from": {
+              "anyOf": [
+                { "type": "number" },
+                { "type": "string", "pattern": "^@[A-Za-z0-9_][A-Za-z0-9_-]*$" }
+              ]
+            },
+            "ops": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "enum": [
+                      "add",
+                      "sub",
+                      "rsub",
+                      "mul",
+                      "div",
+                      "rdiv",
+                      "mod",
+                      "min",
+                      "max",
+                      "pow",
+                      "floor",
+                      "ceil",
+                      "round",
+                      "abs",
+                      "sqrt",
+                      "sin",
+                      "cos",
+                      "lt",
+                      "le",
+                      "gt",
+                      "ge",
+                      "eq",
+                      "and",
+                      "or",
+                      "not",
+                      "hash",
+                      "rhash",
+                      "ease",
+                      "when"
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      { "type": "number" },
+                      { "type": "string", "pattern": "^@[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+                      { "$ref": "#/$defs/Ease" }
+                    ]
+                  }
+                ],
+                "items": false,
+                "minItems": 1
+              }
+            }
+          },
+          "required": ["kind", "target", "channel", "from", "ops"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Timeline": {
+      "type": "object",
+      "properties": {
+        "clock": { "type": "string" },
+        "length": { "type": "number", "exclusiveMinimum": 0 },
+        "loop": { "enum": ["loop", "ping-pong", "once"] },
+        "tracks": { "type": "array", "items": { "$ref": "#/$defs/Track" } }
+      },
+      "required": ["tracks"],
+      "additionalProperties": false
+    },
+    "Machine": {
+      "type": "object",
+      "properties": {
+        "initial": { "type": "string" },
+        "states": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "play": { "type": "array", "items": { "type": "string" } },
+              "shot": { "type": "string" },
+              "set": {
+                "type": "object",
+                "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+                "additionalProperties": { "type": "number" }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "when": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "var": { "type": "string" },
+                      "range": {
+                        "type": "array",
+                        "prefixItems": [{ "type": "number" }, { "type": "number" }],
+                        "items": false,
+                        "minItems": 2
+                      }
+                    },
+                    "required": ["var", "range"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": { "var": { "type": "string" }, "equals": { "type": "number" } },
+                    "required": ["var", "equals"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": { "after": { "type": "number" } },
+                    "required": ["after"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": { "event": { "type": "string" } },
+                    "required": ["event"],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "dissolve": { "type": "number" }
+            },
+            "required": ["from", "to", "when"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["initial", "states", "transitions"],
+      "additionalProperties": false
+    },
+    "Scene": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "root": { "$ref": "#/$defs/Assembly" },
+        "camera": { "$ref": "#/$defs/Camera" },
+        "depth": { "enum": ["painter", "zbuffer"] },
+        "palette": { "$ref": "#/$defs/Palette" },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "pixel": { "type": "integer", "minimum": 1 },
+            "dither": { "enum": [2, 4, 8, "none"] },
+            "glow": {
+              "type": "object",
+              "properties": { "radius": { "type": "number" }, "density": { "type": "number" } },
+              "required": ["radius", "density"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "post": { "type": "array", "items": { "type": "string" } },
+        "labels": { "type": "boolean" },
+        "vars": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": { "$ref": "#/$defs/Var" }
+        },
+        "timelines": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": { "$ref": "#/$defs/Timeline" }
+        },
+        "machines": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+          "additionalProperties": { "$ref": "#/$defs/Machine" }
+        }
+      },
+      "required": ["title", "root", "camera", "depth"],
+      "additionalProperties": false
+    }
+  }
+}

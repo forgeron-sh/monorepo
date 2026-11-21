@@ -1,0 +1,672 @@
+---
+import Footer from "./lab/Footer.astro";
+import LabLayout from "./lab/LabLayout.astro";
+import Nav from "./lab/Nav.astro";
+import PixelTitle from "./lab/PixelTitle.astro";
+import SectionHead from "./lab/SectionHead.astro";
+import { pixelText } from "./lab/pixel";
+
+/** Layers of the exploded stack, bottom (index 0) to top. */
+const layers = [
+  { i: 0, name: "Data", text: "Tables, and secrets held per person." },
+  { i: 1, name: "Runtime", text: "Cloudflare Workers. Hosted by us or by you." },
+  { i: 2, name: "Tools", text: "Versioned on every push, previewed before production." },
+  { i: 3, name: "Access", text: "Company SSO, teams, permissions per action." },
+  { i: 4, name: "Interfaces", text: "MCP, API, web and CLI from one definition." },
+];
+const left = [4, 2, 0].map((i) => layers[i]!);
+const right = [3, 1].map((i) => layers[i]!);
+
+const teams = ["Sales", "Support", "Mgmt"];
+const grants = [
+  { name: "contacts.read", g: [1, 1, 1] },
+  { name: "contacts.update", g: [1, 0, 1] },
+  { name: "deals.move", g: [1, 0, 1] },
+  { name: "deals.delete", g: [0, 0, 1] },
+];
+
+const deployments = [
+  { v: "v1.5.0-rc.2", m: "Contacts CSV export", meta: "8dc01b2 · 4 min ago", env: "Preview", led: "warn" },
+  { v: "v1.4.1", m: "Slimmer contact record", meta: "77c2d1a · yesterday", env: "Production", led: "ok" },
+  { v: "v1.4.0", m: "deals.move action with history", meta: "a41f9e0 · Mon", env: "Production", led: "ok" },
+];
+
+const templates = [
+  { n: "01", name: "Lightweight CRM", path: "templates/crm", text: "Companies, contacts and leads, usable from Claude." },
+  { n: "02", name: "Data hub", path: "templates/inventory", text: "A business data repository, fed by imports and syncs." },
+  { n: "03", name: "Dashboard", path: "templates/dashboard", text: "A lightweight sales dashboard on top of the CRM." },
+];
+---
+
+<LabLayout title="Forgeron — Foundry (lab A)" description="Landing exploration A: ember hero, exploded stack, bento.">
+  <Nav />
+
+  <main>
+    <!-- HERO -->
+    <section id="top" class="hero">
+      <canvas data-shader="ember" data-px="5" aria-hidden="true"></canvas>
+      <div class="rail hero-inner">
+        <div class="hero-meta pad">
+          <span class="tag"><b>N°01</b> Open source</span>
+          <span class="tag">Runs on <b>Cloudflare Workers</b></span>
+        </div>
+        <div class="hero-copy pad">
+          <PixelTitle as="h1" class="t-hero" text={"Forge your\ninternal tools."} />
+          <p class="t-lead">Write a tool once. Use it from Claude, the API, the web and the terminal.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#start"><span class="sq"></span>Get started</a>
+            <span class="cmd"><span class="p">$</span>npx forgeron init</span>
+          </div>
+        </div>
+        <div class="hero-foot pad t-mono dim">
+          <span>MCP · API · Web · CLI</span>
+          <span>Scroll ↓ /0.1</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0.1 SYSTEM -->
+    <section id="system" class="rail">
+      <SectionHead index="/0.1" label="System" meta="5 layers · 1 tool">
+        <PixelTitle as="h2" class="t-h2" text={"One tool, five layers"} />
+      </SectionHead>
+      <div class="stack">
+        <ul class="stack-col">
+          {
+            left.map((l) => (
+              <li data-layer={l.i}>
+                <span class="t-mono accent">0{l.i + 1}</span>
+                <span class="t-title">{l.name}</span>
+                <span class="t-small">{l.text}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="stack-art dots-bg">
+          <canvas id="stack-canvas" data-iso="stack" data-cycle="2.4" data-fill="0.8" aria-hidden="true"></canvas>
+        </div>
+        <ul class="stack-col stack-col-r">
+          {
+            right.map((l) => (
+              <li data-layer={l.i}>
+                <span class="t-mono accent">0{l.i + 1}</span>
+                <span class="t-title">{l.name}</span>
+                <span class="t-small">{l.text}</span>
+              </li>
+            ))
+          }
+          <li class="stack-empty" aria-hidden="true"></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 0.2 INTERFACES -->
+    <section id="interfaces" class="rail">
+      <SectionHead index="/0.2" label="Interfaces" meta="Same actions everywhere">
+        <PixelTitle as="h2" class="t-h2" text={"Four doors"} />
+      </SectionHead>
+      <div class="bento">
+        <article class="cell c4 r3">
+          <span class="corner t-mono dim">FIG.02 · Gateway</span>
+          <div class="corner-r row">
+            <span class="chip on">MCP</span><span class="chip">API</span><span class="chip">Web</span><span class="chip">CLI</span>
+          </div>
+          <div class="art"><canvas data-iso="network" data-fill="0.78" aria-hidden="true"></canvas></div>
+          <div class="copy">
+            <h3 class="t-title">One definition, four interfaces</h3>
+            <p class="t-small">Every action is served over MCP, REST, the web and the terminal.</p>
+          </div>
+        </article>
+
+        <article class="cell c2 r3">
+          <span class="corner t-mono dim">Claude</span>
+          <div class="art chat dots-bg">
+            <div class="msg me t-code">Move the Durand deal to Won.</div>
+            <div class="msg tool t-mono">
+              <span class="led hot"></span> crm.deals.move
+              <span class="dim">write · Sales</span>
+            </div>
+            <div class="msg t-code muted">Done. Durand → Won, logged in the deal history.</div>
+          </div>
+          <div class="copy hr">
+            <h3 class="t-title">From the conversation</h3>
+            <p class="t-small">Your teams ask; the tool acts, with their rights.</p>
+          </div>
+        </article>
+
+        <article class="cell c2 r2">
+          <span class="corner t-mono dim">Terminal</span>
+          <div class="art term t-code">
+            <div><span class="accent">$</span> forgeron crm contacts search "Durand"</div>
+            <div class="muted">2 contacts found</div>
+            <div class="dim">→ --json for script-friendly output</div>
+          </div>
+          <div class="copy hr"><h3 class="t-title">Scriptable CLI</h3></div>
+        </article>
+
+        <article class="cell c2 r2">
+          <span class="corner t-mono dim">v1.4.1</span>
+          <div class="art"><canvas data-iso="cube" aria-hidden="true"></canvas></div>
+          <div class="copy hr"><h3 class="t-title">Versioned on every push</h3></div>
+        </article>
+
+        <article class="cell c2 r2">
+          <span class="corner t-mono dim">Hosting</span>
+          <div class="art"><canvas data-shader="globe" data-px="4" aria-hidden="true"></canvas></div>
+          <div class="copy hr"><h3 class="t-title">Hosted by us, or by you</h3></div>
+        </article>
+
+        <article class="cell c3 r2">
+          <span class="corner t-mono dim">Permissions</span>
+          <div class="art perms">
+            <table class="t-mono">
+              <thead>
+                <tr><th></th>{teams.map((t) => <th>{t}</th>)}</tr>
+              </thead>
+              <tbody>
+                {
+                  grants.map((r) => (
+                    <tr>
+                      <td>{r.name}</td>
+                      {r.g.map((v) => (
+                        <td>
+                          <span class={v ? "px on" : "px"} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="copy hr"><h3 class="t-title">Teams × actions, nothing more</h3></div>
+        </article>
+
+        <article class="cell c3 r2">
+          <span class="corner t-mono dim">Environments</span>
+          <div class="corner-r row t-bit"><span class="led ok"></span> prod <span class="led warn"></span> preview</div>
+          <div class="art"><canvas data-iso="blocks" data-fill="0.86" aria-hidden="true"></canvas></div>
+          <div class="copy hr"><h3 class="t-title">Preview, then production</h3></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 0.3 SDK -->
+    <section id="sdk" class="rail">
+      <SectionHead index="/0.3" label="SDK" meta="TypeScript">
+        <PixelTitle as="h2" class="t-h2" text={"Anatomy of a tool"} />
+      </SectionHead>
+      <div class="sdk">
+        <div class="code">
+          <div class="code-head">
+            <span class="t-mono dim">tools/crm/forgeron.tool.ts</span>
+            <span class="tag">crm · v1.4.0</span>
+          </div>
+          <pre><code><span class="k">import</span> {"{"} defineTool, action, z {"}"} <span class="k">from</span> <span class="s">"forgeron"</span>;
+
+<span class="k">export default</span> defineTool({"{"}
+  name: <span class="s">"crm"</span>,
+  interfaces: [<span class="s">"mcp"</span>, <span class="s">"api"</span>, <span class="s">"web"</span>],
+  actions: {"{"}
+    <span class="s">"deals.move"</span>: action({"{"}
+      input: z.object({"{"} id: z.string(), stage: z.string() {"}"}),
+      access: <span class="s">"write"</span>,
+      run: ({"{"} input, db {"}"}) =&gt; db.deals.move(input.id, input.stage),
+    {"}"}),
+  {"}"},
+{"}"});</code></pre>
+        </div>
+        <div class="sdk-art">
+          <div class="sdk-canvas"><canvas data-iso="module" aria-hidden="true"></canvas></div>
+          <dl class="spec t-mono pad">
+            <dt>Input</dt><dd>Zod schema</dd>
+            <dt>Access</dt><dd>read · write · delete</dd>
+            <dt>Interfaces</dt><dd>MCP · API · Web · CLI</dd>
+            <dt>Deploy</dt><dd>git push</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0.4 DEPLOY -->
+    <section id="deploy" class="rail">
+      <SectionHead index="/0.4" label="Deploy" meta="Every push is a version">
+        <PixelTitle as="h2" class="t-h2" text={"Push, preview, ship"} />
+      </SectionHead>
+      <div class="pipe dots-bg">
+        <canvas data-iso="pipeline" data-fill="0.8" aria-hidden="true"></canvas>
+        <span class="pin t-mono" style="top:14%;left:calc(50% + 70px)"><i></i>Repository</span>
+        <span class="pin t-mono accent" style="top:58%;left:calc(50% - 300px)"><i></i>Preview · per push</span>
+        <span class="pin t-mono" style="top:52%;left:calc(50% + 170px)"><i></i>Production</span>
+      </div>
+      <ul class="deploys">
+        {
+          deployments.map((d) => (
+            <li>
+              <span class="t-mono">{d.v}</span>
+              <span>{d.m}</span>
+              <span class="t-bit">
+                <span class={`led ${d.led}`} /> {d.env}
+              </span>
+              <span class="t-mono dim">{d.meta}</span>
+            </li>
+          ))
+        }
+      </ul>
+      <div class="tpls">
+        {
+          templates.map((t) => (
+            <a class="tpl" href="#start">
+              <div class="tpl-art">
+                <canvas data-shader="field" data-px="4" data-accent="off" aria-hidden="true" />
+                <div class="tpl-num" set:html={pixelText(t.n)} />
+              </div>
+              <div class="tpl-copy">
+                <span class="t-mono dim">{t.path}</span>
+                <h3 class="t-title">{t.name}</h3>
+                <p class="t-small">{t.text}</p>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="start" class="rail cta">
+      <canvas data-shader="dissolve" data-px="8" aria-hidden="true"></canvas>
+      <div class="cta-inner pad">
+        <span class="tag"><b>/0.5</b> Start</span>
+        <PixelTitle as="h2" class="t-h2" text={"Forge your\nfirst tool."} />
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#start"><span class="sq"></span>Get started</a>
+          <span class="cmd"><span class="p">$</span>npx forgeron init</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</LabLayout>
+
+<script>
+  // Keep the stack labels in step with the highlighted layer, and let a label pick its layer.
+  import { isoCanvas } from "../illustrations/canvas";
+
+  const stack = isoCanvas(document.getElementById("stack-canvas"));
+  const items = document.querySelectorAll<HTMLElement>("[data-layer]");
+  stack?.onActive((active) => {
+    for (const li of items) li.classList.toggle("on", Number(li.dataset.layer) === active);
+  });
+  for (const li of items) {
+    li.addEventListener("mouseenter", () => stack?.select(Number(li.dataset.layer)));
+    li.addEventListener("mouseleave", () => stack?.select(-1));
+  }
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: calc(100vh - 60px);
+    min-height: calc(100svh - 60px);
+    display: flex;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero > canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .hero-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    pointer-events: none;
+  }
+  .hero-inner a,
+  .hero-inner .cmd {
+    pointer-events: auto;
+  }
+  .hero-meta,
+  .hero-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .hero-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 26vh;
+  }
+  .hero-copy .t-lead {
+    color: var(--ink);
+  }
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .stack {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .stack-art {
+    position: relative;
+    min-height: 640px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .stack-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .stack-col {
+    display: grid;
+  }
+  .stack-col li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: flex-start;
+    padding: 24px var(--gutter);
+    border-bottom: 1px solid var(--line);
+    transition: background 0.2s;
+    cursor: default;
+  }
+  .stack-col li:last-child {
+    border-bottom: 0;
+  }
+  .stack-col li.on {
+    background: var(--bg-raised);
+  }
+  .stack-col li.on .t-title {
+    color: var(--accent);
+  }
+  .stack-col-r li {
+    text-align: right;
+    align-items: flex-end;
+  }
+  .stack-empty {
+    background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 8px);
+  }
+  @media (max-width: 900px) {
+    .stack {
+      grid-template-columns: 1fr;
+    }
+    .stack-art {
+      min-height: 460px;
+      order: -1;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .stack-col-r li {
+      text-align: left;
+      align-items: flex-start;
+    }
+    .stack-empty {
+      display: none;
+    }
+  }
+
+  .chat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+    padding: 48px 20px 20px;
+  }
+  .msg {
+    max-width: 92%;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+  }
+  .msg.me {
+    align-self: flex-end;
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .msg.tool {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-style: dashed;
+  }
+  .term {
+    padding: 52px 20px 16px;
+    background: var(--bg-sunk);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  .perms {
+    display: flex;
+    align-items: center;
+    padding: 44px 24px 8px;
+  }
+  .perms table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .perms th {
+    font-weight: 400;
+    color: var(--ink-dim);
+    text-align: center;
+    padding-bottom: 8px;
+  }
+  .perms td {
+    padding: 5px 0;
+    border-top: 1px solid var(--line);
+    text-align: center;
+  }
+  .perms td:first-child {
+    text-align: left;
+    color: var(--ink-muted);
+  }
+  .px {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--line-strong);
+  }
+  .px.on {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .sdk {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .sdk .code {
+    border: 0;
+    border-right: 1px solid var(--line);
+  }
+  .sdk-art {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 24px;
+  }
+  .sdk-canvas {
+    position: relative;
+    flex: 1;
+    min-height: 300px;
+  }
+  .sdk-canvas canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  @media (max-width: 900px) {
+    .sdk {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .sdk .code {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .pipe {
+    position: relative;
+    height: 420px;
+    border-bottom: 1px solid var(--line);
+  }
+  .pipe canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .pin {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-muted);
+  }
+  @media (max-width: 760px) {
+    .pin {
+      display: none;
+    }
+  }
+  .pin.accent {
+    color: var(--accent);
+  }
+  .pin i {
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+  }
+  .deploys li {
+    display: grid;
+    grid-template-columns: 140px 1fr 140px 200px;
+    gap: 16px;
+    align-items: center;
+    padding: 16px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .deploys li:hover {
+    background: var(--bg-raised);
+  }
+  @media (max-width: 760px) {
+    .deploys li {
+      grid-template-columns: 1fr auto;
+    }
+    .deploys li > :nth-child(4) {
+      display: none;
+    }
+  }
+  .tpls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .tpl {
+    border-right: 1px solid var(--line);
+    transition: background 0.2s;
+  }
+  .tpl:last-child {
+    border-right: 0;
+  }
+  .tpl:hover {
+    background: var(--bg-raised);
+  }
+  .tpl-art {
+    position: relative;
+    height: 200px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tpl-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.55;
+  }
+  .tpl-num {
+    position: absolute;
+    left: 24px;
+    bottom: 20px;
+    height: 56px;
+    color: var(--ink);
+  }
+  .tpl-num :global(svg) {
+    height: 100%;
+    width: auto;
+    display: block;
+  }
+  .tpl:hover .tpl-num {
+    color: var(--accent);
+  }
+  .tpl-copy {
+    padding: 20px var(--gutter) 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  @media (max-width: 760px) {
+    .tpls {
+      grid-template-columns: 1fr;
+    }
+    .tpl {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .cta {
+    position: relative;
+    min-height: 520px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .cta > canvas {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 36%;
+    width: 64%;
+    height: 100%;
+  }
+  @media (max-width: 760px) {
+    .cta > canvas {
+      left: 0;
+      width: 100%;
+      opacity: 0.35;
+    }
+  }
+  .cta-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 48px;
+    padding-bottom: 56px;
+  }
+</style>

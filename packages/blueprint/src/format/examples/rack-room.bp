@@ -1,0 +1,106 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "examples/rack-room",
+  "parts": {
+    "rack": {
+      "params": { "light": { "type": "flag", "default": false } },
+      "prims": [
+        {
+          "kind": "box",
+          "at": [-1.4, -1.4, 0],
+          "size": [2.8, 2.8, 8],
+          "floors": 1,
+          "tone": [0.04, 0.1, 0.22]
+        },
+        {
+          "kind": "dot",
+          "at": [1.4, 0.6, 1.5],
+          "size": 1,
+          "ink": { "if": "@light", "then": "accent", "else": "dim" }
+        }
+      ],
+      "sockets": { "top": { "at": [0, 0, 8], "facing": "+z" } }
+    },
+    "packet": { "prims": [{ "kind": "dot", "at": [0, 0, 0], "size": 2 }] },
+    "gear": {
+      "params": { "angle": { "type": "number", "default": 0 } },
+      "prims": [
+        {
+          "kind": "rig",
+          "rig": "wheel",
+          "with": {
+            "c": [0, 0, 0],
+            "r": 2.2,
+            "plane": "yz",
+            "teeth": 15,
+            "spokes": 3,
+            "hub": 0.5,
+            "angle": "@angle"
+          }
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "rack-room": {
+      "title": "Two racks, a gear and a tray of packets",
+      "depth": "zbuffer",
+      "camera": { "view": 0, "fit": { "fill": 0.8, "unit": "any" } },
+      "filters": { "pixel": 2, "dither": 4 },
+      "vars": { "active": { "type": "int", "default": -1, "cycle": { "every": 2, "count": 2 } } },
+      "root": {
+        "instances": [
+          {
+            "id": "a",
+            "use": "rack",
+            "at": [0, 0, 0],
+            "tag": "rack-0",
+            "params": { "light": false }
+          },
+          { "id": "b", "use": "rack", "at": [0, 4, 0], "turn": 1, "tag": "rack-1" },
+          { "id": "g", "use": "gear", "snap": { "socket": "c", "to": "a.top" } }
+        ]
+      },
+      "timelines": {
+        "idle": {
+          "tracks": [
+            { "kind": "spin", "target": "g", "channel": "param:angle", "rate": 1.4 },
+            {
+              "kind": "blink",
+              "target": "a",
+              "channel": "param:light",
+              "rate": 2,
+              "period": 7,
+              "on": 2,
+              "seed": 0
+            },
+            {
+              "kind": "conveyor",
+              "use": "packet",
+              "path": [
+                [3, -2, 9],
+                [3, 6, 9]
+              ],
+              "count": 4,
+              "speed": 3
+            }
+          ]
+        }
+      },
+      "machines": {
+        "highlight": {
+          "initial": "idle",
+          "states": {
+            "idle": { "play": ["idle"] },
+            "rack-1": { "play": ["idle"], "set": { "active": 1 } }
+          },
+          "transitions": [
+            { "from": "*", "to": "rack-1", "when": { "event": "hover:rack-1" } },
+            { "from": "rack-1", "to": "idle", "when": { "event": "leave" } }
+          ]
+        }
+      }
+    }
+  }
+}

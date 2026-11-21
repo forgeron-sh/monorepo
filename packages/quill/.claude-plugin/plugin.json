@@ -1,0 +1,8 @@
+{
+  "name": "quill",
+  "version": "0.1.0",
+  "description": "A writing framework: an onboarding interview that captures who you are and how you write, then blog posts, deep dives, manifestos, customer stories, papers and changelog entries written and reviewed against it.",
+  "author": { "name": "Forgeron" },
+  "license": "Apache-2.0",
+  "repository": "https://github.com/forgeron-sh/monorepo"
+}

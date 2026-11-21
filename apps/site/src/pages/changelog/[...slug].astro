@@ -1,0 +1,80 @@
+---
+import ChangeEntry from "../../components/changelog/ChangeEntry.astro";
+import Footer from "../../components/Footer.astro";
+import PagesNav from "../../components/PagesNav.astro";
+import { GITHUB } from "../../data/plans";
+import Site from "../../layouts/Site.astro";
+import { type Change, getChanges } from "../../lib/changelog";
+import "../../styles/blog.css";
+import "../../styles/changelog.css";
+
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+export async function getStaticPaths() {
+  const changes = await getChanges();
+  return changes.map((change, i) => ({
+    params: { slug: change.id },
+    props: { change, newer: changes[i - 1], older: changes[i + 1] },
+  }));
+}
+
+interface Props {
+  change: Change;
+  newer: Change | undefined;
+  older: Change | undefined;
+}
+const { change, newer, older } = Astro.props;
+const { data } = change;
+---
+
+<Site
+  title={`${data.title} — Forgeron changelog`}
+  description={data.summary}
+  bodyClass="home"
+  type="article"
+>
+  <Fragment slot="head">
+    <link rel="alternate" type="text/markdown" href={`/changelog/${change.id}.md`} />
+    <link rel="alternate" type="application/rss+xml" title="Forgeron changelog" href="/changelog/rss.xml" />
+  </Fragment>
+  <PagesNav current="/changelog" />
+
+  <main class="changelog">
+    <nav class="fg-rail post-crumbs changelog-crumbs text-eyebrow" aria-label="Breadcrumb">
+      <a href="/changelog">Changelog</a>
+      <span aria-hidden="true">/</span>
+      <span>{data.version ? `v${data.version}` : data.title}</span>
+    </nav>
+    <section class="fg-rail">
+      <ChangeEntry change={change} standalone />
+    </section>
+    <nav class="fg-rail changelog-pager" aria-label="Other changes">
+      {
+        older ? (
+          <a href={`/changelog/${older.id}`}>
+            <span class="text-eyebrow dim">← Older</span>
+            <span>{older.data.title}</span>
+          </a>
+        ) : (
+          <span />
+        )
+      }
+      {
+        newer ? (
+          <a href={`/changelog/${newer.id}`} class="changelog-pager-next">
+            <span class="text-eyebrow dim">Newer →</span>
+            <span>{newer.data.title}</span>
+          </a>
+        ) : (
+          <span />
+        )
+      }
+    </nav>
+  </main>
+
+  <Footer github={GITHUB} docs={DOCS} from="/0.1" />
+</Site>
+
+<script>
+  import "../../illustrations/canvas";
+</script>

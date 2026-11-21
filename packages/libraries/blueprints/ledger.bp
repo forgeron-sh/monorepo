@@ -1,0 +1,174 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/ledger",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-12, -10, 0],
+            [-12, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-8, -10, 0],
+            [-8, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, -10, 0],
+            [-4, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, -10, 0],
+            [0, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -10, 0],
+            [4, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8, -10, 0],
+            [8, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [12, -10, 0],
+            [12, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, -10, 0],
+            [14, -10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, -6, 0],
+            [14, -6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, -2, 0],
+            [14, -2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, 2, 0],
+            [14, 2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, 6, 0],
+            [14, 6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, 10, 0],
+            [14, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-9, -7, 0],
+          "size": [22, 14, 0.6],
+          "tone": [0.03, 0.08, 0.16],
+          "layer": -2
+        },
+        {
+          "kind": "box",
+          "at": [-8, -5.4, 0.6],
+          "size": [2.2, 10.8, 2.2],
+          "tone": [0.08, 0.24, 0.12],
+          "floors": 0.55
+        },
+        { "kind": "box", "at": [-8.2, -5.8, 0.4], "size": [2.6, 0.4, 2.6] },
+        { "kind": "box", "at": [-8.2, 5.4, 0.4], "size": [2.6, 0.4, 2.6] },
+        {
+          "kind": "line",
+          "points": [
+            [-5, -4.2, 0.77],
+            [-5, -3.2, 0.77]
+          ],
+          "ink": "dim",
+          "layer": 1
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "ledger": {
+      "title": "ledger",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

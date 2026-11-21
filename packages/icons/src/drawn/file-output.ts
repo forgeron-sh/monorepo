@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// File with an arrow leaving through its right side.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "file-output",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".#####",
+    ".#...##",
+    ".#...#.#",
+    ".#...####",
+    ".#........o",
+    ".#...ooooooo",
+    ".#........o",
+    ".#......#",
+    ".#......#",
+    ".########",
+  ],
+};
+
+export default icon;

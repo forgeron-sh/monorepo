@@ -1,0 +1,1843 @@
+/* Atoms of the lab language: values come from tokens/tokens.css, so a page that loads
+   tokens.css and this file can use every atom without the composite components. */
+
+.fg-sr,
+.fg-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus: one solid ring, in ember, on everything interactive. */
+:where(.fg-btn, .fg-link, .fg-input, .fg-check-input, .fg-select):focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* LED: a 6px square; the square marker of buttons and pins with tone="current". */
+.fg-led {
+  display: inline-block;
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--ink-dim);
+}
+.fg-led-success {
+  background: var(--success);
+}
+.fg-led-warning {
+  background: var(--warning);
+}
+.fg-led-danger {
+  background: var(--danger);
+}
+.fg-led-accent {
+  background: var(--accent);
+}
+.fg-led-current {
+  background: currentColor;
+}
+
+/* Button */
+.fg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 12px;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast);
+}
+.fg-btn:hover {
+  border-color: var(--ink);
+}
+.fg-btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+.fg-btn-lg {
+  height: 40px;
+  padding: 0 16px;
+}
+.fg-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.fg-btn-primary:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-btn-ink {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-btn-ink:hover {
+  background: var(--ink-muted);
+  border-color: var(--ink-muted);
+}
+.fg-btn-ghost {
+  border-color: transparent;
+}
+.fg-btn-ghost:hover {
+  border-color: transparent;
+  background: var(--bg-raised);
+}
+.fg-btn-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.fg-btn-danger:hover {
+  border-color: var(--danger);
+  background: var(--danger-subtle);
+}
+.fg-btn-link {
+  height: auto;
+  padding: 0;
+  border-color: transparent;
+  color: var(--accent);
+}
+.fg-btn-link:hover {
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fg-btn-icon {
+  width: 32px;
+  padding: 0;
+}
+.fg-btn:disabled,
+.fg-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--ink-dim);
+  border-color: var(--line);
+}
+.fg-btn-kbd {
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid currentColor;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0;
+  opacity: 0.6;
+}
+
+/* Link */
+.fg-link {
+  display: inline-flex;
+  gap: 8px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color var(--motion-fast);
+}
+.fg-link:hover {
+  color: var(--accent);
+}
+
+/* Tag: [ Strong rest ] */
+.fg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fg-tag::before {
+  content: "[";
+  color: var(--ink-dim);
+}
+.fg-tag::after {
+  content: "]";
+  color: var(--ink-dim);
+}
+.fg-tag b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Chip */
+.fg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-chip-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Badge and EnvTag: mono capitals; identifiers (mono) keep their case. */
+.fg-badge,
+.fg-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fg-badge-mono {
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.fg-badge-strong {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-badge-success {
+  background: var(--success-subtle);
+  border-color: transparent;
+  color: var(--success);
+}
+.fg-badge-warning {
+  background: var(--warning-subtle);
+  border-color: transparent;
+  color: var(--warning);
+}
+.fg-badge-danger {
+  background: var(--danger-subtle);
+  border-color: transparent;
+  color: var(--danger);
+}
+/* The channel of a version is told by shape, not by tint. */
+.fg-env-production {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-env-preview {
+  border-style: dashed;
+}
+.fg-env-channel {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.fg-env-preview .fg-env-mark,
+.fg-env-channel .fg-env-mark {
+  background: transparent;
+  border: var(--border-width) solid currentColor;
+}
+.fg-env-preview .fg-env-mark {
+  border-style: dashed;
+}
+
+/* Label: the eyebrow of a block (with text-eyebrow) */
+.fg-label-eyebrow {
+  color: var(--ink-muted);
+}
+
+/* Command: $ npx forgeron init */
+.fg-cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fg-cmd-inline {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 21px;
+}
+.fg-cmd-prompt {
+  color: var(--accent);
+}
+.fg-cmd-copy {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  height: 24px;
+  border: var(--border-width) solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-cmd-copy:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* Icon */
+.fg-icon {
+  display: inline-block;
+  flex-shrink: 0;
+}
+.fg-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Logo */
+.fg-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+.fg-logo-mark,
+.fg-logo-word {
+  display: block;
+}
+.fg-logo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Title: the pixel font, one pixel = 0.1em, so sizes step by 10px to keep every pixel whole. */
+.fg-title {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  font-synthesis: none;
+}
+.fg-title-hero {
+  font-size: 100px;
+}
+.fg-title-h2 {
+  font-size: 60px;
+}
+.fg-title-h3 {
+  font-size: 30px;
+}
+@media (max-width: 1100px) {
+  .fg-title-hero {
+    font-size: 80px;
+  }
+  .fg-title-h2 {
+    font-size: 50px;
+  }
+}
+@media (max-width: 760px) {
+  .fg-title-hero {
+    font-size: 50px;
+  }
+  .fg-title-h2 {
+    font-size: 40px;
+  }
+  .fg-title-h3 {
+    font-size: 20px;
+  }
+}
+@media (max-width: 400px) {
+  .fg-title-hero {
+    font-size: 40px;
+  }
+  .fg-title-h2 {
+    font-size: 30px;
+  }
+}
+
+/* PixelTitle: words drawn in SVG, 1em = 7 pixels. */
+.fg-pixel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  margin: 0;
+  line-height: 1;
+}
+.fg-pixel-title-hero {
+  font-size: clamp(36px, 7vw, 98px);
+}
+.fg-pixel-title-h2 {
+  font-size: clamp(26px, 3.6vw, 49px);
+}
+.fg-pixel-title-h3 {
+  font-size: clamp(18px, 2.2vw, 28px);
+}
+.fg-pixel-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.57em;
+}
+.fg-pixel-title-line svg {
+  display: block;
+  width: auto;
+  height: 1em;
+}
+
+/* Avatar */
+.fg-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  line-height: 1;
+}
+.fg-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Stat: a mono label, the figure, a hint */
+.fg-stat {
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+}
+.fg-stat-label {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.fg-stat-value {
+  margin: var(--space-2) 0 0;
+  font: 500 32px/40px var(--font-sans);
+  letter-spacing: -0.02em;
+}
+.fg-stat-hint {
+  margin: 0;
+  color: var(--ink-muted);
+  font: 400 13px/20px var(--font-sans);
+}
+
+/* Spinner */
+.fg-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+}
+.fg-spinner-mark {
+  position: relative;
+  flex: none;
+  width: 11px;
+  height: 11px;
+}
+/* Eight pixels on a ring light one after the other, in steps: nothing turns, nothing fades. */
+.fg-spinner-mark::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 3px;
+  animation: fg-spin-px 0.8s steps(1, end) infinite;
+}
+@keyframes fg-spin-px {
+  0% {
+    box-shadow:
+      0px 0px 0 var(--accent),
+      4px 0px 0 var(--line-strong),
+      8px 0px 0 var(--line-strong),
+      8px 4px 0 var(--line-strong),
+      8px 8px 0 var(--line-strong),
+      4px 8px 0 var(--line-strong),
+      0px 8px 0 var(--ink-dim),
+      0px 4px 0 var(--ink-muted);
+  }
+  12.5% {
+    box-shadow:
+      0px 0px 0 var(--ink-muted),
+      4px 0px 0 var(--accent),
+      8px 0px 0 var(--line-strong),
+      8px 4px 0 var(--line-strong),
+      8px 8px 0 var(--line-strong),
+      4px 8px 0 var(--line-strong),
+      0px 8px 0 var(--line-strong),
+      0px 4px 0 var(--ink-dim);
+  }
+  25% {
+    box-shadow:
+      0px 0px 0 var(--ink-dim),
+      4px 0px 0 var(--ink-muted),
+      8px 0px 0 var(--accent),
+      8px 4px 0 var(--line-strong),
+      8px 8px 0 var(--line-strong),
+      4px 8px 0 var(--line-strong),
+      0px 8px 0 var(--line-strong),
+      0px 4px 0 var(--line-strong);
+  }
+  37.5% {
+    box-shadow:
+      0px 0px 0 var(--line-strong),
+      4px 0px 0 var(--ink-dim),
+      8px 0px 0 var(--ink-muted),
+      8px 4px 0 var(--accent),
+      8px 8px 0 var(--line-strong),
+      4px 8px 0 var(--line-strong),
+      0px 8px 0 var(--line-strong),
+      0px 4px 0 var(--line-strong);
+  }
+  50% {
+    box-shadow:
+      0px 0px 0 var(--line-strong),
+      4px 0px 0 var(--line-strong),
+      8px 0px 0 var(--ink-dim),
+      8px 4px 0 var(--ink-muted),
+      8px 8px 0 var(--accent),
+      4px 8px 0 var(--line-strong),
+      0px 8px 0 var(--line-strong),
+      0px 4px 0 var(--line-strong);
+  }
+  62.5% {
+    box-shadow:
+      0px 0px 0 var(--line-strong),
+      4px 0px 0 var(--line-strong),
+      8px 0px 0 var(--line-strong),
+      8px 4px 0 var(--ink-dim),
+      8px 8px 0 var(--ink-muted),
+      4px 8px 0 var(--accent),
+      0px 8px 0 var(--line-strong),
+      0px 4px 0 var(--line-strong);
+  }
+  75% {
+    box-shadow:
+      0px 0px 0 var(--line-strong),
+      4px 0px 0 var(--line-strong),
+      8px 0px 0 var(--line-strong),
+      8px 4px 0 var(--line-strong),
+      8px 8px 0 var(--ink-dim),
+      4px 8px 0 var(--ink-muted),
+      0px 8px 0 var(--accent),
+      0px 4px 0 var(--line-strong);
+  }
+  87.5% {
+    box-shadow:
+      0px 0px 0 var(--line-strong),
+      4px 0px 0 var(--line-strong),
+      8px 0px 0 var(--line-strong),
+      8px 4px 0 var(--line-strong),
+      8px 8px 0 var(--line-strong),
+      4px 8px 0 var(--ink-dim),
+      0px 8px 0 var(--ink-muted),
+      0px 4px 0 var(--accent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-spinner-mark::before {
+    animation-duration: 3s;
+  }
+}
+
+/* Skeleton */
+.fg-skeleton {
+  display: block;
+  width: 100%;
+  height: 14px;
+  background: linear-gradient(90deg, var(--line) 0%, var(--bg-raised) 50%, var(--line) 100%);
+  background-size: 200% 100%;
+  animation: fg-shimmer 1.4s ease-in-out infinite;
+}
+.fg-skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fg-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+@keyframes fg-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-skeleton {
+    animation: none;
+    background: var(--line);
+  }
+}
+
+/* Field, Input, Checkbox, Select: outlines in ink-dim, at least 3:1 on bg. */
+.fg-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.fg-field-label {
+  color: var(--ink);
+  font: 500 13px/20px var(--font-sans);
+}
+.fg-field-hint,
+.fg-field-error {
+  margin: 0;
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-field-hint {
+  color: var(--ink-muted);
+}
+.fg-field-error {
+  color: var(--danger);
+}
+.fg-input,
+.fg-select {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+  transition: border-color var(--motion-fast);
+}
+.fg-input {
+  width: 100%;
+}
+.fg-input::placeholder {
+  color: var(--ink-muted);
+}
+.fg-input:hover,
+.fg-select:hover {
+  border-color: var(--ink-muted);
+}
+.fg-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.fg-input:disabled,
+.fg-select:disabled {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+  border-color: var(--line-strong);
+  background-color: var(--bg-raised);
+}
+.fg-input-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fg-textarea {
+  height: auto;
+  min-height: 88px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
+.fg-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  cursor: pointer;
+}
+.fg-check-input {
+  appearance: none;
+  display: grid;
+  flex: none;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  cursor: pointer;
+}
+.fg-check-input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.fg-check-input:checked::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  margin-top: -2px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+  transform: rotate(-45deg);
+}
+.fg-check-input:disabled {
+  cursor: not-allowed;
+  border-color: var(--line-strong);
+}
+
+/* Switch: a sharp track, a square knob; on, the track lights in ember. */
+.fg-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  cursor: pointer;
+}
+.fg-switch-input {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 16px;
+  margin: 0;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast);
+}
+.fg-switch-input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  background: var(--ink-muted);
+  transition: transform var(--motion-fast) steps(3, end);
+}
+.fg-switch-input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.fg-switch-input:checked::after {
+  background: var(--accent-ink);
+  transform: translateX(12px);
+}
+.fg-switch-input:disabled {
+  cursor: not-allowed;
+  border-color: var(--line-strong);
+}
+.fg-switch-input:disabled::after {
+  background: var(--line-strong);
+}
+.fg-switch:has(.fg-switch-input:disabled),
+.fg-radio:has(.fg-radio-input:disabled) {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+}
+
+/* Radio: square, like the checkbox; the chosen one holds a square, not a tick. */
+.fg-radios {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.fg-radios legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+.fg-radios-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.fg-radios-row .fg-radios-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-6);
+}
+.fg-radio {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-height: 28px;
+  padding-top: 4px;
+  cursor: pointer;
+}
+.fg-radio-input {
+  appearance: none;
+  display: grid;
+  flex: none;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  cursor: pointer;
+}
+.fg-radio-input::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+}
+.fg-radio-input:checked {
+  border-color: var(--accent);
+}
+.fg-radio-input:checked::after {
+  background: var(--accent);
+}
+.fg-radio-input:disabled {
+  cursor: not-allowed;
+  border-color: var(--line-strong);
+}
+.fg-radio-text {
+  display: flex;
+  flex-direction: column;
+}
+.fg-radio-hint {
+  color: var(--ink-muted);
+  font: 400 13px/20px var(--font-sans);
+}
+:where(.fg-switch-input, .fg-radio-input):focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* Segmented: a row of mono segments; the chosen one is filled in ink. A ToggleGroup (parts-forms.css)
+   dressed with these rules. */
+.fg-seg {
+  display: inline-flex;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+}
+.fg-toggle.fg-seg-item {
+  gap: 6px;
+  height: 30px;
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border: 0;
+  font-size: 11px;
+}
+.fg-seg-item + .fg-seg-item {
+  border-left: var(--border-width) solid var(--line-strong);
+}
+.fg-toggle.fg-seg-item:hover:not([data-pressed]):not([data-disabled]) {
+  background: transparent;
+  color: var(--ink);
+}
+.fg-seg-item:focus-visible {
+  outline-offset: -4px;
+}
+.fg-seg-icons .fg-toggle.fg-seg-item {
+  width: 30px;
+  padding: 0;
+}
+
+/* Kbd: one framed mono cap per key. */
+.fg-kbds {
+  display: inline-flex;
+  gap: 2px;
+  vertical-align: middle;
+}
+.fg-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: var(--border-width) solid var(--line-strong);
+  border-bottom-width: 2px;
+  background: var(--bg-raised);
+  color: var(--ink-muted);
+  font: 500 10.5px/1 var(--font-mono);
+}
+
+/* Progress: a sharp track filled from the left; unknown end, a block runs along it in steps. */
+.fg-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fg-progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-progress-value {
+  color: var(--ink);
+}
+.fg-progress-track {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+}
+.fg-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.fg-progress-success .fg-progress-fill {
+  background: var(--success);
+}
+.fg-progress-danger .fg-progress-fill {
+  background: var(--danger);
+}
+.fg-progress-indeterminate .fg-progress-fill {
+  width: 25%;
+  animation: fg-progress-run 1.6s steps(16, end) infinite;
+}
+@keyframes fg-progress-run {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-progress-indeterminate .fg-progress-fill {
+    animation: none;
+    width: 100%;
+    background: repeating-linear-gradient(-45deg, var(--accent) 0 2px, transparent 2px 6px);
+  }
+}
+
+/* Separator: a 1px line, or the hatched band that announces a section. */
+.fg-sep {
+  flex: none;
+  height: var(--border-width);
+  width: 100%;
+  background: var(--line);
+}
+.fg-sep-vertical {
+  width: var(--border-width);
+  height: auto;
+  align-self: stretch;
+}
+.fg-sep-hatch {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border-top: var(--border-width) solid var(--line);
+  border-bottom: var(--border-width) solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.fg-sep-hatch span {
+  padding: 2px 8px;
+  background: var(--bg);
+}
+
+/* Select: the native chevron is replaced by a pixel one, with room for it; the placeholder reads muted. */
+.fg-select {
+  appearance: none;
+  min-width: 160px;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' shape-rendering='crispEdges'%3E%3Cpath fill='%238f8f8f' d='M0 0h2v2H0zM8 0h2v2H8zM2 2h2v2H2zM6 2h2v2H6zM4 4h2v2H4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px 6px;
+  cursor: pointer;
+}
+:root[data-theme="light"] .fg-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' shape-rendering='crispEdges'%3E%3Cpath fill='%235c5c58' d='M0 0h2v2H0zM8 0h2v2H8zM2 2h2v2H2zM6 2h2v2H6zM4 4h2v2H4z'/%3E%3C/svg%3E");
+}
+.fg-select:has(option[value=""]:checked) {
+  color: var(--ink-muted);
+}
+.fg-select option {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-select:disabled {
+  cursor: not-allowed;
+}
+
+/* Icon button: a Button (ghost, icon) with one pixel icon in a square, framed on hover (ghost) or always (boxed). */
+.fg-btn.fg-iconbtn {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast),
+    color var(--motion-fast);
+}
+.fg-btn.fg-iconbtn:hover {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.fg-btn.fg-iconbtn-boxed {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.fg-btn.fg-iconbtn-boxed:hover {
+  border-color: var(--ink);
+}
+.fg-btn.fg-iconbtn-sm {
+  width: 24px;
+  height: 24px;
+}
+.fg-btn.fg-iconbtn:disabled {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+  border-color: transparent;
+}
+.fg-btn.fg-iconbtn[data-popup-open] {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+/* App tile, swatch, avatar group */
+.fg-tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.fg-tile-ink {
+  background: var(--ink);
+  color: var(--bg);
+}
+.fg-tile-neutral {
+  background: var(--bg-sunk);
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+}
+.fg-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fg-swatch-mark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+}
+/* Each avatar overlaps the one before by 4px; the padding gives the first one its 4px back. No
+   sibling combinator: a universal "* + *" makes the browser restyle siblings anywhere on the page
+   when children are added or removed (a canvas culling its items). */
+.fg-avatars {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 4px;
+}
+.fg-avatars > * {
+  margin-left: -4px;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.fg-avatars-more {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  background: var(--bg-sunk);
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Search box: an InputGroup (parts-input-group.css) one line high, the query bare inside. */
+.fg-input-group.fg-search {
+  flex-wrap: nowrap;
+  height: 32px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+}
+.fg-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+  outline: none;
+}
+.fg-search-input::placeholder {
+  color: var(--ink-dim);
+}
+.fg-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* Breadcrumb */
+.fg-crumbs ol {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 13px/16px var(--font-sans);
+}
+.fg-crumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.fg-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 6px;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+a.fg-crumb:hover {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+a.fg-crumb:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 0;
+}
+.fg-crumb[aria-current="page"] {
+  color: var(--ink);
+}
+.fg-crumb-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-crumb-sep {
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+}
+
+/* Progress in blocks */
+.fg-progress-segmented {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border: 0;
+  background: transparent;
+}
+.fg-progress-seg {
+  flex: 1;
+  background: var(--line-strong);
+}
+.fg-progress-seg.fg-progress-on {
+  background: var(--accent);
+}
+.fg-progress-success .fg-progress-on {
+  background: var(--success);
+}
+.fg-progress-danger .fg-progress-on {
+  background: var(--danger);
+}
+
+/* Calendar: a month of mono days; today outlined, the chosen day in ember. */
+.fg-cal {
+  width: 224px;
+  color: var(--ink);
+}
+.fg-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  margin-bottom: 4px;
+}
+.fg-cal-title {
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fg-cal-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 1px;
+  table-layout: fixed;
+}
+.fg-cal-grid th {
+  height: 22px;
+  padding: 0;
+  color: var(--ink-dim);
+  font: 400 10.5px/1 var(--font-mono);
+  text-align: center;
+}
+.fg-cal-grid td {
+  padding: 0;
+}
+.fg-cal-day {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 12px/1 var(--font-mono);
+  cursor: pointer;
+}
+.fg-cal-day:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.fg-cal-day:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: -2px;
+}
+.fg-cal-out {
+  color: var(--ink-dim);
+  opacity: 0.5;
+}
+.fg-cal-today {
+  border-color: var(--ink-dim);
+  color: var(--ink);
+}
+.fg-cal-on,
+.fg-cal-on:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  opacity: 1;
+}
+.fg-cal-day:disabled {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+  opacity: 0.35;
+}
+
+/* Popups: one frame for selects, pickers and menus; rows of 32px. No fade: they appear whole. */
+.fg-pop-positioner {
+  z-index: 70;
+  outline: none;
+}
+.fg-pop {
+  min-width: 200px;
+  max-width: 320px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+  outline: none;
+}
+.fg-pop-list {
+  max-height: min(340px, var(--available-height, 60vh));
+  overflow: auto;
+  padding: 4px;
+  outline: none;
+}
+.fg-pop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 8px;
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+.fg-pop-row:hover,
+.fg-pop-row[data-highlighted],
+.fg-pop-row:focus-visible {
+  background: var(--bg-raised);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.fg-pop-row[data-selected] {
+  color: var(--ink);
+}
+.fg-pop-row[data-disabled] {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+}
+.fg-pop-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-pop-hint {
+  color: var(--ink-dim);
+  font: 400 11.5px/1 var(--font-mono);
+}
+.fg-pop-tick {
+  display: inline-grid;
+  color: var(--ink);
+}
+/* The shadcn parts (D-156): headings, separators, inset and destructive rows in a pop. */
+.fg-pop-row > .fg-pop-hint {
+  margin-left: auto;
+}
+.fg-pop-heading {
+  padding: 8px 8px 4px;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fg-pop-sep {
+  height: var(--border-width);
+  margin: 4px -4px;
+  background: var(--line);
+}
+.fg-pop-danger,
+.fg-pop-danger[data-highlighted] {
+  color: var(--danger);
+}
+.fg-pop-inset {
+  position: relative;
+  padding-left: 28px;
+}
+.fg-pop-mark {
+  position: absolute;
+  left: 8px;
+}
+.fg-selm-popup {
+  min-width: max(200px, var(--anchor-width));
+}
+.fg-datepop {
+  width: 250px;
+  max-width: none;
+}
+/* Built on PopoverContent: the picker's panel has no padding of its own. */
+.fg-pop.fg-popover.fg-datepop {
+  width: 250px;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+}
+.fg-datepop .fg-pop-list {
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-datepop .fg-cal {
+  width: auto;
+  padding: 8px 12px 10px;
+}
+
+/* SelectMenu and DatePicker triggers: a field, or a chip on a record. */
+.fg-selm {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.fg-selm-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+  height: 32px;
+  padding: 0 10px 0 var(--space-3);
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fg-selm-trigger:hover {
+  border-color: var(--ink-muted);
+}
+.fg-selm-trigger:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-selm-trigger[data-disabled] {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+  border-color: var(--line-strong);
+  background: var(--bg-raised);
+}
+.fg-selm-value {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  text-align: left;
+}
+.fg-selm-value[data-placeholder],
+.fg-selm-empty {
+  color: var(--ink-muted);
+}
+.fg-selm-caret {
+  display: inline-grid;
+  color: var(--ink-muted);
+}
+/* The compact field: the chip's height, the field's frame and caret. */
+.fg-selm-sm {
+  min-width: 140px;
+  height: 26px;
+  padding: 0 6px 0 8px;
+  font-size: 12.5px;
+}
+.fg-selm-chip {
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border-color: var(--line-strong);
+  background: transparent;
+  font-size: 12.5px;
+}
+.fg-selm-chip:hover {
+  border-color: var(--ink-muted);
+}
+.fg-selm-chip[data-popup-open] {
+  border-color: var(--ink);
+}
+.fg-selm-chip .fg-selm-value {
+  flex: none;
+}
+
+/* Tooltip: ink on a dark field, a few words, its shortcut. */
+.fg-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 12px/16px var(--font-sans);
+  pointer-events: none;
+}
+.fg-tooltip-kbd {
+  color: var(--ink-dim);
+  font: 500 11px/1 var(--font-mono);
+}
+
+/* Toasts: bottom right, stacked, framed; the action in ember. They appear whole. */
+.fg-toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+  outline: none;
+}
+.fg-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 6px 6px 12px;
+  border: var(--border-width) solid var(--line-strong);
+  border-left: 2px solid var(--ink-dim);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-toast-success {
+  border-left-color: var(--success);
+}
+.fg-toast-danger {
+  border-left-color: var(--danger);
+}
+.fg-toast[data-ending-style] {
+  display: none;
+}
+.fg-toast-content {
+  flex: 1;
+  min-width: 0;
+}
+.fg-toast-title {
+  margin: 0;
+  font: 500 13px/18px var(--font-sans);
+}
+.fg-toast-text {
+  margin: 0;
+  color: var(--ink-muted);
+  font: 400 12.5px/18px var(--font-sans);
+}
+.fg-toast-text:empty {
+  display: none;
+}
+.fg-toast-action {
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: 400 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-toast-close {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+.fg-toast-close:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+:where(.fg-toast-action, .fg-toast-close):focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 0;
+}
+
+/* Glyphs of a record's properties: one hue per meaning. */
+.fg-glyph {
+  display: inline-block;
+  flex: none;
+}
+.fg-st-backlog,
+.fg-st-canceled {
+  color: var(--ink-dim);
+}
+.fg-st-todo,
+.fg-pr {
+  color: var(--ink-muted);
+}
+.fg-st-progress {
+  color: var(--warning);
+}
+.fg-st-review {
+  color: var(--success);
+}
+.fg-st-done,
+.fg-pr-urgent {
+  color: var(--accent);
+}
+
+/* Pickers: the mark alone in a dense row, nobody as a dashed square, labels as small chips. */
+.fg-selm-mark {
+  min-width: 0;
+  width: 26px;
+  padding: 0;
+  justify-content: center;
+}
+.fg-selm-mark .fg-selm-value {
+  flex: none;
+}
+.fg-av-none {
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: var(--border-width) dashed var(--ink-dim);
+}
+.fg-label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-label-chip + .fg-label-chip {
+  margin-left: 6px;
+}
+.fg-check-box {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: var(--border-width) solid var(--ink-dim);
+  color: var(--ink);
+}
+.fg-pop-row[data-selected] .fg-check-box {
+  border-color: var(--ink-muted);
+}
+
+/* Marketing atoms ------------------------------------------------------------------------------
+   The pieces of the marketing pages (forgeron.sh): the rail, the corner ticks, the dotted field,
+   the section head and the hatched band between sections, pixel figures, the Soon tag, the mark
+   badge, logo tiles and the number stepper. */
+
+/* The rail: the page's column, ruled on both sides. */
+.fg-rail {
+  max-width: var(--rail);
+  margin: 0 auto;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  position: relative;
+}
+/* Crosshair brackets on the four corners. A background, so a card sets only its colour. */
+.fg-ticks {
+  --tick: var(--ink-dim);
+  --tl: 7px;
+  background:
+    linear-gradient(var(--tick), var(--tick)) top left / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top left / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top right / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top right / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom left / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom left / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / 1px var(--tl) no-repeat;
+}
+/* A field of dots on a 16px grid, under a drawing. */
+.fg-dots {
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1.2px);
+  background-size: 16px 16px;
+}
+
+/* Section head: the coordinate, then the title and its lead. */
+.fg-sec-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 56px var(--gutter) 40px;
+  border-bottom: 1px solid var(--line);
+}
+.fg-sec-head-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.fg-sec-head-index {
+  color: var(--accent);
+}
+.fg-sec-head-index svg {
+  height: 20px;
+  width: auto;
+  display: block;
+}
+.fg-sec-head-title {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 64%;
+}
+.fg-sec-head-meta {
+  margin-left: auto;
+  color: var(--ink-dim);
+}
+.fg-sec-lead {
+  max-width: 52ch;
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 27px;
+}
+@media (max-width: 760px) {
+  .fg-sec-head {
+    padding-top: 40px;
+    padding-bottom: 28px;
+  }
+  .fg-sec-head-title {
+    max-width: none;
+  }
+}
+
+/* Section band: hatched, with its coordinates. 89px: the 88px band and the top rule it takes over
+   from the block above, so nothing below moves. */
+.fg-band {
+  height: 89px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--gutter);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink-dim);
+}
+/* The band is closed above and below: the block before it gives up its own bottom rule. */
+section:has(+ .fg-band) > :last-child,
+section:has(+ .fg-band) > :last-child > li:last-child {
+  border-bottom: 0;
+}
+.fg-band span {
+  background: var(--bg);
+  padding: 2px 8px;
+}
+
+/* Pixel figure: the pixel face at a fixed height. */
+.fg-pfig {
+  display: block;
+}
+.fg-pfig svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+.fg-pfig-sm {
+  height: 20px;
+}
+.fg-pfig-md {
+  height: 32px;
+}
+.fg-pfig-lg {
+  height: 56px;
+}
+.fg-pfig-xl {
+  height: 70px;
+}
+.fg-pfig-accent {
+  color: var(--accent);
+}
+.fg-pfig-ink {
+  color: var(--ink);
+}
+
+/* Soon: a dashed tag in the bitmap face. */
+.fg-soon {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-muted);
+  margin-left: 8px;
+}
+
+/* Mark badge: an outlined mono pill led by a small mark. */
+.fg-mark-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-muted);
+}
+.fg-mark-badge-mark {
+  width: 18px;
+  height: 22px;
+  display: block;
+}
+.fg-mark-badge-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Logo tile: a product's mark, or its initial, in a 28px square. */
+.fg-logo-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink);
+}
+.fg-logo-tile-initial {
+  font-family: var(--font-pixel);
+  font-size: 20px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Stepper: minus, the number, plus. */
+.fg-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-sunk);
+}
+.fg-stepper button {
+  width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.fg-stepper button:hover {
+  color: var(--accent);
+  background: var(--bg-raised);
+}
+.fg-stepper button:focus-visible,
+.fg-stepper input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.fg-stepper input {
+  width: 52px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.fg-stepper input::-webkit-inner-spin-button,
+.fg-stepper input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}

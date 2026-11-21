@@ -1,0 +1,214 @@
+/* Icon picker: the "Change icon" popover of Notes, the reaction picker of Chat. */
+
+/* The square trigger: a page's icon in its frame. Its padding is a third of the icon's size. */
+.fg-iconpick-square {
+  display: inline-grid;
+  place-items: center;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+.fg-iconpick-square:hover,
+.fg-iconpick-square[data-popup-open] {
+  border-color: var(--ink-muted);
+}
+.fg-iconpick-square:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-iconpick-square[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.fg-iconpick-none {
+  color: var(--ink-dim);
+}
+.fg-iconpick-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+.fg-selm-chip .fg-iconpick-name {
+  flex: none;
+}
+
+/* The place of an icon not loaded yet (or unknown): a dim square, no animation. */
+.fg-iconpick-ph {
+  display: inline-block;
+  flex-shrink: 0;
+  background: var(--bg-raised);
+  box-shadow: inset 0 0 0 var(--border-width) var(--line);
+}
+
+.fg-iconpick-tone-ink {
+  color: var(--ink);
+}
+.fg-iconpick-tone-muted {
+  color: var(--ink-muted);
+}
+.fg-iconpick-tone-accent {
+  color: var(--accent);
+}
+.fg-iconpick-tone-success {
+  color: var(--success);
+}
+.fg-iconpick-tone-warning {
+  color: var(--warning);
+}
+.fg-iconpick-tone-danger {
+  color: var(--danger);
+}
+
+/* The popover: 34px cells, 24px icons (whole pixels), as many per row as `columns`. */
+.fg-iconpick {
+  --fg-iconpick-cols: 10;
+  width: calc(var(--fg-iconpick-cols) * 34px + 18px);
+  max-width: calc(100vw - 16px);
+}
+.fg-iconpick-head {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 6px 0 10px;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-iconpick-title,
+.fg-iconpick-section {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-iconpick-title {
+  color: var(--ink);
+}
+.fg-iconpick-remove {
+  height: 26px;
+  margin-left: auto;
+  padding: 0 8px;
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-iconpick-remove:hover {
+  color: var(--danger);
+}
+.fg-iconpick-remove:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-iconpick-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+}
+.fg-iconpick-input {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+  outline: none;
+}
+.fg-iconpick-input::placeholder {
+  color: var(--ink-dim);
+}
+.fg-iconpick-input:focus-visible {
+  border-color: var(--ink-muted);
+}
+.fg-iconpick-tones {
+  display: flex;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+.fg-iconpick-tone {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: currentColor;
+  cursor: pointer;
+}
+.fg-iconpick-tone[aria-checked="true"] {
+  outline: var(--border-width) solid var(--ink);
+  outline-offset: 2px;
+}
+.fg-iconpick-tone:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 2px;
+}
+.fg-iconpick-scroll {
+  max-height: min(300px, calc(var(--available-height, 60vh) - 110px));
+  overflow: auto;
+  padding-bottom: 6px;
+  overscroll-behavior: contain;
+}
+.fg-iconpick-section {
+  padding: 6px 10px 4px;
+}
+.fg-iconpick-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--fg-iconpick-cols), minmax(0, 1fr));
+  gap: 0;
+  padding: 0 8px 4px;
+}
+.fg-iconpick-cell {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: var(--border-width) solid transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.fg-iconpick-cell[data-active] {
+  border-color: var(--line-strong);
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-iconpick-cell[aria-selected="true"] {
+  outline: var(--border-width) solid var(--accent);
+  outline-offset: calc(-1 * var(--border-width));
+  color: var(--accent);
+}
+.fg-iconpick-more {
+  display: block;
+  width: calc(100% - 16px);
+  height: 26px;
+  margin: 2px 8px 0;
+  border: var(--border-width) dashed var(--line-strong);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 11px/1 var(--font-mono);
+  cursor: pointer;
+}
+.fg-iconpick-more:hover {
+  color: var(--ink);
+}
+.fg-iconpick-empty {
+  padding: 16px 10px;
+  color: var(--ink-dim);
+}
+.fg-iconpick-foot {
+  height: 28px;
+  padding: 0 10px;
+  overflow: hidden;
+  border-top: var(--border-width) solid var(--line);
+  color: var(--ink-dim);
+  font: 400 11px/27px var(--font-mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

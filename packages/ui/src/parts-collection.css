@@ -1,0 +1,29 @@
+/* The SelectionBar primitive (selection-bar.tsx): the toolbar, the count, the rule, a danger action. */
+
+.fg-selbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 4px var(--space-2);
+  box-sizing: border-box;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-selbar-count {
+  margin: 0 var(--space-2) 0 2px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.fg-selbar-rule {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--line-strong);
+}
+.fg-selbar-danger {
+  color: var(--danger);
+}

@@ -81,6 +81,13 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "libraries-is-a-leaf",
+    files: {
+      [`packages/libraries/blueprints/${F}.ts`]: `import "../../blueprint/src/${F}_target.ts";\n`,
+      [`packages/blueprint/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "permissions-is-a-leaf",
     files: {
       [`packages/permissions/src/${F}.ts`]: `import "../../manifest/src/${F}_target.ts";\n`,
@@ -95,11 +102,229 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "blueprint-core-is-framework-free",
+    files: {
+      [`packages/blueprint/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/blueprint/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "blueprint-core-stays-neutral",
+    files: { [`packages/blueprint/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "font-is-a-leaf",
+    files: {
+      [`packages/font/src/${F}.ts`]: `import "../../ui/src/${F}_target.ts";\n`,
+      [`packages/ui/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "shaders-is-a-leaf",
+    files: {
+      [`packages/shaders/src/dom/${F}.ts`]: `import "../../../ui/src/${F}_target.ts";\n`,
+      [`packages/ui/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "shaders-core-is-framework-free",
+    files: {
+      [`packages/shaders/src/core/${F}.ts`]: `import "../dom/${F}_target.ts";\n`,
+      [`packages/shaders/src/dom/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "shaders-core-stays-neutral",
+    files: { [`packages/shaders/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
     rule: "ui-does-not-import-sdk",
     files: {
       [`packages/ui/src/${F}.ts`]: `import "../../sdk/src/${F}_target.ts";\n`,
       [`packages/sdk/src/${F}_target.ts`]: STUB,
     },
+  },
+  {
+    rule: "ui-atoms-stay-static",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../blueprint/src/dom/${F}_target.ts";\n`,
+      [`packages/blueprint/src/dom/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "ui-primitives-do-not-import-blocks",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "./blocks/${F}_target.ts";\n`,
+      [`packages/ui/src/blocks/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "ui-does-not-import-editors",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../canvas/src/${F}_target.ts";\n`,
+      [`packages/canvas/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-does-not-import-its-editors",
+    files: {
+      [`packages/canvas/src/${F}.ts`]: `import "../../flow/src/${F}_target.ts";\n`,
+      [`packages/flow/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-does-not-import-blueprint",
+    files: {
+      [`packages/canvas/src/react/${F}.ts`]: `import "../../../blueprint/src/${F}_target.ts";\n`,
+      [`packages/blueprint/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "blueprint-does-not-import-canvas-outside-its-canvas-layer",
+    files: {
+      [`packages/blueprint/src/dom/${F}.ts`]: `import "../canvas/${F}_target.ts";\n`,
+      [`packages/blueprint/src/canvas/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-core-is-framework-free",
+    files: {
+      [`packages/canvas/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/canvas/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-core-stays-neutral",
+    files: { [`packages/canvas/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "flow-does-not-import-other-editors",
+    files: {
+      [`packages/flow/src/react/${F}.ts`]: `import "../../../draw/src/${F}_target.ts";\n`,
+      [`packages/draw/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-is-framework-free",
+    files: {
+      [`packages/flow/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/flow/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-stays-neutral",
+    files: { [`packages/flow/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "flow-core-is-framework-free",
+    files: {
+      [`packages/flow/src/plugins/${F}.ts`]: `import "./editor/${F}_target.ts";\n`,
+      [`packages/flow/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-is-framework-free",
+    files: {
+      [`packages/flow/src/plugins/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/flow/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-stays-neutral",
+    files: { [`packages/flow/src/plugins/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "ui-does-not-import-editors",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../draw/src/${F}_target.ts";\n`,
+      [`packages/draw/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-does-not-import-its-editors",
+    files: {
+      [`packages/canvas/src/react/${F}.ts`]: `import "../../../draw/src/${F}_target.ts";\n`,
+      [`packages/draw/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-does-not-import-other-editors",
+    files: {
+      [`packages/draw/src/react/${F}.ts`]: `import "../../../flow/src/${F}_target.ts";\n`,
+      [`packages/flow/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-is-framework-free",
+    files: {
+      [`packages/draw/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/draw/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-stays-neutral",
+    files: { [`packages/draw/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "draw-core-is-framework-free",
+    files: {
+      [`packages/draw/src/plugins/${F}.ts`]: `import "./editor/${F}_target.ts";\n`,
+      [`packages/draw/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-is-framework-free",
+    files: {
+      [`packages/draw/src/core/${F}.ts`]: `import "../plugins/editor/${F}_target.ts";\n`,
+      [`packages/draw/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-stays-neutral",
+    files: { [`packages/draw/src/plugins/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "ui-does-not-import-editors",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../richtext/src/${F}_target.ts";\n`,
+      [`packages/richtext/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-does-not-import-other-editors",
+    files: {
+      [`packages/richtext/src/react/${F}.ts`]: `import "../../../flow/src/${F}_target.ts";\n`,
+      [`packages/flow/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-core-is-framework-free",
+    files: {
+      [`packages/richtext/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/richtext/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-core-is-framework-free",
+    files: {
+      [`packages/richtext/src/core/${F}.ts`]: `import "../tiptap/${F}_target.ts";\n`,
+      [`packages/richtext/src/tiptap/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-core-is-framework-free",
+    files: {
+      [`packages/richtext/src/plugins/${F}.ts`]: `import "./editor/${F}_target.ts";\n`,
+      [`packages/richtext/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-core-stays-neutral",
+    files: { [`packages/richtext/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "richtext-core-stays-neutral",
+    files: { [`packages/richtext/src/plugins/${F}.ts`]: `import "node:fs";\n` },
   },
   {
     rule: "registry-door-is-index",

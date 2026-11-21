@@ -1,0 +1,44 @@
+---
+import { ArrowDown01Icon, BookOpen01Icon, LockIcon, Tick01Icon } from "@forgeron/icons";
+import { copyrightNotice, FONT_LICENCE, licenceFile } from "../config/licence";
+import oflText from "../config/ofl-1.1.txt?raw";
+import type { Specimen } from "../lib/specimen";
+import PxIcon from "./PxIcon.astro";
+
+interface Props {
+  specimen: Specimen;
+}
+const { specimen: s } = Astro.props;
+const l = FONT_LICENCE;
+const can = ["Use it anywhere, commercial too", "Embed it in sites, apps, documents", "Modify and redistribute it", "Bundle it with software"];
+const cannot = ["Sell the fonts on their own", "Relicense the font or a modified version", "Ship it without notice and licence"];
+---
+
+<dialog id="licence-details" class="modal" data-modal aria-labelledby="lic-title">
+  <header class="modal-head">
+    <h2 id="lic-title" class="t-mono">{l.spdx} · Licence</h2>
+    <button type="button" class="btn btn-sm" data-modal-close aria-label="Close">Esc ×</button>
+  </header>
+  <div class="modal-body">
+    <p class="t-code lic-notice">{copyrightNotice(l)}</p>
+    <div class="lic-cols">
+      <div>
+        <h3 class="t-mono dim">You may</h3>
+        <ul class="icon-list t-small">{can.map((c) => <li><PxIcon icon={Tick01Icon} />{c}</li>)}</ul>
+      </div>
+      <div>
+        <h3 class="t-mono dim">You may not</h3>
+        <ul class="icon-list t-small">{cannot.map((c) => <li><PxIcon icon={LockIcon} />{c}</li>)}</ul>
+      </div>
+    </div>
+    <p class="t-mono dim">A summary. The full text applies.</p>
+    <div class="modal-actions">
+      <a class="btn btn-sm" href={s.licenceFile.href}><PxIcon icon={BookOpen01Icon} size={14} />Read {s.licenceFile.name}</a>
+      <a class="btn btn-sm" href={s.licenceFile.href} download><PxIcon icon={ArrowDown01Icon} size={14} />Download</a>
+    </div>
+    <details class="lic-text">
+      <summary class="t-mono">Full text</summary>
+      <pre class="t-code">{licenceFile(l, oflText)}</pre>
+    </details>
+  </div>
+</dialog>

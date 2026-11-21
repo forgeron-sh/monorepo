@@ -1,0 +1,189 @@
+---
+import { gridPath, guides, layoutText } from "../lib/plate";
+import { cellsPath } from "../lib/raster";
+import type { Specimen } from "../lib/specimen";
+
+interface Props {
+  specimen: Specimen;
+}
+const { specimen: s } = Astro.props;
+const reg = s.weights[0]!;
+const u = reg.unit;
+const H = s.ascender - s.descender;
+const metrics = { ascender: s.ascender, capHeight: s.capHeight, xHeight: s.xHeight, descender: s.descender };
+const lines = guides(metrics);
+const px = (units: number) => units / u;
+
+// ---------------------------------------------------------------- FIG.02, the construction plate
+const MAIN = "Éxg";
+const main = layoutText(MAIN, reg.bitmaps, reg.advances);
+const W = main.width;
+const L = 1000;
+const R = 1100;
+const T = 380;
+const B = 260;
+const VW = L + W + R;
+const VH = T + H + B;
+const fs = 44;
+
+const ink = main.glyphs.map((g) => cellsPath(g.rows, u, L + g.x, T)).join("");
+// The spacing column of each glyph: the last column of its advance, never inked.
+const spacing = main.glyphs
+  .map((g) => `M${L + g.x + g.advance - u} ${T}h${u}v${H}h${-u}z`)
+  .join("");
+const rowNumbers = Array.from({ length: H / u }, (_, i) => ({
+  n: i - px(s.ascender - s.capHeight),
+  y: T + (i + 0.5) * u,
+}));
+const yOf = (v: number) => T + s.ascender - v;
+const first = main.glyphs[0]!;
+const second = main.glyphs[1]!;
+
+// Vertical dimensions on the right: [from, to, label].
+const dims: [number, number, string][] = [
+  [0, s.capHeight, `${px(s.capHeight)} px · cap height`],
+  [0, s.xHeight, `${px(s.xHeight)} px · x-height`],
+  [s.descender, 0, `${px(-s.descender)} px · descender`],
+  [s.capHeight, s.ascender, `${px(s.ascender - s.capHeight)} px · accents`],
+];
+
+const facts = [
+  ["Cap height", `${px(s.capHeight)} px`],
+  ["x-height", `${px(s.xHeight)} px`],
+  ["Descender", `${px(-s.descender)} px`],
+  ["Accents", `${px(s.ascender - s.capHeight)} px`],
+  ["Advance", "5 + 1 px"],
+  ["Em", `${s.unitsPerEm} units`],
+];
+---
+
+<div class="anatomy bento auto">
+  <figure class="cell c6 ticks plate main-plate">
+    <div class="plate-scroll">
+      <svg
+        class="construction"
+        viewBox={`0 0 ${VW} ${VH}`}
+        role="img"
+        aria-labelledby="fig02-title"
+        shape-rendering="geometricPrecision"
+      >
+        <title id="fig02-title"
+          >Construction of É, x and g in Forgeron Sans Regular on the pixel grid, with its baseline, x-height, cap
+          height, accent row and descender.</title
+        >
+        <defs>
+          <pattern id="hatch" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <path d="M0 0V28" class="hatch-line"></path>
+          </pattern>
+          <marker id="tick" viewBox="-10 -10 20 20" markerWidth="20" markerHeight="20" markerUnits="userSpaceOnUse">
+            <path d="M-8 8L8 -8" class="dim-tick"></path>
+          </marker>
+        </defs>
+
+        <text x="160" y="96" class="p-label p-strong" font-size={fs}>FIG.02 · CONSTRUCTION</text>
+        <text x={VW - 160} y="96" class="p-label" text-anchor="end" font-size={fs}>
+          REGULAR · 1 CELL = {u} UNITS = 0.1 EM
+        </text>
+
+        <!-- grid and spacing columns -->
+        <rect x={L} y={T} width={W} height={H} class="p-sheet"></rect>
+        <path d={spacing} fill="url(#hatch)"></path>
+        <path d={gridPath(W, H, u)} transform={`translate(${L} ${T})`} class="p-grid"></path>
+        {
+          main.glyphs.map((g) => (
+            <path d={`M${L + g.x} ${T - 40}V${T + H + 40}`} class="p-advance" />
+          ))
+        }
+        <path d={`M${L + W} ${T - 40}V${T + H + 40}`} class="p-advance"></path>
+
+        <!-- guides, full width -->
+        {
+          lines.map((g) => (
+            <g>
+              <path d={`M${L - 520} ${T + g.y}H${L + W + 80}`} class={`p-guide ${g.key === "baseline" ? "p-base" : ""}`} />
+              <text x={L - 540} y={T + g.y + fs * 0.35} text-anchor="end" class="p-label" font-size={fs}>
+                {g.label.toUpperCase()}
+              </text>
+              <text x={L - 190} y={T + g.y - 14} text-anchor="end" class="p-label p-dim" font-size={fs * 0.8}>
+                {g.value}
+              </text>
+            </g>
+          ))
+        }
+
+        <!-- row numbers -->
+        {
+          rowNumbers.map((r) => (
+            <text x={L - 70} y={r.y + fs * 0.35} text-anchor="middle" class="p-label p-dim" font-size={fs * 0.8}>
+              {r.n}
+            </text>
+          ))
+        }
+
+        <!-- ink -->
+        <path d={ink} class="p-ink"></path>
+
+        <!-- advance dimension over É -->
+        <g class="p-dim-line">
+          <path
+            d={`M${L + first.x} ${T - 120}H${L + first.x + first.advance}`}
+            marker-start="url(#tick)"
+            marker-end="url(#tick)"></path>
+          <text x={L + first.x + first.advance / 2} y={T - 150} text-anchor="middle" class="p-label" font-size={fs}>
+            ADVANCE {px(first.advance)} PX = {px(first.advance) - 1} + 1
+          </text>
+        </g>
+        <g class="p-dim-line">
+          <path
+            d={`M${L + second.x} ${T - 120}H${L + second.x + second.advance - u}`}
+            marker-start="url(#tick)"
+            marker-end="url(#tick)"></path>
+          <text
+            x={L + second.x + (second.advance - u) / 2}
+            y={T - 150}
+            text-anchor="middle"
+            class="p-label p-dim"
+            font-size={fs}>
+            INK {px(second.advance) - 1} PX
+          </text>
+        </g>
+
+        <!-- vertical dimensions -->
+        {
+          dims.map(([from, to, label], i) => {
+            const x = L + W + 120 + i * 90;
+            return (
+              <g class="p-dim-line">
+                <path d={`M${x} ${yOf(from)}V${yOf(to)}`} marker-start="url(#tick)" marker-end="url(#tick)" />
+                <text
+                  x={x + 34}
+                  y={(yOf(from) + yOf(to)) / 2}
+                  class="p-label"
+                  font-size={fs * 0.8}
+                  transform={`rotate(-90 ${x + 34} ${(yOf(from) + yOf(to)) / 2})`}
+                  text-anchor="middle"
+                  dominant-baseline="hanging">
+                  {label.toUpperCase()}
+                </text>
+              </g>
+            );
+          })
+        }
+
+        <text x={L + W / 2} y={T + H + 175} text-anchor="middle" class="p-label p-dim" font-size={fs * 0.8}>
+          ▨ SPACING COLUMN
+        </text>
+      </svg>
+    </div>
+    <p class="scroll-hint t-mono accent">Scroll the plate →</p>
+  </figure>
+
+  {
+    facts.map(([label, value]) => (
+      <div class="cell ticks fact">
+        <span class="t-mono dim">{label}</span>
+        <span class="f-title">{value}</span>
+      </div>
+    ))
+  }
+</div>

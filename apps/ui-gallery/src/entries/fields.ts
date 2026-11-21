@@ -1,0 +1,863 @@
+import type { Atom, PropRow } from "../types";
+
+/** Gallery pages of the field primitives: typed, chosen, dragged and folded things. */
+
+const className: PropRow = { name: "className", type: "string", description: "Extra classes." };
+const label = (what: string): PropRow => ({
+  name: "label",
+  type: "string",
+  description: `Names ${what} for assistive technology.`,
+});
+const value = (type: string, extra = ""): PropRow => ({
+  name: "value / defaultValue",
+  type,
+  description: `Controlled or not.${extra ? ` ${extra}` : ""}`,
+});
+const onChange = (type: string, description = "On every change."): PropRow => ({
+  name: "onChange",
+  type,
+  description,
+});
+const disabled: PropRow = { name: "disabled", type: "boolean", description: "Not editable." };
+const field: PropRow = {
+  name: "id / aria-describedby / aria-invalid",
+  type: "string / string / boolean",
+  description: "From `Field`'s function form: the label, hint and error stay tied.",
+};
+
+export const entries: ReadonlyArray<Atom> = [
+  {
+    slug: "combobox",
+    name: "Combobox",
+    summary:
+      "Pick one or several among many by typing. Options can come from a server, and the text can become one. Composed from parts, with a props shorthand.",
+    imports: [
+      "Combobox",
+      "ComboboxChip",
+      "ComboboxChips",
+      "ComboboxChipsInput",
+      "ComboboxContent",
+      "ComboboxEmpty",
+      "ComboboxInput",
+      "ComboboxInputGroup",
+      "ComboboxItem",
+      "ComboboxList",
+      "ComboboxValue",
+      "type ComboboxOption",
+    ],
+    props: [
+      label("the control"),
+      {
+        name: "options",
+        type: "ComboboxOption[]",
+        description: "{ value, label, hint?, glyph?, disabled? }.",
+      },
+      {
+        name: "multiple",
+        type: "boolean",
+        default: "false",
+        description: "Several choices, shown as chips. Then value is string[].",
+      },
+      value("string | null (string[] with multiple)"),
+      onChange("(value) => void"),
+      {
+        name: "onInputChange",
+        type: "(query: string) => void",
+        description: "Hears every key: ask a server, pass the answer as options.",
+      },
+      {
+        name: "filter",
+        type: "boolean",
+        default: "true",
+        description: "false when options are already filtered by the caller.",
+      },
+      { name: "loading", type: "boolean", description: "Says so in the list." },
+      {
+        name: "onCreate",
+        type: "(label) => ComboboxOption | void",
+        description: "Turns the text typed into a choice; adds a Create row.",
+      },
+      {
+        name: "emptyText / createLabel",
+        type: "string / (query) => string",
+        description: "The words of the empty and create rows.",
+      },
+      {
+        name: "clearable",
+        type: "boolean",
+        default: "true",
+        description: "A button that removes the choice (single only).",
+      },
+      { name: "placeholder", type: "string", description: "In the text box." },
+      disabled,
+      field,
+      className,
+    ],
+  },
+  {
+    slug: "tag-input",
+    name: "Tag input",
+    summary:
+      "Tags typed in: a separator or Enter ends one, a paste is split, Backspace removes the last.",
+    imports: ["TagInput", "TagInputList", "TagInputTags", "TagInputTag", "TagInputField"],
+    props: [
+      {
+        name: "TagInput parts",
+        type: "TagInput (no label; value / defaultValue / onChange, separators, validate, max, allowDuplicates, disabled), TagInputList, TagInputTags, TagInputTag value, TagInputField",
+        description:
+          "TagInput with a label is built from them; compose your own as shadcn would. It is free text: to choose among options, use the ComboboxChips parts. useTagInput reads the tags.",
+      },
+      label("the field"),
+      value("string[]"),
+      onChange("(value: string[]) => void"),
+      {
+        name: "separators",
+        type: "RegExp",
+        default: "/[\\s,;]+/",
+        description: "What ends a tag, typed or pasted. Use /[,;\\n]+/ for tags with spaces.",
+      },
+      {
+        name: "validate",
+        type: "(tag) => boolean",
+        description: "A tag that fails is marked and announced, and kept.",
+      },
+      { name: "max", type: "number", description: "At most this many tags." },
+      {
+        name: "allowDuplicates",
+        type: "boolean",
+        default: "false",
+        description: "The same tag twice.",
+      },
+      { name: "placeholder", type: "string", description: "Shown while there is no tag." },
+      disabled,
+      field,
+      className,
+    ],
+  },
+  {
+    slug: "slider",
+    name: "Slider",
+    summary: "A value on a track, or a range between two, with ticks and a written value.",
+    imports: ["Slider"],
+    props: [
+      {
+        name: "Slider (no label)",
+        type: "value / defaultValue: number[], onValueChange, min, max, step",
+        description: "Without label: shadcn's slider on Base UI, one thumb per value (D-156).",
+      },
+      label("the slider; a range's thumbs read “from” and “to”"),
+      value("number | [number, number]", "An array makes it a range."),
+      onChange("(value) => void"),
+      {
+        name: "onChangeEnd",
+        type: "(value) => void",
+        description: "Pointer released or key pressed: the moment to save.",
+      },
+      {
+        name: "min / max / step",
+        type: "number",
+        default: "0 / 100 / 1",
+        description: "The limits and the grain.",
+      },
+      {
+        name: "largeStep",
+        type: "number",
+        description: "Page Up and Page Down. Default ten steps.",
+      },
+      {
+        name: "marks",
+        type: "(number | { value, label? })[]",
+        description: "Ticks under the track.",
+      },
+      {
+        name: "showValue / formatValue",
+        type: "boolean / (n) => string",
+        description: "The value at the end of the label row, and how it is written.",
+      },
+      {
+        name: "minGap",
+        type: "number",
+        default: "0",
+        description: "Steps a thumb keeps from the next.",
+      },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "rating",
+    name: "Rating",
+    summary:
+      "Pixel stars, one tab stop that works as a slider. Read-only mode, optional halves. Composed from parts, with a props shorthand.",
+    imports: ["Rating", "RatingItem", "Star"],
+    props: [
+      label("the rating"),
+      value("number | null", "0 to max."),
+      onChange("(value: number | null) => void"),
+      { name: "max", type: "number", default: "5", description: "How many stars." },
+      {
+        name: "half",
+        type: "boolean",
+        default: "false",
+        description: "A click on the left half gives half a point; arrows move by half.",
+      },
+      { name: "readOnly", type: "boolean", description: "Shows it as an image, no tab stop." },
+      {
+        name: "clearable",
+        type: "boolean",
+        default: "true",
+        description: "Backspace and a second click remove it.",
+      },
+      {
+        name: "size",
+        type: "number",
+        default: "24",
+        description: "A star in px; a multiple of 12 keeps pixels whole.",
+      },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "scale",
+    name: "Scale",
+    summary: "A row of numbers to pick one from: a satisfaction scale, an NPS question.",
+    imports: ["Scale", "ScaleLabel", "ScaleRow", "ScaleItem", "ScaleEnds"],
+    props: [
+      {
+        name: "Scale parts",
+        type: "Scale (no label; value / defaultValue / onChange, min, max, nps, readOnly, disabled), ScaleLabel, ScaleRow label, ScaleItem value, ScaleEnds",
+        description: "Scale with a label is built from them; compose your own as shadcn would.",
+      },
+      { name: "label", type: "string", description: "The question, said once for the whole row." },
+      value("number | null"),
+      onChange("(value: number | null) => void"),
+      {
+        name: "min / max",
+        type: "number",
+        default: "0 / 10",
+        description: "First and last number.",
+      },
+      {
+        name: "lowLabel / highLabel",
+        type: "string",
+        description: "Under the first and last number.",
+      },
+      {
+        name: "nps",
+        type: "boolean",
+        description: "Colours the chosen number: 0–6 danger, 7–8 warning, 9–10 success.",
+      },
+      { name: "readOnly", type: "boolean", description: "Shows the answer." },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "time-picker",
+    name: "Time picker",
+    summary:
+      "A time typed or chosen: spinbuttons, AM and PM in 12 hours, a list every few minutes. Composed from parts, with a props shorthand.",
+    imports: [
+      "TimePicker",
+      "TimePickerHour",
+      "TimePickerList",
+      "TimePickerMinute",
+      "TimePickerPeriod",
+      "TimePickerSeparator",
+    ],
+    props: [
+      label("the field"),
+      value("string | null", "`HH:mm`, always 24 hours."),
+      onChange("(value: string | null) => void"),
+      {
+        name: "hour12",
+        type: "boolean",
+        default: "false",
+        description: "Writes it in 12 hours with AM and PM; the value stays HH:mm.",
+      },
+      {
+        name: "step",
+        type: "number",
+        default: "15",
+        description: "Minutes between the times of the list, and of the arrows on minutes.",
+      },
+      disabled,
+      field,
+      className,
+    ],
+  },
+  {
+    slug: "date-range-picker",
+    name: "Date range picker",
+    summary:
+      "A period: quick picks, then a month where the first click sets the start and the second the end. Composed from parts, with a props shorthand.",
+    imports: [
+      "DateRangePicker",
+      "DateRangePickerCalendar",
+      "DateRangePickerContent",
+      "DateRangePickerFooter",
+      "DateRangePickerPresets",
+      "DateRangePickerTrigger",
+      "type DateRange",
+    ],
+    props: [
+      { name: "label", type: "string", description: "e.g. Period." },
+      value("{ from, to }", "Each YYYY-MM-DD or null."),
+      onChange("(range: DateRange) => void", "Complete ranges only."),
+      {
+        name: "presets",
+        type: "{ label, from, to }[]",
+        default: "rangePresets(today)",
+        description: "Today, last 7 and 30 days, this and last month; [] for none.",
+      },
+      { name: "min / max", type: "string", description: "Days outside cannot be chosen." },
+      { name: "today", type: "string", default: "the device's date", description: "Outlined." },
+      {
+        name: "clearable",
+        type: "boolean",
+        default: "true",
+        description: "Offers to remove the range.",
+      },
+      {
+        name: "variant",
+        type: '"field" | "chip"',
+        default: '"field"',
+        description: "A form control, or a record's property.",
+      },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "number-input",
+    name: "Number input",
+    summary:
+      "A number with minus and plus buttons, read and written in the locale. Composed from parts, with a props shorthand.",
+    imports: [
+      "NumberInput",
+      "NumberInputField",
+      "NumberInputDecrement",
+      "NumberInputIncrement",
+      "NumberInputAffix",
+    ],
+    props: [
+      label("the field"),
+      value("number | null"),
+      onChange("(value: number | null) => void", "On blur, Enter and every step."),
+      { name: "min / max", type: "number", description: "Clamped on commit and on steps." },
+      {
+        name: "step / largeStep",
+        type: "number",
+        default: "1 / 10 × step",
+        description: "Arrows and buttons; Page keys and Shift.",
+      },
+      {
+        name: "locale",
+        type: "string",
+        default: "the device's",
+        description: "`fr-FR` reads 1 234,5.",
+      },
+      {
+        name: "format",
+        type: "Intl.NumberFormatOptions",
+        description: '{ style: "percent" }, { maximumFractionDigits: 2 }.',
+      },
+      {
+        name: "prefix / suffix",
+        type: "ReactNode",
+        description: "A unit or a symbol inside the field.",
+      },
+      {
+        name: "buttons",
+        type: "boolean",
+        default: "true",
+        description: "The minus and plus buttons.",
+      },
+      { name: "readOnly", type: "boolean", description: "Shown, not editable." },
+      disabled,
+      field,
+      className,
+    ],
+  },
+  {
+    slug: "money-input",
+    name: "Money input",
+    summary:
+      "An amount in a currency, in minor units: 1250 is 12.50. The symbol sits where the locale puts it. Composed from parts, with a props shorthand.",
+    imports: ["MoneyInput", "MoneyInputField", "MoneyInputSymbol", "formatMoney"],
+    props: [
+      label("the field"),
+      value("number | null", "Minor units, an integer."),
+      onChange("(value: number | null) => void"),
+      {
+        name: "currency",
+        type: "string",
+        description: "ISO 4217: EUR, USD, JPY (no decimals), BHD (three).",
+      },
+      {
+        name: "locale",
+        type: "string",
+        default: "the device's",
+        description: "Separators and side of the symbol.",
+      },
+      {
+        name: "min / max / step",
+        type: "number",
+        description: "In minor units. Step defaults to one major unit.",
+      },
+      { name: "readOnly", type: "boolean", description: "Shown, not editable." },
+      disabled,
+      field,
+      className,
+    ],
+  },
+  {
+    slug: "currency-picker",
+    name: "Currency picker",
+    summary:
+      "A currency in a short list: code, name and symbol. Composed from parts, with a props shorthand.",
+    imports: [
+      "CurrencyPicker",
+      "CurrencyPickerItem",
+      "SelectContent",
+      "SelectTrigger",
+      "SelectValue",
+    ],
+    props: [
+      { name: "label", type: "string", default: '"Currency"', description: "Names the control." },
+      value("string", "An ISO 4217 code."),
+      onChange("(value: string) => void"),
+      {
+        name: "currencies",
+        type: "string[]",
+        default: "twelve common ones",
+        description: "The codes offered.",
+      },
+      { name: "locale", type: "string", description: "Language of the names." },
+      {
+        name: "size / variant",
+        type: '"sm" | "md" / "field" | "chip"',
+        default: '"md" / "field"',
+        description: "Like SelectMenu.",
+      },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "color-picker",
+    name: "Color picker",
+    summary:
+      "A swatch palette from the tokens and a hex field: no gradients, no sliders. Composed from parts, with a props shorthand.",
+    imports: [
+      "ColorPickerClear",
+      "ColorPickerRoot",
+      "ColorPickerTrigger",
+      "ColorPickerContent",
+      "ColorPickerSwatches",
+      "ColorPickerSwatch",
+      "ColorPickerInput",
+      "ColorPickerPanel",
+      "ColorPicker",
+      "COLOR_PALETTE",
+    ],
+    props: [
+      label("the control"),
+      value("string | null", "#RRGGBB."),
+      onChange("(value: string | null) => void"),
+      {
+        name: "palette",
+        type: "{ value, label }[]",
+        default: "COLOR_PALETTE",
+        description: "The squares offered.",
+      },
+      { name: "hex", type: "boolean", default: "true", description: "A field to type any code." },
+      {
+        name: "clearable",
+        type: "boolean",
+        default: "true",
+        description: "Offers to remove the colour.",
+      },
+      { name: "inline", type: "boolean", description: "The palette in place, no button or popup." },
+      {
+        name: "columns",
+        type: "number",
+        default: "4",
+        description: "Squares per row; arrows move in two dimensions.",
+      },
+      {
+        name: "open / onOpenChange",
+        type: "boolean / (open) => void",
+        description: "Open it from outside.",
+      },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "otp-input",
+    name: "OTP input",
+    summary:
+      "A one-time code in cells: typing moves on, a paste fills them all, Backspace goes back. Composed from parts, with a props shorthand.",
+    imports: ["InputOTP", "InputOTPGroup", "InputOTPSlot", "InputOTPSeparator", "OtpInput"],
+    props: [
+      label("the group; each cell reads “character 3 of 6”"),
+      { name: "length", type: "number", default: "6", description: "How many characters." },
+      value("string"),
+      onChange("(value: string) => void"),
+      {
+        name: "onComplete",
+        type: "(value: string) => void",
+        description: "Once, when the last cell is filled.",
+      },
+      {
+        name: "type",
+        type: '"numeric" | "alphanumeric"',
+        default: '"numeric"',
+        description: "Digits only, or letters too.",
+      },
+      { name: "mask", type: "boolean", description: "Dots instead of characters." },
+      { name: "group", type: "number", description: "A gap every n cells." },
+      { name: "autoFocus", type: "boolean", description: "Focus on the first cell." },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "file-input",
+    name: "File input",
+    summary:
+      "A button and a drop target, the list of chosen files with a remove button each, and the limits. Composed from parts, with a props shorthand.",
+    imports: [
+      "FileInput",
+      "FileInputDrop",
+      "FileInputTrigger",
+      "FileInputList",
+      "FileInputHint",
+      "FileInputLimits",
+      "formatFileSize",
+    ],
+    props: [
+      label("the field"),
+      value("File[]"),
+      onChange("(files: File[]) => void"),
+      { name: "accept", type: "string", description: "`image/*,.pdf`. Checked on a drop too." },
+      {
+        name: "multiple",
+        type: "boolean",
+        default: "false",
+        description: "Several files; else a new one replaces the old.",
+      },
+      { name: "maxSize / maxFiles", type: "number", description: "Bytes, and a count." },
+      {
+        name: "onReject",
+        type: "(rejections) => void",
+        description: '{ file, reason: "type" | "size" | "count" }[]: tell the person.',
+      },
+      { name: "hint", type: "string", description: "The line in the drop target." },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "popover",
+    name: "Popover",
+    summary:
+      "A panel that opens from a button and holds anything. Built on Base UI. Composed from parts, with a props shorthand.",
+    imports: [
+      "Popover",
+      "PopoverTrigger",
+      "PopoverContent",
+      "PopoverArrow",
+      "PopoverTitle",
+      "PopoverDescription",
+      "PopoverClose",
+    ],
+    props: [
+      {
+        name: "Popover parts",
+        type: "Popover (open / defaultOpen / onOpenChange), PopoverTrigger (asChild), PopoverContent (side, align, sideOffset, anchor), PopoverArrow, PopoverTitle, PopoverDescription, PopoverClose",
+        description: "shadcn's composition: Popover without trigger is the root (D-156).",
+      },
+      {
+        name: "trigger",
+        type: "ReactElement",
+        description: "The control that opens it: one element that takes a ref.",
+      },
+      { name: "label", type: "string", description: "Names the panel." },
+      {
+        name: "title / description",
+        type: "ReactNode",
+        description: "A heading and one line inside.",
+      },
+      { name: "children", type: "ReactNode", description: "The content." },
+      {
+        name: "open / defaultOpen / onOpenChange",
+        type: "boolean / boolean / (open) => void",
+        description: "Controlled or not.",
+      },
+      {
+        name: "side / align",
+        type: "top | bottom | left | right / start | center | end",
+        default: "bottom / start",
+        description: "Placement.",
+      },
+      { name: "width", type: "number", description: "px; the content's own by default." },
+      {
+        name: "showClose",
+        type: "boolean",
+        default: "false",
+        description: "A close button in the corner.",
+      },
+      {
+        name: "modal",
+        type: 'boolean | "trap-focus"',
+        default: "false",
+        description: "Lock the page, or keep Tab inside.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "collapsible",
+    name: "Collapsible",
+    summary:
+      "One section that folds. Short stepped motion, none under reduced motion. Composed from parts, with a props shorthand.",
+    imports: ["Collapsible", "CollapsibleTrigger", "CollapsibleContent"],
+    props: [
+      {
+        name: "Collapsible parts (no title)",
+        type: "open / defaultOpen / onOpenChange; CollapsibleTrigger asChild",
+        description: "Without title, shadcn's composed collapsible (D-156).",
+      },
+      { name: "title", type: "ReactNode", description: "The button that folds and unfolds." },
+      { name: "hint", type: "ReactNode", description: "Mono text at the end of the header." },
+      {
+        name: "open / defaultOpen / onOpenChange",
+        type: "boolean / boolean / (open) => void",
+        description: "Controlled or not.",
+      },
+      {
+        name: "keepMounted",
+        type: "boolean",
+        description: "Keeps the content in the page while folded.",
+      },
+      {
+        name: "variant",
+        type: '"framed" | "plain"',
+        default: '"framed"',
+        description: "A frame, or a line only.",
+      },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "accordion",
+    name: "Accordion",
+    summary:
+      "Collapsibles stacked: one open at a time, or several. Up and Down move between headers. Composed from parts, with a props shorthand.",
+    imports: ["Accordion", "AccordionItem", "AccordionTrigger", "AccordionContent"],
+    props: [
+      {
+        name: "Accordion parts (no items)",
+        type: 'type: "single" | "multiple", collapsible, value / defaultValue, onValueChange',
+        description:
+          "Without items, shadcn's composed accordion on Base UI: AccordionItem, AccordionTrigger, AccordionContent (D-156).",
+      },
+      {
+        name: "items",
+        type: "AccordionItem[]",
+        description: "{ value, title, hint?, content, disabled? }.",
+      },
+      value("string[]", "The values of the open sections."),
+      onChange("(value: string[]) => void"),
+      { name: "multiple", type: "boolean", default: "false", description: "Several open at once." },
+      {
+        name: "headingLevel",
+        type: "1–6",
+        default: "3",
+        description: "The level of the headings.",
+      },
+      disabled,
+      className,
+    ],
+  },
+  {
+    slug: "split-pane",
+    name: "Split pane",
+    summary:
+      "Two panes and a divider to drag or move with the arrows. Size controlled or not. Composed from parts, with a props shorthand.",
+    imports: ["SplitPane", "SplitPanePanel", "SplitPaneHandle"],
+    props: [
+      {
+        name: "Parts",
+        type: "SplitPanePanel / SplitPaneHandle",
+        description:
+          "Without first and second, SplitPane takes its parts (D-156): two SplitPanePanel (the second `secondary`) around a SplitPaneHandle with the label; className and rest on each.",
+      },
+      { name: "label", type: "string", description: "Names the divider: “Resize the sidebar”." },
+      { name: "first / second", type: "ReactNode", description: "The two panes." },
+      {
+        name: "direction",
+        type: '"horizontal" | "vertical"',
+        default: '"horizontal"',
+        description: "Side by side, or one above the other.",
+      },
+      {
+        name: "size / defaultSize",
+        type: "number",
+        default: "320",
+        description: "The first pane, in px.",
+      },
+      onChange("(size: number) => void", "While dragging or pressing keys."),
+      {
+        name: "onChangeEnd",
+        type: "(size: number) => void",
+        description: "Drag ended or key pressed: save it.",
+      },
+      {
+        name: "min / minSecond / max",
+        type: "number",
+        default: "160 / 160 / –",
+        description: "Limits in px.",
+      },
+      {
+        name: "keyStep",
+        type: "number",
+        default: "16",
+        description:
+          "An arrow moves by this; Shift ×4. Home and End go to the limits; double click resets.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "resizable",
+    name: "Resizable",
+    summary:
+      "Panels and the handles between them, as in shadcn: percent layout, N panels, collapsible panels, a WAI-ARIA window splitter. SplitPane is its px preset.",
+    imports: ["ResizablePanelGroup", "ResizablePanel", "ResizableHandle"],
+    props: [
+      {
+        name: "ResizablePanelGroup direction / orientation",
+        type: '"horizontal" | "vertical"',
+        default: '"horizontal"',
+        description: "Side by side, or one above the other. `orientation` is the newer name.",
+      },
+      {
+        name: "ResizablePanelGroup layout / defaultLayout",
+        type: "number[]",
+        description: "The size of each panel in percent, when you own it / at the start.",
+      },
+      {
+        name: "ResizablePanelGroup onLayout",
+        type: "(layout: number[]) => void",
+        description: "On every change of the layout.",
+      },
+      {
+        name: "ResizablePanelGroup onLayoutChanged",
+        type: "(layout: number[]) => void",
+        description: "A drag ended or a key was pressed: save it.",
+      },
+      {
+        name: "ResizablePanelGroup storageKey",
+        type: "string",
+        description: "Keeps the layout in localStorage under this key (not when controlled).",
+      },
+      {
+        name: "ResizablePanelGroup unit / keyStep",
+        type: '"percent" | "px" / number',
+        default: '"percent" / 5',
+        description: "px: every panel but the last in px, the last takes the rest (SplitPane).",
+      },
+      {
+        name: "ResizablePanel defaultSize / minSize / maxSize",
+        type: "number",
+        default: "shared / 0 / 100",
+        description: "In percent. Panels without a defaultSize share what is left.",
+      },
+      {
+        name: "ResizablePanel collapsible / collapsedSize",
+        type: "boolean / number",
+        default: "false / 0",
+        description: "Collapses when dragged under half way to its minimum, or on Enter.",
+      },
+      {
+        name: "ResizablePanel order / id",
+        type: "number / string",
+        description: "`order` is accepted; the order is the one of the children.",
+      },
+      {
+        name: "ResizableHandle withHandle / disabled",
+        type: "boolean",
+        description: "Draws a grip; takes the handle out of reach.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "toolbar",
+    name: "Toolbar",
+    summary:
+      "A row of tools that is one tab stop: arrows move between them, Home and End go to the ends.",
+    imports: ["Toolbar", "ToolbarButton", "ToolbarGroup", "ToolbarSeparator", "ToolbarLink"],
+    props: [
+      { name: "Toolbar label", type: "string", description: "Names the toolbar." },
+      {
+        name: "Toolbar orientation / loop",
+        type: '"horizontal" | "vertical" / boolean',
+        default: '"horizontal" / true',
+        description: "Direction of the arrows; wrap around.",
+      },
+      {
+        name: "ToolbarButton label",
+        type: "string",
+        description: "Its name; the text when there is no icon.",
+      },
+      {
+        name: "ToolbarButton icon / kbd",
+        type: "IconDefinition / string",
+        description: "A pixel icon; a shortcut after the label.",
+      },
+      {
+        name: "ToolbarButton pressed / onClick",
+        type: "boolean / () => void",
+        description: "pressed makes it a toggle (aria-pressed).",
+      },
+      {
+        name: "ToolbarGroup label",
+        type: "string",
+        description: "Names tools that belong together.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "banner",
+    name: "Banner",
+    summary: "A page-level notice with an action, dismissible. The state always comes with a word.",
+    imports: ["Banner"],
+    props: [
+      {
+        name: "tone",
+        type: '"info" | "success" | "warning" | "danger"',
+        default: '"info"',
+        description: "Warning and danger are announced at once.",
+      },
+      { name: "title", type: "ReactNode", description: "The short line." },
+      { name: "children", type: "ReactNode", description: "The detail." },
+      { name: "action", type: "ReactNode", description: "A button or link: the next thing to do." },
+      { name: "dismissible", type: "boolean", description: "Shows a dismiss button." },
+      {
+        name: "open / defaultOpen / onOpenChange",
+        type: "boolean / boolean / (open) => void",
+        default: "true",
+        description: "Controlled or not.",
+      },
+      { name: "onDismiss", type: "() => void", description: "Hears the dismissal." },
+      className,
+    ],
+  },
+];

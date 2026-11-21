@@ -1,0 +1,67 @@
+/* The reference kinds of @forgeron/richtext (pages, tags, dates): the chips in the text and the
+   date panel. Tokens only, sharp corners, no blur and no fades. Loaded by richtext.css. */
+
+/* The chips, in the editor (`data-kind` of the node) and in the static view (a link, a tag, a time).
+   A page is underlined, as a link is; a tag and a date are mono. */
+.fg-rt-mention[data-kind="page"],
+.fg-rt-page {
+  border-color: var(--line-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a.fg-rt-mention {
+  color: var(--ink);
+  cursor: pointer;
+}
+a.fg-rt-mention:hover {
+  border-color: var(--accent);
+}
+
+.fg-rt-mention[data-kind="tag"]::before {
+  content: "#";
+  color: var(--ink-dim);
+}
+.fg-rt-tag {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.fg-rt-mention[data-kind="tag"] {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.fg-rt-mention[data-kind="date"],
+.fg-rt-date {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* An overdue date: the accent says it, and the line under it, so colour is not the only sign. */
+.fg-rt-past {
+  color: var(--accent);
+  border-color: var(--accent);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+/* The date panel: a calendar, an optional time, two buttons. */
+.fg-rt-datepanel {
+  width: auto;
+  box-shadow: var(--shadow-pop);
+}
+.fg-rt-datepanel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+.fg-rt-datepanel-time {
+  display: flex;
+}
+.fg-rt-datepanel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
