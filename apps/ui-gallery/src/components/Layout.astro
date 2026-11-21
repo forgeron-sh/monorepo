@@ -1,0 +1,53 @@
+---
+import { ClientRouter } from "astro:transitions";
+import "@forgeron/ui/styles.css";
+import "../styles/lab.css";
+import "../styles/gallery.css";
+import Nav from "./Nav.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  page: "home" | "identity" | "docs" | "blocks" | "charts";
+}
+const { title, description, page } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/ForgeronSans-Medium.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Silkscreen&display=swap"
+    />
+    <!-- From page to page the content is swapped without a full load; the sidebar stays. -->
+    <ClientRouter />
+  </head>
+  <body>
+    <a class="skip btn btn-sm" href="#main">Skip to content</a>
+    <Nav page={page} />
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="rail foot t-mono dim">
+      <span>@forgeron/ui · Apache-2.0</span>
+      <span>React · lab design language</span>
+      <span>ui.forgeron.sh</span>
+    </footer>
+    <script>
+      import "../lib/frames";
+      import "../lib/sidebar";
+    </script>
+  </body>
+</html>

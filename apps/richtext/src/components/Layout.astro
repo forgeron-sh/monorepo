@@ -1,0 +1,54 @@
+---
+import "@forgeron/ui/styles.css";
+import "../styles/lab.css";
+import "../styles/richtext.css";
+import Nav from "./Nav.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  page: "home" | "plugins" | "playground" | "use" | "none";
+}
+const { title, description, page } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {page !== "none" && <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script is:inline>
+      // Dark by default; the saved choice, else the system's, before the first paint.
+      try {
+        var saved = localStorage.getItem("forgeron.richtext-site.theme");
+        var light = saved ? saved === "light" : matchMedia("(prefers-color-scheme: light)").matches;
+        if (light) document.documentElement.dataset.theme = "light";
+      } catch (e) {}
+    </script>
+    <link rel="preload" href="/fonts/ForgeronSans-Medium.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Silkscreen&display=swap"
+    />
+  </head>
+  <body>
+    <a class="skip btn btn-sm" href="#main">Skip to content</a>
+    <Nav page={page} />
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="rail foot t-mono dim">
+      <span>Richtext · @forgeron/richtext · Apache-2.0</span>
+      <span>Tiptap · ProseMirror · Yjs · MIT dependencies</span>
+      <span>richtext.forgeron.sh</span>
+    </footer>
+  </body>
+</html>

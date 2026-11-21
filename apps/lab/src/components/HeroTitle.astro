@@ -1,0 +1,53 @@
+---
+import { REVEAL_MARGIN } from "@forgeron/shaders";
+import { PixelText, textRows } from "@forgeron/ui";
+
+/**
+ * The hero title in the pixel face, resolving out of a dithered glitch (`mountReveal` of
+ * @forgeron/shaders): Bayer front, ember palette steps, then clean pixels. The text is in the
+ * heading from the start; under `prefers-reduced-motion` it is simply there.
+ */
+interface Props {
+  text: string;
+}
+const { text } = Astro.props;
+const rows = textRows(text);
+---
+
+<h1 class="lab-hero-title">
+  <span class="fg-reveal" data-reveal={JSON.stringify(rows)} data-margin={REVEAL_MARGIN}>
+    <span class="fg-sr">{text}</span>
+    <PixelText text={text} />
+    <canvas aria-hidden="true"></canvas>
+  </span>
+</h1>
+
+<script is:inline>
+  // Hidden before the first paint while the reveal waits; never for long, never when motion is reduced.
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const r = document.querySelector("[data-reveal]");
+    if (r) {
+      r.setAttribute("data-revealing", "");
+      setTimeout(() => r.removeAttribute("data-revealing"), 2500);
+    }
+  }
+</script>
+
+<script>
+  import { mountReveal } from "@forgeron/shaders/dom";
+
+  const root = document.querySelector<HTMLElement>("[data-reveal]");
+  const canvas = root?.querySelector("canvas");
+  if (root && canvas) {
+    const rows = JSON.parse(root.dataset.reveal ?? "[]") as string[];
+    const px = matchMedia("(max-width: 480px)").matches ? 14 : 20;
+    const offset = `${-Number(root.dataset.margin ?? 0) * px}px`;
+    root.style.setProperty("--fg-reveal-px", `${px}px`);
+    canvas.style.left = offset;
+    canvas.style.top = offset;
+    document.fonts.ready.then(() => {
+      root.dataset.revealing = "";
+      mountReveal(canvas, [rows], { pixel: px, onDone: () => delete root.dataset.revealing });
+    });
+  }
+</script>

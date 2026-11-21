@@ -1,304 +1,1861 @@
 ---
-import { Badge, Button, EnvTag, Label, Logo } from "@forgeron/ui";
-import { CodeCard } from "../components/CodeCard";
-import { ExampleTabs } from "../components/ExampleTabs";
+import {
+  AnvilIcon,
+  ApiIcon,
+  BoltIcon,
+  BookOpen01Icon,
+  BrowserIcon,
+  ChartIcon,
+  Clock01Icon,
+  CloudflareIcon,
+  CommandLineIcon,
+  CustomerSupportIcon,
+  DatabaseIcon,
+  DeployIcon,
+  EyeIcon,
+  GitBranchIcon,
+  GitForkIcon,
+  GlobeIcon,
+  Key01Icon,
+  Layers01Icon,
+  LockIcon,
+  LogIcon,
+  Mail01Icon,
+  McpIcon,
+  Note01Icon,
+  Robot01Icon,
+  RollbackIcon,
+  Search01Icon,
+  Shield01Icon,
+  Ticket01Icon,
+  UserGroupIcon,
+} from "@forgeron/icons";
+import {
+  ArtCard,
+  Bento,
+  BentoCell,
+  CardGrid,
+  CommandLine,
+  CtaBand,
+  Faq,
+  Hero,
+  Icon,
+  LogoStrip,
+  MarkBadge,
+  PlanCard,
+  PlanGrid,
+  SectionBand,
+  SectionHead,
+  SoonTag,
+  StoryList,
+  StoryStep,
+  Title,
+} from "@forgeron/ui";
 import Footer from "../components/Footer.astro";
-import Frame from "../components/Frame.astro";
-import Header from "../components/Header.astro";
-import Base from "../layouts/Base.astro";
+import PagesNav from "../components/PagesNav.astro";
+import Site from "../layouts/Site.astro";
+import { plans } from "../data/plans";
+import { bayerMaskPath } from "@forgeron/shaders";
 
-const templates = [
-  { path: "templates/crm", name: "Lightweight CRM", text: "Companies, contacts and leads, usable from Claude." },
+/**
+ * The corruption of the opening, written at build time from the package's ordered dither
+ * (`bayerMaskPath`, a `bayer-mask` preset): the captions' 17 masks (the cells on at each level of
+ * the 4×4 Bayer tile, 4 px each). The page carries the paths, not the matrix. The burns are the
+ * package's own presets (`burn-frame-close`, `burn-lobed-open`), drawn on the GPU.
+ */
+const captionMasks = Array.from({ length: 17 }, (_, level) => bayerMaskPath(level, { cell: 4 }));
+
+/** The public repository (Apache-2.0) and its documentation. */
+const GITHUB = "https://github.com/forgeron-sh/monorepo";
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+
+/** The opening's captions, one per step of the story (ranges in `STEPS`, illustrations/steps.ts). */
+const sagaSteps: { step: string; title: string; pos: "top" | "tl" | "tr" | "bl" | "br" }[] = [
+  { step: "intro", title: "Anatomy of a fall.", pos: "tr" },
+  { step: "complex", title: "It does everything, all at once, and none of it is simple.", pos: "tl" },
+  { step: "unfit", title: "None of it fits the way you work, and every module is billed.", pos: "tr" },
+  { step: "excel", title: "So the real work moves to spreadsheets next door.", pos: "tl" },
+  { step: "tinker", title: "It tinkers to catch up: custom patches, nailed on wherever it hurts.", pos: "bl" },
+  { step: "upgrade", title: "Then every upgrade is a building site, and the patches do not survive it.", pos: "bl" },
+  { step: "generic", title: "It goes generic, and every need becomes a gas factory.", pos: "tl" },
+  { step: "plug", title: "It plugs into twenty thousand services, give or take.", pos: "bl" },
+  { step: "ai", title: "Everyone else has AI. Here, half of it is plugged in, and that half misfires.", pos: "tl" },
+  { step: "lockin", title: "And once you are in, you are fenced in: your data has no way out.", pos: "br" },
+  { step: "support", title: "Every question it cannot answer becomes one more ticket on the pile.", pos: "br" },
+  { step: "boom", title: "Until the whole thing blows.", pos: "bl" },
+];
+
+/** The opening's table of contents: a short name per step, in the story's order. */
+const sagaToc: { step: string; name: string }[] = [
+  { step: "intro", name: "The village" },
+  { step: "complex", name: "Complexity" },
+  { step: "unfit", name: "Your bank account" },
+  { step: "excel", name: "Shadow Excel" },
+  { step: "tinker", name: "Custom patches" },
+  { step: "upgrade", name: "Upgrades" },
+  { step: "generic", name: "Gas factory" },
+  { step: "plug", name: "Connectors" },
+  { step: "ai", name: "AI" },
+  { step: "lockin", name: "Vendor lock-in" },
+  { step: "support", name: "Support" },
+  { step: "boom", name: "Explosion" },
+];
+
+/**
+ * Who uses Forgeron, shown in a band before the system section. Real names only: leave the list
+ * empty rather than invent one; empty slots render as hatched cells until it is filled.
+ */
+const users: string[] = [];
+const userSlots = 4;
+
+/** A pixel Y on an ember square: the Y Combinator mark, redrawn in the bitmap face, in the page's
+ * one orange (`--accent`) with black (`--accent-ink`) on it. */
+const ycMark = (() => {
+  const y = ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."];
+  let d = "";
+  y.forEach((row, r) => [...row].forEach((c, x) => (d += c === "#" ? `M${x + 2} ${r + 2}h1v1h-1z` : "")));
+  return `<svg viewBox="0 0 9 11" shape-rendering="crispEdges" aria-hidden="true"><rect width="9" height="11" style="fill:var(--accent)"/><path style="fill:var(--accent-ink)" d="${d}"/></svg>`;
+})();
+
+const proof = [
+  { icon: CloudflareIcon, text: "Cloudflare" },
+  { icon: AnvilIcon, text: "Apache-2.0" },
+  { icon: LockIcon, text: "Company SSO" },
+];
+
+/** Step 01: the catalog. Only the first three exist as templates today; the rest wear `Soon`. */
+const catalog = [
+  { name: "CRM", icon: UserGroupIcon, text: "Companies, contacts, deals", soon: false },
+  { name: "Data hub", icon: DatabaseIcon, text: "Imports and syncs", soon: false },
+  { name: "Dashboard", icon: ChartIcon, text: "Sales at a glance", soon: false },
+  { name: "Help desk", icon: CustomerSupportIcon, text: "Requests, answers", soon: true },
+  { name: "Ticketing", icon: Ticket01Icon, text: "Boards and issues", soon: true },
+  { name: "Notes", icon: Note01Icon, text: "Pages for the team", soon: true },
+];
+
+/** Step 02: recipes the AI follows to add a feature (announced); the open one lists its documents. */
+const recipes: { name: string; size?: string; docs?: { path: string; what: string }[] }[] = [
+  { name: "Add a field", size: "3 files" },
   {
-    path: "templates/inventory",
-    name: "Data hub",
-    text: "A business data repository, fed by imports and syncs.",
+    name: "Renewals",
+    docs: [
+      { path: "RECIPE.md", what: "the method" },
+      { path: "schema/renewal.ts", what: "field" },
+      { path: "actions/renewals.ts", what: "action" },
+      { path: "views/renewals.tsx", what: "page" },
+      { path: "renewals.test.ts", what: "test" },
+    ],
   },
-  { path: "templates/dashboard", name: "Dashboard", text: "A lightweight sales dashboard on top of the CRM." },
+  { name: "Weekly digest", size: "4 files" },
 ];
 
-const deployments = [
-  { version: "v1.5.0-rc.2", message: "Contacts CSV export", meta: "8dc01b2 · 4 min ago", env: "preview", state: "warning" },
-  { version: "v1.4.1", message: "Slimmer contact record", meta: "77c2d1a · yesterday", env: "production", state: "success" },
-  { version: "v1.4.0", message: "deals.move action with history", meta: "a41f9e0 · Mon", env: "production", state: "success" },
-] as const;
-
-const teams = ["Sales", "Support", "Management"];
-const permissions = [
-  { name: "contacts.read", kind: "Read", grants: [true, true, true] },
-  { name: "contacts.update", kind: "Write", grants: [true, false, true] },
-  { name: "deals.delete", kind: "Delete", grants: [false, false, true] },
+/** Step 02: plugins a tool comes with (announced). */
+const plugins = [
+  { name: "Kanban board", on: true },
+  { name: "Email sync", on: false },
+  { name: "Odoo bridge", on: true },
+  { name: "Renewals", on: true, added: true },
 ];
 
-const viewCode = [
-  'import { defineView, useAction } from "forgeron/react";',
-  "",
-  "export default defineView({",
-  '  name: "pipeline",',
-  "  render() {",
-  '    const deals = useAction("crm.deals.list");',
-  "    return <Kanban columns={deals.byStage()} />;",
-  "  },",
-  "});",
+/** Step 03: the four doors, grouped by who walks through them. */
+const doorGroups = [
+  {
+    who: "For your people",
+    doors: [{ name: "Web", iso: "web", icon: BrowserIcon, text: "Its own interface, behind your SSO." }],
+  },
+  {
+    who: "For your agents",
+    doors: [
+      { name: "MCP", iso: "mcp", icon: McpIcon, text: "Claude uses the tool, with each person's rights." },
+      { name: "CLI", iso: "cli", icon: CommandLineIcon, text: "forgeron crm deals move, for coding agents and you." },
+    ],
+  },
+  {
+    who: "For your applications",
+    doors: [{ name: "API", iso: "api", icon: ApiIcon, text: "An endpoint per action, for your integrations." }],
+  },
+];
+
+/** Under the hood: the six layers of a tool, top to bottom (the order of `LAYERS` in the drawing). */
+const layers = [
+  { i: 0, icon: McpIcon, name: "Interfaces", text: "Web, CLI, MCP and API, from one definition." },
+  { i: 1, icon: LockIcon, name: "Access", text: "Company SSO, teams, permissions per action." },
+  { i: 2, icon: AnvilIcon, name: "Tools", text: "Versioned on every push, previewed before production." },
+  { i: 3, icon: ChartIcon, name: "Observability", text: "Calls, time per call, errors and logs." },
+  { i: 4, icon: DatabaseIcon, name: "Data", text: "Tables, files, and one vault for secrets." },
+  { i: 5, icon: CloudflareIcon, name: "Runtime", text: "Cloudflare Workers. Hosted by us or by you." },
+];
+const left = layers.slice(0, 3);
+const right = layers.slice(3);
+
+/** Clockwise from noon in the drawing, in this order. */
+const resources = [
+  { i: 0, icon: DatabaseIcon, name: "Database", text: "Its own SQL database, per environment." },
+  { i: 1, icon: BookOpen01Icon, name: "Files", text: "Uploads and exports, with size and type limits." },
+  { i: 2, icon: BoltIcon, name: "Cache", text: "Keys it reads often, served fast." },
+  { i: 3, icon: Key01Icon, name: "Secrets", text: "The app's keys and each person's, in one vault." },
+  { i: 4, icon: LogIcon, name: "Queue", text: "Work handed off and run in the background." },
+  { i: 5, icon: Mail01Icon, name: "Mail", text: "Sends and receives mail, from the tool itself." },
+  { i: 6, icon: Clock01Icon, name: "Cron jobs", text: "Runs on a schedule, in your time zone." },
+  { i: 7, icon: ChartIcon, name: "Observability", text: "What it does, how fast, for whom." },
+  { i: 8, icon: GlobeIcon, name: "Realtime", text: "Channels, messages and presence, live." },
+];
+
+
+const access = [
+  {
+    iso: "badge-gate",
+    icon: LockIcon,
+    name: "Company SSO",
+    text: "Your teams sign in with the identity provider you already use.",
+  },
+  {
+    iso: "dashboard",
+    icon: ChartIcon,
+    name: "Every call, measured",
+    text: "Calls, time per call, errors and logs, per tool, with no setup.",
+  },
+  {
+    iso: "ledger",
+    icon: LogIcon,
+    name: "Audit log",
+    text: "Usage, deployments and every change, with who made them.",
+  },
+];
+
+
+/** The develop section's stops, in the order the package reaches them. */
+const stops = [
+  { n: "01", name: "Local", text: "forgeron dev runs the tool on your machine, with local data." },
+  { n: "02", name: "Preview", text: "Every branch gets its own link, to share before it ships." },
+  { n: "03", name: "Production", text: "A release goes live. forgeron rollback takes it back." },
+];
+
+
+
+
+
+
+
+const faq = [
+  {
+    q: "What is a tool?",
+    a: "A business application your team uses: a CRM, a help desk, a dashboard. Underneath, it is a folder of actions; Forgeron serves each one on the web, in the terminal, over the API and to Claude.",
+  },
+  {
+    q: "Can I change a tool I installed?",
+    a: "Yes. Fork it, ask the AI for what you need, try it in a preview, then ship it. Every change is a version you can roll back.",
+  },
+  {
+    q: "How do agents use my tools?",
+    a: "Over MCP, with the rights of the person they work for, or with a token. Every call goes through the same gateway and lands in the audit log.",
+  },
+  {
+    q: "Do I need servers?",
+    a: "No. Each tool runs as its own Cloudflare Worker, per environment, with its own database, files and cache.",
+  },
+  {
+    q: "Can I host it myself?",
+    a: "Yes. The same platform installs on your own Cloudflare account with the forgeron CLI. Or let us run it on Forgeron Cloud.",
+  },
+  { q: "Is it open source?", a: "Yes, under the Apache-2.0 license." },
 ];
 ---
 
-<Base
-  title="Forgeron — forge your internal tools"
-  description="Forge your internal tools once. Use them from Claude, the API, the web and the terminal."
+<Site
+  title="Forgeron — Forge your internal tools"
+  description="Write an internal tool once with the Forgeron SDK. Your teams use it from Claude (MCP), the API, the web and the terminal, behind your company's SSO, on Cloudflare Workers. Open source, Apache-2.0."
+  bodyClass="home"
 >
-  <Header />
+  <PagesNav />
 
   <main>
-    <section id="top" class="wrap hero">
-      <Badge mono dot>Open source · Powered by Cloudflare Workers</Badge>
-      <h1>Forge your internal tools.</h1>
-      <p>
-        Write a tool once with the Forgeron SDK. It's versioned, deployed on Cloudflare and exposed over MCP,
-        API, web and CLI, behind your company's SSO.
-      </p>
-      <div class="hero-actions">
-        <Button href="#start" variant="primary" size="lg">Get started for free</Button>
-        <span class="command text-code"><span class="muted">$</span>npx forgeron init</span>
-      </div>
-    </section>
-
-    <section id="product" class="wrap" style="padding-bottom: 96px;">
-      <ExampleTabs client:visible />
-    </section>
-
-    <section class="wrap section stack-3" style="gap: 48px;">
-      <div class="section-head center stack-3">
-        <Label>Why Forgeron</Label>
-        <h2 class="display-section">Your teams talk to Claude. They no longer need an ERP.</h2>
-        <p class="lead">
-          When the interface becomes the conversation, what matters is that data and actions work.
-          Not the size of the software suite behind them.
-        </p>
-      </div>
-      <Frame class="compare">
-        <div>
-          <Label>Today</Label>
-          <h3 class="muted">A giant suite, paid per module.</h3>
-          <ul class="muted">
-            <li><span class="text-code-inline" aria-hidden="true">—</span>Licenses for modules nobody opens</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>A fixed interface, heavy to adapt</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>A custom integration for every need</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>No clean access from an AI assistant</li>
-          </ul>
-        </div>
-        <div class="invert">
-          <Label>With Forgeron</Label>
-          <h3>Light tools, forged to fit.</h3>
-          <ul>
-            <li><span class="check check-inv" aria-hidden="true"></span>Only the tools you need: CRM, contact records, data</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Usable from Claude, an API, the terminal or a web interface</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Editable by your developers, versioned on every push</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Hosted by us or by you, open source</li>
-          </ul>
-        </div>
-      </Frame>
-    </section>
-
-    <section class="wrap section stack-3" style="gap: 40px;">
-      <div class="section-head">
-        <Label>How it works</Label>
-        <h2 class="display-section">From repo to production, with no infrastructure to manage.</h2>
-        <p class="lead">
-          Forgeron sits on top of Cloudflare Workers. You push your code; the platform versions it,
-          applies access rules and serves it everywhere.
-        </p>
-      </div>
-      <Frame class="flow">
-        <div class="node" style="flex: 1 1 180px;">
-          <Label>01 · Code</Label>
-          <strong>Your GitHub repo</strong>
-          <span class="text-code-inline muted">forgeron.config.ts</span>
-        </div>
-        <div class="wire" aria-hidden="true"></div>
-        <div class="node invert" style="flex: 1.4 1 240px;">
-          <Label>02 · Forgeron</Label>
-          <strong>The platform</strong>
-          <div class="row-wrap">
-            {["Versions", "Access", "SSO", "Logs", "Connectors"].map((c) => <Badge mono>{c}</Badge>)}
+    <!-- HERO: banner image, then title and call to action -->
+    <section id="top" class="saga">
+      <div class="saga-stage">
+        <figure class="saga-screen">
+          <canvas class="saga-bg" data-shader="field" data-px="4" data-accent="off" data-eager aria-hidden="true"></canvas>
+          <div class="saga-cam">
+            <canvas data-iso="erp-village" data-scale="2" data-unit="any" data-fill="0.98" data-signal="--success" aria-hidden="true"></canvas>
           </div>
-        </div>
-        <div class="wire" aria-hidden="true"></div>
-        <div class="node" style="flex: 1 1 180px;">
-          <Label>03 · Runtime</Label>
-          <strong>Cloudflare Workers</strong>
-          <span class="text-small muted">One worker per tool and per environment</span>
-        </div>
-        <div class="wire" aria-hidden="true"></div>
-        <div class="stack-3" style="flex: 1.2 1 220px; gap: var(--space-2);">
+          <figcaption class="sr-only">
+            An island of absurd machines around an ERP: a slot machine eating your bank account, a CRM wheel throwing
+            contacts away, a support tank under pressure. As you scroll, the ERP tinkers, goes generic, plugs into
+            everything, explodes, and the village burns.
+          </figcaption>
+        </figure>
+        <canvas class="saga-burn" aria-hidden="true" hidden></canvas>
+        <canvas class="saga-burn saga-open" aria-hidden="true" hidden></canvas>
+        <p class="saga-live text-eyebrow"><span class="saga-dot" aria-hidden="true"></span>Live</p>
+        <button type="button" class="saga-skip text-eyebrow">Skip intro</button>
+        <nav class="saga-toc" aria-label="Chapters">
+          <ol>
+            {
+              sagaToc.map((c, i) => (
+                <li hidden={i > 0}>
+                  <button type="button" data-goto={c.step}>
+                    <span class="saga-toc-n">{String(i + 1).padStart(2, "0")}</span>
+                    {c.name}
+                  </button>
+                </li>
+              ))
+            }
+          </ol>
+        </nav>
+        <ol class="saga-captions" data-masks={JSON.stringify(captionMasks)}>
           {
-            [
-              ["Claude", "MCP"],
-              ["Your apps", "API"],
-              ["Browser", "Web"],
-              ["Terminal", "CLI"],
-            ].map(([who, iface]) => (
-              <div class="node sm">
-                <strong>{who}</strong>
-                <Badge mono>{iface}</Badge>
-              </div>
+            sagaSteps.map((c) => (
+              <li data-step={c.step} data-pos={c.pos} hidden={c.step !== "intro"}>
+                <Title as="h2" size="h2">{c.title}</Title>
+              </li>
             ))
           }
-        </div>
-      </Frame>
-    </section>
-
-    <section class="wrap section two-col">
-      <div class="col">
-        <div class="stack-3">
-          <Label>Versions</Label>
-          <h2 class="display-block">Every push becomes a version.</h2>
-          <p class="muted">
-            Test in preview, then promote it to production. Rolling back takes
-            one click.
-          </p>
-        </div>
-        <div class="card">
-          {
-            deployments.map((d) => (
-              <div class="deploy">
-                <span class="ver text-code-inline">{d.version}</span>
-                <span class="msg">
-                  <strong>{d.message}</strong>
-                  <span class="text-code-inline muted">{d.meta}</span>
-                </span>
-                <EnvTag env={d.env} />
-                {d.state === "warning" ? (
-                  <Badge tone="warning" dot>Building</Badge>
-                ) : (
-                  <Badge tone="success" dot>Live</Badge>
-                )}
-              </div>
-            ))
-          }
+        </ol>
+        <div class="saga-hero fg-rail hero-d">
+          <Hero
+            title={["Forge your", "internal tools."]}
+            proof={proof}
+            lead="Pick a ready-made tool. Shape it to your team with AI. Ship it to your people and your agents."
+            action={{ href: "#start", label: "Get started" }}
+          >
+            <CommandLine slot="command" framed={false}>npx forgeron init</CommandLine>
+            <MarkBadge slot="badge">
+              <Fragment slot="mark" set:html={ycMark} />
+              Not backed by Y Combinator
+            </MarkBadge>
+          </Hero>
+          <!-- USED BY: a band of names, in the style of the font site's facts strip, closing the hero -->
+          <section class="users" aria-label="Who uses Forgeron">
+            <LogoStrip label="Forging at" names={users} slots={userSlots} />
+          </section>
         </div>
       </div>
-      <div class="col">
-        <div class="stack-3">
-          <Label>Access</Label>
-          <h2 class="display-block">Who can do what, action by action.</h2>
-          <p class="muted">
-            Permissions are declared in the SDK and given to teams in the dashboard. Sign-in through your company
-            SSO, with a log of who uses which tool.
-          </p>
-        </div>
-        <div class="card scroll-x">
-          <table class="perm">
-            <thead>
-              <tr>
-                <th scope="col" style="text-align: left;" class="text-caption">Action</th>
-                {teams.map((t) => <th scope="col" class="text-caption">{t}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {
-                permissions.map((p) => (
-                  <tr>
-                    <th scope="row">
-                      <span class="name text-code-inline">{p.name}</span>
-                      <span class="text-caption muted">{p.kind}</span>
-                    </th>
-                    {p.grants.map((granted) => (
-                      <td>
-                        <span
-                          class={granted ? "check check-on" : "check"}
-                          role="img"
-                          aria-label={granted ? "Allowed" : "Denied"}
-                        />
-                      </td>
+    </section>
+
+    <!-- 0.1 HOW IT WORKS: pick, shape, ship -->
+    <section id="how" class="fg-rail">
+      <SectionHead
+        index="/0.1"
+        title={["Pick. Shape.", "Ship."]}
+        lead="From a tool that already works to a tool that fits your team, live for your people and your agents."
+      />
+
+      <StoryList>
+        <!-- 01 PICK -->
+        <StoryStep
+          id="pick"
+          n="01"
+          label="Step 1"
+          title="Start from a tool that already works."
+          text="A CRM, a help desk, a notes app: browse finished tools and install one."
+          points={[
+            { icon: DeployIcon, text: "Installed in one click" },
+            { icon: RollbackIcon, text: "Kept up to date by its maintainers" },
+            { icon: GitForkIcon, text: "Yours to fork" },
+          ]}
+        >
+            <div class="catalog">
+              <div class="catalog-bar text-eyebrow">
+                <Icon icon={Search01Icon} size={12} />
+                <span class="dim">Search the catalog</span>
+              </div>
+              <ul class="catalog-grid">
+                {
+                  catalog.map((c, i) => (
+                    <li class:list={["catalog-card", { on: i === 0, soon: c.soon }]}>
+                      <Icon icon={c.icon} size={24} variant="duo" />
+                      <span class="catalog-name">{c.name}</span>
+                      <span class="text-eyebrow dim">{c.text}</span>
+                      {c.soon ? (
+                        <SoonTag />
+                      ) : i === 0 ? (
+                        <span class="fg-btn fg-btn-primary fg-btn-sm catalog-btn">Install</span>
+                      ) : (
+                        <span class="fg-btn fg-btn-sm catalog-btn">Install</span>
+                      )}
+                    </li>
+                  ))
+                }
+              </ul>
+            </div>
+        </StoryStep>
+
+        <!-- 02 SHAPE -->
+        <StoryStep
+          id="shape"
+          n="02"
+          label="Step 2"
+          title="Make it fit your team, with AI."
+          text="Pick a recipe, or ask for your own. Recipes and plugins hand the AI tested code and the method to add it."
+          points={[
+            { icon: EyeIcon, text: "A preview for every change" },
+            { icon: GitBranchIcon, text: "Every change, a version" },
+            { icon: Layers01Icon, text: "Recipes: documents the AI follows" },
+          ]}
+        >
+            <div class="shape">
+              <ul class="shape-plugins shape-recipes">
+                <li class="text-eyebrow shape-head"><span>Recipes</span><SoonTag /></li>
+                {
+                  recipes.map((r) =>
+                    r.docs ? (
+                      <li class="recipe-open">
+                        <span class="text-eyebrow recipe-name">
+                          <span>{r.name}</span>
+                          <span class="fg-btn fg-btn-primary fg-btn-sm">Apply</span>
+                        </span>
+                        <ul class="recipe-docs">
+                          {r.docs.map((d) => (
+                            <li class="text-eyebrow">
+                              <Icon icon={LogIcon} size={12} />
+                              <span>{d.path}</span>
+                              <span class="dim">{d.what}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ) : (
+                      <li class="text-eyebrow">
+                        <span>{r.name}</span>
+                        <span class="dim">{r.size}</span>
+                      </li>
+                    ),
+                  )
+                }
+              </ul>
+              <ul class="shape-plugins">
+                <li class="text-eyebrow shape-head"><span>Plugins</span><SoonTag /></li>
+                {
+                  plugins.map((p) => (
+                    <li class:list={["text-eyebrow", { added: p.added }]}>
+                      <span>{p.name}</span>
+                      <span class:list={["toggle", { on: p.on }]} aria-hidden="true"><span /></span>
+                    </li>
+                  ))
+                }
+              </ul>
+            </div>
+        </StoryStep>
+
+        <!-- 03 SHIP -->
+        <StoryStep
+          id="ship"
+          n="03"
+          label="Step 3"
+          title="Out to your people and your agents."
+          text="One click, and the tool is live on the web, in the terminal, over the API and in Claude, behind your SSO."
+          points={[
+            { icon: DeployIcon, text: "One click to production" },
+            { icon: Shield01Icon, text: "The same rights on every door" },
+            { icon: Robot01Icon, text: "Made for agents, not bolted on" },
+          ]}
+          dots={false}
+          artClassName="ship-art"
+        >
+            {
+              doorGroups.map((g) => (
+                <div class="ship-group" style={`--n:${g.doors.length}`}>
+                  <span class="text-eyebrow dim ship-who">{g.who}</span>
+                  <div class="ship-doors">
+                    {g.doors.map((d) => (
+                      <article class="ship-door">
+                        <div class="ship-door-art fg-dots">
+                          <canvas data-iso={d.iso} data-scale="2" data-fill="0.6" aria-hidden="true" />
+                        </div>
+                        <div class="ship-door-copy">
+                          <span class="ship-door-name">
+                            <Icon icon={d.icon} size={24} />
+                            <span class="text-title-3">{d.name}</span>
+                          </span>
+                          <span class="text-eyebrow dim">{d.text}</span>
+                        </div>
+                      </article>
                     ))}
-                  </tr>
-                ))
-              }
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              ))
+            }
+        </StoryStep>
+      </StoryList>
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="Under the hood" />
+
+    <!-- 0.2 ANATOMY -->
+    <section id="anatomy" class="fg-rail">
+      <SectionHead
+        index="/0.2"
+        title={["One framework,", "six layers."]}
+        lead="What the platform stacks under every tool, so your change only touches what makes it yours."
+      />
+      <div class="stack">
+        <ul class="stack-col">
+          {
+            left.map((l) => (
+              <li data-layer={l.i} class="fg-ticks">
+                <span class="layer-head">
+                  <Icon icon={l.icon} />
+                </span>
+                <span class="text-title-3">{l.name}</span>
+                <span class="text-small muted">{l.text}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="stack-art fg-dots">
+          <canvas id="stack-canvas" data-iso="stack6" data-scale="2" data-fill="0.78" data-unit="any" aria-hidden="true"></canvas>
         </div>
+        <ul class="stack-col stack-col-r">
+          {
+            right.map((l) => (
+              <li data-layer={l.i} class="fg-ticks">
+                <span class="layer-head">
+                  <Icon icon={l.icon} />
+                </span>
+                <span class="text-title-3">{l.name}</span>
+                <span class="text-small muted">{l.text}</span>
+              </li>
+            ))
+          }
+        </ul>
       </div>
     </section>
 
-    <section id="templates" class="wrap section stack-3" style="gap: 40px;">
-      <div class="head-row">
-        <div class="section-head">
-          <Label>Templates</Label>
-          <h2 class="display-section">Start from a base. Forge the rest.</h2>
+    <SectionBand className="fg-rail" from="/0.2" to="/0.3" label="Resources" />
+
+    <!-- 0.3 RESOURCES -->
+    <section id="resources" class="fg-rail">
+      <SectionHead
+        index="/0.3"
+        title={["Everything", "on tap."]}
+        lead="A tool lists what it needs; the platform hands it over, one per tool and environment."
+      />
+      <div class="res">
+        <div class="res-art fg-dots">
+          <canvas id="res-canvas" data-iso="resources" data-cycle="2" data-count="9" data-scale="2" data-fill="0.94" data-unit="any" aria-hidden="true"></canvas>
         </div>
-        <Button href="#templates">See all templates</Button>
+        <ul class="res-list">
+          {
+            resources.map((r) => (
+              <li data-res={r.i} class="fg-ticks">
+                <Icon icon={r.icon} />
+                <div>
+                  <span class="text-title-3">{r.name}</span>
+                  <p class="text-small muted">{r.text}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
       </div>
-      <div class="grid-4">
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.3" to="/0.4" label="Access" />
+
+    <!-- 0.5 ACCESS -->
+    <section id="access" class="fg-rail">
+      <SectionHead
+        index="/0.4"
+        title={["Who did what,", "with which rights."]}
+        lead="Every door goes through the same gateway: sign-in, team check, audit log. None bypasses another."
+      />
+      <CardGrid>
         {
-          templates.map((t) => (
-            <a href="#templates" class="card">
-              <span class="text-code-inline muted">{t.path}</span>
-              <span class="text-title-3">{t.name}</span>
-              <span class="muted">{t.text}</span>
-            </a>
+          access.map((a) => (
+            <ArtCard icon={a.icon} title={a.name} text={a.text}>
+              <canvas slot="art" data-iso={a.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
+            </ArtCard>
           ))
         }
-      </div>
+      </CardGrid>
     </section>
 
-    <section id="sdk" class="wrap section split">
-      <div class="stack-3" style="gap: 20px;">
-        <Label>Views</Label>
-        <h2 class="display-section" style="font-size: clamp(32px, 4.5vw, 44px);">
-          Lightweight dashboards, in React.
-        </h2>
-        <p class="lead">
-          When a conversation isn't enough, write a React page. The SDK injects the tool's data, with
-          the signed-in person's permissions.
-        </p>
-        <div class="row-wrap" style="gap: var(--space-2);">
-          <Badge mono>useAction</Badge><Badge mono>useUser</Badge><Badge mono>defineView</Badge>
-        </div>
-      </div>
-      <Frame class="frame-pad">
-        <CodeCard title="views/pipeline.tsx" lines={viewCode} />
-      </Frame>
-    </section>
+    <SectionBand className="fg-rail" from="/0.4" to="/0.5" label="Develop" />
 
-    <section id="hosting" class="wrap section stack-3" style="gap: 40px;">
-      <div class="section-head center stack-3">
-        <Label>Hosting</Label>
-        <h2 class="display-section">Ours or yours.</h2>
-      </div>
-      <div class="grid-2">
-        <div class="card tile">
-          <Label>Self-host</Label>
-          <span class="display-block">Open source</span>
-          <span class="muted">
-            Deploy Forgeron on your own Cloudflare account. The SDK, the platform and the templates are open.
-          </span>
-          <Button href="#github" className="push">View on GitHub</Button>
-        </div>
-        <div class="card tile invert">
-          <Label>Forgeron Cloud</Label>
-          <span class="display-block">
-            [PRICE] € <span class="text-body muted" style="letter-spacing: 0;">/ seat / month</span>
-          </span>
-          <span class="muted">
-            One plan: all tools, connectors, enterprise SSO and versions, hosted for you.
-          </span>
-          <Button href="#start" className="push on-invert">Get started</Button>
+    <!-- 0.6 DEVELOP: a pinned production line -->
+    <section id="develop" class="fg-rail">
+      <div class="line-track">
+        <div class="line-pin">
+          <SectionHead
+            index="/0.5"
+            title={["From your laptop", "to everyone."]}
+            lead="Try a tool locally, share it in a preview, publish it. In your terminal, or from Claude."
+          />
+          <div class="line-art fg-dots">
+            <canvas id="line-canvas" data-iso="production-line" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas>
+          </div>
+          <ol class="line-stops">
+            {
+              stops.map((s, i) => (
+                <li data-stop={i} class:list={["fg-ticks", { on: i === 0 }]}>
+                  <span class="text-eyebrow accent">{s.n}</span>
+                  <span class="text-title-3">{s.name}</span>
+                  <span class="text-small muted">{s.text}</span>
+                </li>
+              ))
+            }
+          </ol>
+          <!-- The hosting head rides in the pin, under the stops: it is already in view while the
+               package travels, and the plans follow it straight after. -->
+          <SectionBand from="/0.5" to="/0.6" label="Hosting" />
+          <div id="host" class="host-head">
+            <SectionHead
+              index="/0.6"
+              title={["Our cloud,", "or yours."]}
+              lead="The same platform in every case. Only who runs it changes."
+            />
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="start" class="wrap" style="padding-top: 32px; padding-bottom: 96px;">
-      <Frame class="cta">
-        <Logo variant="symbol" size={56} />
-        <h2>Your first tool in five minutes.</h2>
-        <div class="hero-actions">
-          <Button href="#start" variant="primary" size="lg">Get started for free</Button>
-          <Button href="#docs" size="lg">Read the docs</Button>
-        </div>
-      </Frame>
+    <!-- 0.7 HOSTING -->
+    <section class="fg-rail host">
+      <PlanGrid>
+        {
+          plans.map((p, i) => (
+            <PlanCard
+              name={p.name}
+              icon={p.icon}
+              tag={p.tag}
+              where={p.where}
+              groups={p.groups}
+              featured={i === 0}
+              action={i === 0 ? { href: "/pricing", label: "See pricing", primary: true, marker: true } : p.action}
+            >
+              <canvas data-iso={p.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
+            </PlanCard>
+          ))
+        }
+      </PlanGrid>
     </section>
+
+    <SectionBand className="fg-rail" from="/0.6" to="/0.7" label="Extras" />
+
+    <!-- 0.8 EXTRAS -->
+    <section id="extras" class="fg-rail">
+      <SectionHead index="/0.7" title={["The small", "extras."]} />
+      <Bento>
+        <BentoCell span={2} rows={3} title="Usage per team" text="One unit for everything a tool runs: CPU, storage, crons. Heavy storage and light CPU even out, with no overage per resource. AI spend beside it (soon).">
+          <canvas slot="art" data-iso="usage-iso" data-scale="2" data-fill="0.86" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="One AI gateway" text="Every model behind one entry, and who calls what.">
+          <SoonTag slot="corner" />
+          <canvas slot="art" data-iso="ai-gateway" data-scale="2" data-fill="0.86" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="One vault" text="Application secrets and each person's own keys, sealed together. Nobody reads them back.">
+          <canvas slot="art" data-iso="safe" data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="Teams and permissions" text="Access given to teams, action by action, on every door at once.">
+          <canvas slot="art" data-iso="permissions-iso" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="Marketplaces" text="Add a GitHub repository of your team's tools as a private catalog.">
+          <canvas slot="art" data-iso="market" data-scale="2" data-fill="0.82" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="Approval policies" text="A tool asking for a new resource waits for an admin; approved, it is plugged in.">
+          <canvas slot="art" data-iso="approval-plug" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+      </Bento>
+    </section>
+
+    <!-- QUESTIONS -->
+    <section id="faq" class="fg-rail">
+      <SectionHead index="/0.8" title={["Questions,", "answered."]} />
+      <Faq items={faq} />
+    </section>
+    <!-- CTA: the forge itself, striking a bar into a tool, beside the one command to start. -->
+    <CtaBand
+      id="start"
+      title={["Forge your", "first tool."]}
+      lead="Pick it, shape it, ship it. Open source, Apache-2.0."
+      action={{ href: "#start", label: "Get started" }}
+      command="npx forgeron init"
+    >
+      <canvas class="cta-glow" data-shader="ember" data-px="8" aria-hidden="true"></canvas>
+      <canvas data-iso="forge-cta" data-scale="2" data-fill="0.9" data-unit="any" aria-hidden="true"></canvas>
+    </CtaBand>
+
   </main>
 
-  <Footer />
-</Base>
+  <Footer github={GITHUB} docs={DOCS} from="/0.9" />
+</Site>
+
+<script>
+  // Mounts every canvas of the page (scenes, fields), once.
+  import "../illustrations/canvas";
+</script>
+
+<script>
+  // The hero's field is above the fold: it mounts at once, its code in the page's start (the
+  // other effects load when they come near the screen).
+  import { mountEffect } from "../illustrations/effects";
+
+  for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-eager]")) mountEffect(c);
+</script>
+
+<script>
+  // The anatomy: a row of the legend, or the drawing under the pointer, opens the stack on a layer.
+  import { isoCanvas } from "../illustrations/canvas";
+
+  const canvas = document.getElementById("stack-canvas");
+  const stack = isoCanvas(canvas);
+  const items = [...document.querySelectorAll<HTMLElement>("[data-layer]")];
+  let picked = -1;
+  const pick = (n: number) => {
+    if (n === picked) return;
+    picked = n;
+    stack?.select(n);
+    for (const li of items) li.classList.toggle("on", Number(li.dataset.layer) === n);
+  };
+  // A row of the legend picks its layer; leaving the legend lets the stack close again.
+  for (const li of items) li.addEventListener("mouseenter", () => pick(Number(li.dataset.layer)));
+  for (const col of document.querySelectorAll(".stack-col")) col.addEventListener("mouseleave", () => pick(-1));
+  // The drawing itself: the height under the pointer picks the layer (top of the drawing is the
+  // first layer). The stack fills about the middle seven tenths of the canvas height. Listened on
+  // the box the canvas fills: the canvas may be replaced (a failed worker, canvas.ts).
+  const art = canvas?.parentElement;
+  art?.addEventListener("mousemove", (e) => {
+    const r = art.getBoundingClientRect();
+    const y = (e.clientY - r.top) / r.height;
+    const k = (y - 0.14) / 0.72;
+    pick(k < 0 || k > 1 ? -1 : Math.min(5, Math.floor(k * 6)));
+  });
+  art?.addEventListener("mouseleave", () => pick(-1));
+</script>
+
+<script>
+  // Opening: the scroll drives the village's story, the captions, and the final shrink that hands
+  // the screen back to the navigation and the hero.
+  import { isoCanvas } from "../illustrations/canvas";
+  import { STEPS } from "../illustrations/steps";
+  import { builtInPresets, lobeAt } from "@forgeron/shaders";
+  import { mountPreset } from "@forgeron/shaders/dom";
+
+  const saga = document.querySelector<HTMLElement>(".saga");
+  const stage = saga?.querySelector<HTMLElement>(".saga-stage");
+  const nav = document.querySelector<HTMLElement>(".fg-snav");
+  const hero = stage?.querySelector<HTMLElement>(".saga-hero");
+  const screenEl = stage?.querySelector<HTMLElement>(".saga-screen");
+  const captions = [...(stage?.querySelectorAll<HTMLElement>("[data-step]") ?? [])];
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+
+  // The village plays its story as a machine over the scroll
+  // (@forgeron/libraries/blueprints/erp-village.bp): the page writes the progress, reads the
+  // current step from the machine's state, and turns that step's camera shot into a CSS
+  // transform.
+  const village = isoCanvas(stage?.querySelector<HTMLCanvasElement>('canvas[data-iso="erp-village"]') ?? null);
+  const camera = village?.camera;
+  // The framing box, projected: the page places a world point on screen with it.
+  const FRAME = (() => {
+    const box = camera?.fit.box ?? { min: [0, 0, 0], max: [0, 0, 0] };
+    const [ax, ay, az] = box.min;
+    const [bx, by, bz] = box.max;
+    return { minX: ax - by, maxX: bx - ay, minY: (ax + ay) / 2 - bz, maxY: (bx + by) / 2 - az, fill: camera?.fit.fill ?? 1 };
+  })();
+  // The step without a caption: its subject stays centred.
+  const CENTRED = new Set(["unfit"]);
+  let progress = 0;
+  let step = "intro";
+  let writing = false;
+  village?.on("state", (_, name) => {
+    if (name === step) return;
+    step = name;
+    // A state reached in a later frame moves the camera then; one reached while the page writes
+    // the progress is read by that same update.
+    if (!writing) update();
+  });
+
+  // Captions come and go through a black-and-white corruption: a 4×4 Bayer mask switches their
+  // pixels on (or off) level by level, while whole rows of the text jolt sideways and flicker
+  // between ink and dim. No fade: every pixel is on or off.
+  // The masks' paths come from the page (`captionMasks`, written at build time by the shaders
+  // package): one per level, 0 to 16.
+  const maskPaths: string[] = JSON.parse(stage?.querySelector<HTMLElement>(".saga-captions")?.dataset.masks ?? "[]");
+  const masks = maskPaths.map(
+    (d) =>
+      `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><path d='${d || "M0 0"}' fill='${d ? "#000" : "none"}'/></svg>`)}")`,
+  );
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const shown = new WeakMap<HTMLElement, boolean>();
+  const runs = new WeakMap<HTMLElement, number>();
+  const timers = new WeakMap<HTMLElement, number>();
+  function glitch(el: HTMLElement, on: boolean) {
+    const was = shown.get(el);
+    if (was === on) return;
+    shown.set(el, on);
+    cancelAnimationFrame(runs.get(el) ?? 0);
+    clearTimeout(timers.get(el));
+    // First call for a caption that is already in the right state: nothing to play.
+    if (was === undefined && el.hidden === !on) return;
+    const clear = () => {
+      el.style.maskImage = el.style.webkitMaskImage = "";
+      el.style.transform = "";
+      el.classList.remove("glitch-dim");
+    };
+    if (still.matches) {
+      el.hidden = !on;
+      clear();
+      return;
+    }
+    el.hidden = false;
+    const start = performance.now();
+    const dur = on ? 520 : 300;
+    const step = (now: number) => {
+      const k = Math.min(1, (now - start) / dur);
+      const level = Math.round((on ? k : 1 - k) * 16);
+      const m = masks[level]!;
+      el.style.maskImage = el.style.webkitMaskImage = m;
+      const jolt = k < 1 && Math.random() < 0.55 ? Math.round((Math.random() - 0.5) * 3) * 6 : 0;
+      el.style.transform = jolt ? `translateX(${jolt}px)` : "";
+      el.classList.toggle("glitch-dim", k < 1 && Math.random() < 0.35);
+      if (k < 1) runs.set(el, requestAnimationFrame(step));
+      else {
+        clear();
+        el.hidden = !on;
+      }
+    };
+    runs.set(el, requestAnimationFrame(step));
+    // Frames can be throttled (a background tab): the end state is applied regardless.
+    timers.set(
+      el,
+      window.setTimeout(() => {
+        cancelAnimationFrame(runs.get(el) ?? 0);
+        clear();
+        el.hidden = !on;
+      }, dur + 60),
+    );
+  }
+
+  // The final band of village takes what the hero and the users strip leave of the screen, so
+  // nothing is left empty under them, within sensible bounds.
+  const bandFor = (h: number, top: number) => {
+    const content = [...(hero?.children ?? [])].reduce((sum, el) => sum + (el as HTMLElement).offsetHeight, 0);
+    const room = h - top - content;
+    // The room the hero and its strip leave, within a floor and a ceiling for very short or tall
+    // screens.
+    // Two thirds of that, so the hero's text reads well under it; the hero body takes the rest.
+    return Math.round(Math.min(h * 0.66, Math.max(h * 0.28, room)) * 0.67);
+  };
+
+  let tail = 0;
+  const layout = () => {
+    if (!stage || !hero) return;
+    const top = nav?.offsetHeight ?? 60;
+    const band = bandFor(window.innerHeight, top);
+    const r = hero.getBoundingClientRect();
+    // What the band and the hero leave of the screen: the next section rises under the stage by
+    // that much, and the stage's bottom opens onto it as the burn closes. No empty strip.
+    const content = [...hero.children].reduce((sum, el) => sum + (el as HTMLElement).offsetHeight, 0);
+    tail = Math.max(0, window.innerHeight - top - band - content);
+    stage.style.setProperty("--top", `${top}px`);
+    stage.style.setProperty("--band", `${band}px`);
+    saga?.style.setProperty("--tail", `${tail}px`);
+    stage.style.setProperty("--side", `${Math.max(0, r.left)}px`);
+  };
+
+  const update = () => {
+    if (!saga || !stage) return;
+    const r = saga.getBoundingClientRect();
+    const p = clamp(-r.top / Math.max(1, r.height - window.innerHeight));
+    progress = p;
+    writing = true;
+    village?.set("progress", p);
+    writing = false;
+    for (const c of captions) {
+      const range = STEPS[c.dataset.step as keyof typeof STEPS];
+      glitch(c, Boolean(range && p >= range[0] && p < range[1]));
+    }
+    // Camera: look at the step's focus, the point placed a little right of centre, clear of the
+    // caption. The transform eases between steps (CSS transition).
+    const { at, zoom } = camera?.shots?.[step] ?? { at: [0, 0, 0], zoom: 1 };
+    const centre = CENTRED.has(step);
+    const cw = stage.clientWidth;
+    const ch = stage.clientHeight;
+    const bw = FRAME.maxX - FRAME.minX;
+    const bh = FRAME.maxY - FRAME.minY;
+    const u = Math.min((cw * FRAME.fill) / bw, (ch * FRAME.fill) / bh);
+    const sx = cw / 2 + ((at[0] - at[1]) - (FRAME.minX + FRAME.maxX) / 2) * u;
+    const sy = ch / 2 + ((at[0] + at[1]) / 2 - at[2] - (FRAME.minY + FRAME.maxY) / 2) * u;
+    // With the origin at the top left, a point (sx, sy) lands at (sx·z + tx, sy·z + ty). The focus
+    // sits right of centre, clear of the caption; at the end it is the centre of the final band.
+    const top = nav?.offsetHeight ?? 60;
+    const band = bandFor(ch, top);
+    const ending = step === "out";
+    // Where the subject goes: across from the step's caption, so the text never sits on it.
+    const pos = captions.find((c) => c.dataset.step === step)?.dataset.pos ?? "none";
+    const AIM: Record<string, [number, number]> = {
+      tl: [0.64, 0.58],
+      bl: [0.64, 0.4],
+      tr: [0.36, 0.58],
+      br: [0.36, 0.4],
+      top: [0.5, 0.6],
+    };
+    // No caption (the fire): the subject stays centred, so the move to the final band is straight.
+    const [ax, ay] = centre ? [0.5, 0.55] : (AIM[pos] ?? [0.5, 0.5]);
+    const gx = ending ? cw / 2 : cw * ax;
+    const gy = ending ? top + band / 2 : ch * ay;
+    const tx = Math.round(gx - sx * zoom);
+    const ty = Math.round(gy - sy * zoom);
+    const cam = stage.querySelector<HTMLElement>(".saga-cam");
+    if (cam) cam.style.transform = zoom === 1 && !ending ? "" : `translate(${tx}px, ${ty}px) scale(${zoom})`;
+    // The close ends exactly where the opening ends: no dead scroll before the page goes on.
+    const s = clamp((p - STEPS.out[0]) / (STEPS.out[1] - STEPS.out[0]));
+    stage.style.setProperty("--s", s.toFixed(4));
+    stage.classList.toggle("is-out", s > 0.98);
+    if (hero && screenEl) {
+      // The village burns away from every side at once: a rectangle of fire closes from the
+      // whole screen onto the final band. Inside it the village is whole; across its edge, a
+      // two-ring dithered fringe; outside, the page (the hero below, never dithered).
+      const k = clamp((s - 0.3) / 0.7);
+      const side = parseFloat(stage.style.getPropertyValue("--side")) || 0;
+      const target = { l: side, t: top, r: cw - side, b: top + band };
+      const front = burnFront(k, target, cw, ch);
+      hero.style.visibility = k > 0 ? "visible" : "";
+      // A clip, not a mask image: an inset is applied in the same frame, on the compositor. A
+      // mask rebuilt as an SVG data URL on every scroll had to be decoded (asynchronously) and
+      // rasterised again each time: the village flickered and the frame rate dropped.
+      // While the opening reveal runs, its circle owns the clip.
+      if (k <= 0) {
+        if (!revealing) screenEl.style.clipPath = "";
+      }
+      else {
+        const R = k >= 1 ? target : front;
+        screenEl.style.clipPath = `inset(${R.t}px ${cw - R.r}px ${ch - R.b}px ${R.l}px)`;
+      }
+      driveBurn(k, target, cw, ch);
+      const open = Math.round(tail * k);
+      stage.style.clipPath = open > 0 ? `inset(0 0 ${open}px 0)` : "";
+    }
+    // The table of contents leaves as soon as the view starts to close.
+    stage.classList.toggle("is-closing", s > 0.01);
+    // Chapters unlock as the story reaches them.
+    const order = Object.keys(STEPS);
+    const reached = order.indexOf(step);
+    for (const b of tocButtons) {
+      b.classList.toggle("is-now", b.dataset.goto === step);
+      const li = b.parentElement;
+      if (li) li.hidden = order.indexOf(b.dataset.goto ?? "") > reached;
+    }
+    stage.classList.toggle("is-live", s < 0.02);
+    nav?.classList.toggle("nav-away", s < 0.5 && r.bottom > window.innerHeight);
+  };
+
+  // Table of contents: the current chapter lights up; a click jumps to the start of a chapter.
+  const tocButtons = [...(stage?.querySelectorAll<HTMLButtonElement>("[data-goto]") ?? [])];
+  const stepStart = (name: string) => {
+    const range = STEPS[name as keyof typeof STEPS];
+    if (!saga || !range) return 0;
+    return saga.offsetTop + (range[0] + 0.005) * (saga.offsetHeight - window.innerHeight);
+  };
+  for (const b of tocButtons) b.addEventListener("click", () => window.scrollTo({ top: stepStart(b.dataset.goto ?? ""), behavior: "auto" }));
+
+  // Skip: straight to the end of the story, where the page hands over to the hero.
+  stage?.querySelector(".saga-skip")?.addEventListener("click", () => {
+    if (!saga) return;
+    window.scrollTo({ top: saga.offsetTop + saga.offsetHeight - window.innerHeight, behavior: "auto" });
+  });
+
+  // The burns are the package's: a `front` and its `sparks` as presets (`burn-frame-close` for the
+  // end of the story, `burn-lobed-open` for the opening), drawn on the GPU in 4 px cells over the
+  // village. The page keeps what it owns, the clip of the village in the DOM, and tells the
+  // preset how far along it is (`set`). Both read the same cell grid, so the clip and the fringe
+  // meet exactly: the grid is anchored at the canvas's bottom left, its top row may stick out.
+  const CELL = 4;
+  const burnEl = stage?.querySelector<HTMLCanvasElement>(".saga-burn:not(.saga-open)");
+  const openEl = stage?.querySelector<HTMLCanvasElement>(".saga-open");
+  type Burn = { set(inputs: { progress?: number }): void; destroy(): void };
+  /** The edge of the closing frame at progress `k`, in px on the cell grid, as the preset has it. */
+  const burnFront = (k: number, t: { l: number; t: number; r: number; b: number }, cw: number, ch: number) => {
+    const cols = Math.ceil(cw / CELL);
+    const rows = Math.ceil(ch / CELL);
+    const oy = ch - rows * CELL;
+    const at = (v: number) => Math.floor(v + 0.5);
+    return {
+      l: CELL * at(k * (t.l / cw) * cols),
+      r: CELL * at(cols + ((t.r / cw) * cols - cols) * k),
+      t: oy + CELL * at(k * (t.t / ch) * rows),
+      b: oy + CELL * at(rows + ((t.b / ch) * rows - rows) * k),
+    };
+  };
+  let closeBurn: Burn | null = null;
+  let closeKey = "";
+  /** Shows the closing burn while the front moves and drives it; off the screen otherwise. */
+  function driveBurn(k: number, t: { l: number; t: number; r: number; b: number }, cw: number, ch: number) {
+    if (!burnEl) return;
+    const on = k > 0 && k < 1;
+    burnEl.hidden = !on;
+    if (!on) return;
+    const key = `${cw}x${ch}:${t.l},${t.t},${t.r},${t.b}`;
+    if (key !== closeKey || !closeBurn) {
+      closeBurn?.destroy();
+      const base = builtInPresets()["burn-frame-close"]!;
+      closeBurn = mountPreset(burnEl, {
+        ...base,
+        source: { ...base.source, driven: true, outside: "keep", left: t.l / cw, top: t.t / ch, right: t.r / cw, bottom: t.b / ch },
+      });
+      closeKey = key;
+    }
+    closeBurn?.set({ progress: k });
+  }
+
+  // The opening reveal: on load, the village spreads from the centre of the screen through the
+  // same corruption as the closing burn, but without the fire: the fringe dithered in the page's
+  // background, and embers in white, grey and dark grey only. The front bulges ahead in some
+  // places and lags in others, its lobes drifting slowly, and its fringe widens as it nears the
+  // edges of the screen. The lobes are the package's (`lobeAt`), so the clip follows the front.
+  let revealing = false;
+  const AMP = 0.18;
+  const SIDES = 144;
+  /** The front's outline at radius `R`, `time` seconds in: one point per angle. */
+  const outline = (cx: number, cy: number, R: number, time: number) => {
+    const pts: [number, number][] = [];
+    for (let i = 0; i < SIDES; i++) {
+      const th = (i / SIDES) * Math.PI * 2;
+      const r = Math.max(0, R * (1 + AMP * lobeAt(th, time)));
+      pts.push([cx + Math.cos(th) * r, cy + Math.sin(th) * r]);
+    }
+    return pts;
+  };
+  /** Plays the reveal once, only from the top of the story and never under reduced motion. */
+  function reveal() {
+    const el = screenEl;
+    const st = stage;
+    if (!el || !st || still.matches || progress > 0.01) return;
+    revealing = true;
+    const DUR = 1900;
+    const DELAY = 150;
+    let start = -1;
+    let open: Burn | null = null;
+    let t0 = 0;
+    if (openEl) {
+      openEl.hidden = false;
+      const base = builtInPresets()["burn-lobed-open"]!;
+      t0 = performance.now();
+      open = mountPreset(openEl, {
+        ...base,
+        source: { ...base.source, driven: true, outside: "keep", ring: 3, grow: 9 },
+      });
+      open?.set({ progress: 0 });
+    }
+    // Hidden at once, before the first frame paints the village whole.
+    el.style.clipPath = "circle(0px at 50% 50%)";
+    const end = () => {
+      revealing = false;
+      el.style.clipPath = "";
+      open?.destroy();
+      if (openEl) openEl.hidden = true;
+      update();
+    };
+    const frame = (now: number) => {
+      if (!revealing) return;
+      // Scrolling to the end of the story cuts the reveal short.
+      if (progress > STEPS.out[0]) return end();
+      if (start < 0) start = now + DELAY;
+      const t = Math.min(1, Math.max(0, (now - start) / DUR));
+      // Slow at the start, fast across the screen, slowing again at the corners.
+      const k = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+      const cw = st.clientWidth;
+      const ch = st.clientHeight;
+      const cols = Math.ceil(cw / CELL);
+      const rows = Math.ceil(ch / CELL);
+      // The preset's front, in px: the fringe is 12 px a ring at the centre, 48 px by the edges, in
+      // whole cells, and the radius far enough that the most lagging lobe clears the corners.
+      const ring = Math.max(1, Math.floor(3 + 9 * k + 0.5));
+      const R = (CELL * (k * (Math.hypot(cols, rows) / 2 + 3 * ring + 12))) / (1 - AMP);
+      const pts = outline((cols * CELL) / 2, ch - rows * CELL + (rows * CELL) / 2, R, (now - t0) / 1000);
+      el.style.clipPath = `polygon(${pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(",")})`;
+      open?.set({ progress: t });
+      if (t >= 1) return end();
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    // A throttled tab still ends on the whole village.
+    window.setTimeout(() => revealing && end(), DELAY + DUR + 1500);
+  }
+  layout();
+  update();
+  // From here the script decides where the nav is (see `body.home:not(.saga-ready)`).
+  document.body.classList.add("saga-ready");
+  reveal();
+  window.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", () => {
+    layout();
+    update();
+  });
+</script>
+
+<script>
+  // Resource legend in step with the highlighted resource; hovering a line picks it.
+  import { isoCanvas } from "../illustrations/canvas";
+
+  const res = isoCanvas(document.getElementById("res-canvas"));
+  const rows = document.querySelectorAll<HTMLElement>("[data-res]");
+  res?.onActive((active) => {
+    for (const li of rows) li.classList.toggle("on", Number(li.dataset.res) === active);
+  });
+  // Moving from one row to the next selects the next at once; only leaving the list hands the
+  // highlight back to the cycle, so nothing jumps in between.
+  for (const li of rows) li.addEventListener("mouseenter", () => res?.select(Number(li.dataset.res)));
+  rows[0]?.parentElement?.addEventListener("mouseleave", () => res?.select(-1));
+</script>
+
+<script>
+  // Develop: the line stays pinned while its track scrolls by; the scroll moves the package, and
+  // the stop it has reached (the state of the scene's machine) lights up.
+  import { isoCanvas } from "../illustrations/canvas";
+
+  const track = document.querySelector<HTMLElement>(".line-track");
+  const stopEls = [...document.querySelectorAll<HTMLElement>("[data-stop]")];
+  const line = isoCanvas(document.getElementById("line-canvas"));
+  const STOPS = ["local", "preview", "production"];
+  line?.on("state", (_, name) => {
+    const at = STOPS.indexOf(name);
+    for (const li of stopEls) li.classList.toggle("on", Number(li.dataset.stop) === at);
+  });
+  const onScroll = () => {
+    if (!track) return;
+    const r = track.getBoundingClientRect();
+    const pin = track.querySelector<HTMLElement>(".line-pin");
+    const run = Math.max(1, r.height - (pin?.offsetHeight ?? 0));
+    const top = pin ? parseFloat(getComputedStyle(pin).top) || 0 : 0;
+    const p = Math.min(1, Math.max(0, (top - r.top) / run));
+    line?.set("progress", p);
+  };
+  const placePin = () => {
+    const pin = track?.querySelector<HTMLElement>(".line-pin");
+    if (!pin) return;
+    // Under the navigation if it all fits; else bottom-aligned, but never so high that the
+    // drawing slides under the navigation (the hosting head then runs off the bottom instead).
+    const head = pin.querySelector<HTMLElement>(".fg-sec-head")?.offsetHeight ?? 0;
+    const top = Math.max(Math.min(60, window.innerHeight - pin.offsetHeight), 60 - head);
+    pin.style.setProperty("--pin-top", `${top}px`);
+    onScroll();
+  };
+  placePin();
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", placePin);
+</script>
+
+<style>
+  .stack {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .stack-art {
+    position: relative;
+    min-height: 560px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .stack-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .stack-col {
+    display: grid;
+  }
+  .stack-col li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    justify-content: center;
+    padding: 24px var(--gutter);
+    border-bottom: 1px solid var(--line);
+    transition: background-color 0.2s;
+    cursor: default;
+  }
+  .stack-col li:last-child {
+    border-bottom: 0;
+  }
+  .stack-col li.on {
+    background-color: var(--bg-raised);
+  }
+  .layer-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stack-col li.on .text-title-3 {
+    color: var(--accent);
+  }
+  @media (max-width: 900px) {
+    .stack {
+      grid-template-columns: 1fr;
+    }
+    .stack-art {
+      min-height: 460px;
+      order: -1;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  /* The closing call's bed of embers, under the forge, in the bottom third. */
+  .cta-glow {
+    top: auto;
+    height: 30%;
+    opacity: 0.4;
+  }
+
+  .res {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .res-art {
+    position: relative;
+    min-height: 560px;
+    border-right: 1px solid var(--line);
+  }
+  .res-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .res-list li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px var(--gutter);
+    border-bottom: 1px solid var(--line);
+    transition: background-color 0.2s;
+  }
+  .res-list li:last-child {
+    border-bottom: 0;
+  }
+  .res-list li.on {
+    background-color: var(--bg-raised);
+  }
+  .res-list li.on .text-title-3 {
+    color: var(--accent);
+  }
+  .res-list p {
+    margin-top: 4px;
+  }
+  @media (max-width: 900px) {
+    .res {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .res-art {
+      min-height: 380px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+  /* Opening: a sticky full-screen stage over a tall section; the scroll is the timeline. */
+  .saga {
+    position: relative;
+    height: 1400vh;
+    /* The next section starts under the stage's last strip (see `tail` in the script). */
+    margin-bottom: calc(-1 * var(--tail, 0px));
+  }
+  .saga-stage {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    --s: 0;
+    --top: 60px;
+    --band: 400px;
+    --side: 0px;
+  }
+  .saga-screen {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    background: var(--bg-sunk);
+    /* Not clipped: the burn mask closes it onto the final band (see the opening's script). */
+    z-index: 1;
+  }
+  /* A faint dithered field over the stage: blended as a screen, it only lifts the black. */
+  .saga-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0.06;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+  .saga-burn {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    image-rendering: pixelated;
+  }
+  .saga-cam {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+    transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .saga-screen canvas {
+    image-rendering: pixelated;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+  }
+  .saga-live {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .saga-toc {
+    position: absolute;
+    top: 64px;
+    left: 20px;
+    z-index: 4;
+  }
+  .saga-toc li[hidden] {
+    display: none;
+  }
+  .saga-toc ol {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .saga-toc button {
+    display: flex;
+    gap: 8px;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: color-mix(in srgb, var(--ink-dim) 55%, var(--bg));
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .saga-toc button:hover {
+    color: var(--ink-dim);
+  }
+  .saga-toc button.is-now {
+    color: var(--ink);
+  }
+  .saga-toc button:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .saga-toc-n {
+    opacity: 0.7;
+  }
+  .saga-stage.is-closing .saga-toc {
+    visibility: hidden;
+  }
+  @media (max-width: 900px) {
+    .saga-toc {
+      display: none;
+    }
+  }
+  .saga-skip {
+    position: absolute;
+    bottom: 32px;
+    right: 32px;
+    z-index: 4;
+    padding: 6px 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+  .saga-skip:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .saga-skip:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .saga-stage.is-out .saga-skip {
+    visibility: hidden;
+  }
+  .saga-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    animation: saga-blink 1s steps(2, jump-none) infinite;
+  }
+  @keyframes saga-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  /* Each caption sits where its step leaves room: a corner, or the top for the opening. */
+  .saga-captions {
+    position: absolute;
+    inset: 72px 24px 72px;
+    z-index: 3;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+  }
+  .saga-captions li {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* A plain plate in the background colour, no border: the drawing never runs under the text. */
+    padding: 14px 18px;
+    margin: -14px -18px;
+    background: var(--bg);
+    max-width: min(560px, 44vw);
+    mask-size: 16px 16px;
+    -webkit-mask-size: 16px 16px;
+  }
+  .saga-captions li[data-pos="tl"] {
+    top: 0;
+    left: 180px;
+  }
+  @media (max-width: 900px) {
+    .saga-captions li[data-pos="tl"] {
+      left: 0;
+    }
+  }
+  .saga-captions li[data-pos="tr"] {
+    top: 0;
+    right: 0;
+    text-align: right;
+  }
+  .saga-captions li[data-pos="bl"] {
+    bottom: 0;
+    left: 0;
+  }
+  .saga-captions li[data-pos="br"] {
+    bottom: 0;
+    right: 0;
+    text-align: right;
+  }
+  .saga-captions li[data-pos="top"] {
+    top: 0;
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: fit-content;
+    max-width: min(900px, 90vw);
+    text-align: center;
+  }
+  .saga-captions li:not([data-pos="top"]) :global(.fg-title) {
+    font-size: clamp(22px, 2.4vw, 34px);
+    line-height: 1.15;
+  }
+  .saga-captions li[hidden] {
+    display: none;
+  }
+  .saga-captions p {
+    margin: 0;
+    color: var(--ink-muted);
+  }
+  @media (max-width: 700px) {
+    .saga-captions li {
+      max-width: 100%;
+    }
+  }
+  /* A crisp outline in the background colour, no blur: the text stands off the drawing. */
+  .saga-captions li :global(.fg-title) {
+    text-shadow:
+      2px 0 0 var(--bg),
+      -2px 0 0 var(--bg),
+      0 2px 0 var(--bg),
+      0 -2px 0 var(--bg),
+      2px 2px 0 var(--bg),
+      -2px -2px 0 var(--bg),
+      2px -2px 0 var(--bg),
+      -2px 2px 0 var(--bg),
+      4px 0 0 var(--bg),
+      -4px 0 0 var(--bg),
+      0 4px 0 var(--bg),
+      0 -4px 0 var(--bg);
+  }
+  .saga-captions li.glitch-dim {
+    color: var(--ink-dim);
+  }
+  .saga-captions li.glitch-dim :global(*) {
+    color: inherit;
+  }
+  .saga-hero {
+    position: absolute;
+    top: calc(var(--top) + var(--band));
+    bottom: var(--tail, 0px);
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    z-index: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    visibility: hidden;
+  }
+  .saga-stage.is-out .saga-hero {
+    visibility: visible;
+  }
+  .saga-hero :global(.fg-hero) {
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  .hero-d {
+    padding: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .saga-hero .users {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .saga-stage:not(.is-live) .saga-live,
+  .saga-stage.is-out .saga-captions {
+    visibility: hidden;
+  }
+  :global(body.home .fg-snav) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: transform 0.25s steps(4, jump-none);
+  }
+  :global(body.home .fg-snav.nav-away) {
+    transform: translateY(-100%);
+  }
+  /* Away from the first paint: the opening's script only takes it over after load, and the nav
+     must not show, then slide out, on arrival. Without scripts it stays where it is. */
+  @media (scripting: enabled) {
+    :global(body.home:not(.saga-ready) .fg-snav) {
+      transform: translateY(-100%);
+      transition: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .saga-cam {
+      transition: none;
+    }
+    .saga-dot {
+      animation: none;
+    }
+    :global(body.home .fg-snav) {
+      transition: none;
+    }
+  }
+  /* Step 01: the catalog. */
+  .catalog {
+    width: 100%;
+    max-width: 560px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+  }
+  .catalog-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+  }
+  .catalog-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    background: var(--bg);
+    min-width: 0;
+  }
+  .catalog-card.on {
+    background: var(--bg-raised);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .catalog-card.on :global(.fg-icon) {
+    color: var(--accent);
+  }
+  .catalog-card.soon {
+    color: var(--ink-muted);
+  }
+  .catalog-name {
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .catalog-card :global(.fg-soon),
+  .catalog-btn {
+    align-self: flex-start;
+    margin: 8px 0 0;
+  }
+
+  /* Step 02: the prompt and the plugins. */
+  .shape {
+    width: 100%;
+    max-width: 600px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .shape-plugins .recipe-open {
+    display: block;
+    height: auto;
+    padding: 0;
+    background: var(--bg-raised);
+  }
+  .recipe-name {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    padding: 0 12px;
+    color: var(--accent);
+  }
+  .shape-plugins .recipe-docs li {
+    display: grid;
+    justify-content: stretch;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+    height: 28px;
+    padding: 0 12px 0 20px;
+    border-top: 1px solid var(--line);
+  }
+  .shape-plugins .recipe-docs li > span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shape-chat,
+  .shape-plugins {
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+  }
+  .shape-plugins li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .shape-plugins li:last-child {
+    border-bottom: 0;
+  }
+  .shape-plugins .shape-head {
+    color: var(--ink-dim);
+  }
+  .shape-plugins li.added {
+    color: var(--accent);
+    background: var(--bg-raised);
+  }
+  .toggle {
+    width: 24px;
+    height: 12px;
+    border: 1px solid var(--line-strong);
+    display: inline-flex;
+    padding: 1px;
+  }
+  .toggle span {
+    width: 8px;
+    height: 8px;
+    background: var(--ink-dim);
+  }
+  .toggle.on {
+    justify-content: flex-end;
+    border-color: var(--ink);
+  }
+  .toggle.on span {
+    background: var(--ink);
+  }
+  .added .toggle.on {
+    border-color: var(--accent);
+  }
+  .added .toggle.on span {
+    background: var(--accent);
+  }
+
+  /* Step 03: two groups of doors. */
+  :global(.fg-story-art.ship-art) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+  }
+  .ship-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .ship-doors {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 1px;
+    flex: 1;
+  }
+  .ship-door {
+    outline: 1px solid var(--line-strong);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .ship-door-art {
+    position: relative;
+    height: 180px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .ship-door-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .ship-door-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+  }
+  .ship-door-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  @media (max-width: 640px) {
+    .catalog-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .shape,
+    :global(.fg-story-art.ship-art) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+
+  /* 0.6 Develop: a pinned line over a tall track. */
+  .line-track {
+    position: relative;
+    height: 220vh;
+  }
+  .line-pin {
+    position: sticky;
+    /* Title, drawing, stops and the hosting head stay on screen together: under the navigation,
+       or bottom-aligned when that is taller than the screen (the script sets --pin-top). */
+    top: var(--pin-top, 60px);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+  }
+  /* The heading rides with the line: tighter than a regular section head. */
+  .line-pin :global(.fg-sec-head) {
+    padding-top: 40px;
+    padding-bottom: 28px;
+  }
+  .line-art {
+    position: relative;
+    height: clamp(240px, 36vh, 380px);
+    border-bottom: 1px solid var(--line);
+  }
+  .line-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .line-stops {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--bg);
+    border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .line-stops li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 24px var(--gutter);
+    border-right: 1px solid var(--line);
+    opacity: 1;
+    color: var(--ink-dim);
+  }
+  .line-stops li :global(.muted),
+  .line-stops li .accent {
+    color: var(--ink-dim);
+  }
+  .line-stops li:last-child {
+    border-right: 0;
+  }
+  .line-stops li.on {
+    color: var(--ink);
+    background-color: var(--bg-raised);
+  }
+  .line-stops li.on .accent {
+    color: var(--accent);
+  }
+  .line-stops li.on :global(.muted) {
+    color: var(--ink-muted);
+  }
+  @media (max-width: 760px) {
+    .line-track {
+      height: auto;
+    }
+    .line-pin {
+      position: relative;
+      top: 0;
+      height: auto;
+    }
+    .line-art {
+      height: 260px;
+      flex: none;
+    }
+    .line-stops {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .line-stops li {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+    }
+    .line-stops li .accent {
+      color: var(--accent);
+    }
+    .line-stops li :global(.muted) {
+      color: var(--ink-muted);
+    }
+  }
+
+  /* 0.7 Hosting: three plans, glued. */
+
+  /* 0.8 Extras: the copy blocks share one height, whatever their text. */
+  #extras :global(.fg-cell-copy) {
+    flex: 0 0 148px;
+  }
+</style>

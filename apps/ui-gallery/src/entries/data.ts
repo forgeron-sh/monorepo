@@ -1,0 +1,354 @@
+/* Blocks of the "data and shell" group. */
+import type { Atom, PropRow } from "../types";
+
+const className: PropRow = { name: "className", type: "string", description: "Extra classes." };
+
+/** Gallery pages of the "data and shell" blocks, in order. */
+export const entries: ReadonlyArray<Atom> = [
+  {
+    slug: "stat",
+    name: "Stat",
+    summary: "One figure with its label and a hint: a tile on its own.",
+    imports: ["Stat"],
+    props: [
+      {
+        name: "label",
+        type: "ReactNode",
+        description: "What the figure counts, in mono capitals.",
+      },
+      { name: "value", type: "ReactNode", description: "The figure, already written." },
+      { name: "hint", type: "ReactNode", description: "Context under it: last 7 days." },
+      className,
+    ],
+  },
+  {
+    slug: "table",
+    name: "Table",
+    summary:
+      "Typed columns, 44px rows; a clickable row opens on Enter. Composed from parts, with a props shorthand.",
+    imports: [
+      "Table",
+      "TableHeader",
+      "TableBody",
+      "TableFooter",
+      "TableRow",
+      "TableHead",
+      "TableCell",
+      "TableCaption",
+    ],
+    props: [
+      {
+        name: "Table parts (no columns)",
+        type: "TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell, TableCaption",
+        description:
+          "Without columns, Table is shadcn's root and takes its parts; className on each (D-156).",
+      },
+      {
+        name: "columns",
+        type: "{ key, header, align?, mono?, render? }[]",
+        description: "row[key] by default; render for anything else.",
+      },
+      { name: "rows", type: "Row[]", description: "The data." },
+      { name: "rowKey", type: "(row) => Key", description: "Identifies a row." },
+      {
+        name: "onRowClick",
+        type: "(row) => void",
+        description: "Makes each row a focusable button: click, Enter or Space.",
+      },
+      {
+        name: "empty",
+        type: "ReactNode",
+        default: `"Nothing to show"`,
+        description: "Shown when there is no row.",
+      },
+      { name: "label", type: "string", description: "Names the table when no heading does." },
+      className,
+    ],
+  },
+  {
+    slug: "data-grid",
+    name: "Data grid",
+    summary:
+      "Rows of a database table: typed headers, constraints, sort, NULL and masked cells. Composed from parts, with a props shorthand.",
+    imports: [
+      "DataGrid",
+      "DataGridBody",
+      "DataGridCell",
+      "DataGridEmpty",
+      "DataGridHeader",
+      "DataGridHeaderCell",
+      "DataGridRow",
+      "ConstraintChip",
+    ],
+    props: [
+      { name: "label", type: "string", description: "Names the grid; it scrolls on the keyboard." },
+      {
+        name: "columns",
+        type: "{ name, type, chips?, masked?, numeric? }[]",
+        description: "chips: Primary, Not null, Unique, Foreign key. masked says why.",
+      },
+      {
+        name: "rows",
+        type: "(string | number | null | { masked })[][]",
+        description: "null reads NULL; a masked cell says it is masked.",
+      },
+      {
+        name: "sort / onSort",
+        type: "{ column, descending } / (column) => void",
+        description: "The sort is the page's: the grid only shows it and asks for it.",
+      },
+      { name: "onOpenRow", type: "(index) => void", description: "Click or Enter on a row." },
+      {
+        name: "onCopyCell",
+        type: "(text, column) => void",
+        description: "A double click on a cell gives its text.",
+      },
+      { name: "selectedRow", type: "number", description: "The open row, marked in ember." },
+      { name: "empty", type: "ReactNode", default: `"No rows"`, description: "No row." },
+      className,
+    ],
+  },
+  {
+    slug: "pager",
+    name: "Pager",
+    summary: "Where the page sits, 51–100 of 120, and Previous and Next.",
+    imports: ["Pager"],
+    props: [
+      { name: "page", type: "number", description: "1-based." },
+      { name: "pageSize", type: "number", description: "Rows per page." },
+      { name: "count", type: "number", description: "Rows on this page." },
+      { name: "total", type: "number", description: "Every row that matches, when known." },
+      { name: "hasMore", type: "boolean", description: "Whether Next leads somewhere." },
+      { name: "onPage", type: "(page) => void", description: "Previous or Next." },
+      {
+        name: "limitNote",
+        type: "ReactNode",
+        description: "When paging stops short, a way to narrow instead.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "detail-list",
+    name: "Detail list",
+    summary:
+      "Label and value pairs, stacked: the facts beside a record. Composed from parts, with a props shorthand.",
+    imports: ["DetailList", "DetailListItem", "DetailListTerm", "DetailListValue"],
+    props: [
+      { name: "items", type: "{ label, value }[]", description: "In order; value is any node." },
+      className,
+    ],
+  },
+  {
+    slug: "board",
+    name: "Board",
+    summary:
+      "Columns of cards, layout only. Composed from BoardColumn, BoardColumnHeader, BoardCards and BoardCard, with a `columns` props shorthand.",
+    imports: ["Board", "BoardColumn", "BoardColumnHeader", "BoardCards", "BoardCard", "BoardEmpty"],
+    props: [
+      {
+        name: "columns",
+        type: "{ id, title, items }[]",
+        description: "Omit to compose the parts.",
+      },
+      { name: "itemKey / renderItem", type: "(item) => ...", description: "Key and card content." },
+      {
+        name: "empty",
+        type: "ReactNode",
+        default: `"Empty"`,
+        description: "A column without cards.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "tool-card",
+    name: "Tool card",
+    summary:
+      "A tool in a grid: monogram, name, summary, facts and the one thing to do. Composed from parts, with a props shorthand.",
+    imports: [
+      "ToolCard",
+      "ToolCardHeader",
+      "ToolCardIcon",
+      "ToolCardHeading",
+      "ToolCardTitle",
+      "ToolCardLink",
+      "ToolCardMeta",
+      "ToolCardDescription",
+      "ToolCardFooter",
+      "ToolIcon",
+    ],
+    props: [
+      { name: "name", type: "string", description: "Its first letters make the monogram." },
+      { name: "summary", type: "string", description: "What it does; three lines at most." },
+      { name: "href", type: "string", description: "The tool's page: the whole card links there." },
+      {
+        name: "onNavigate",
+        type: "(href) => void",
+        description: "Routes a plain click without a page load.",
+      },
+      { name: "meta", type: "ReactNode", description: "Small facts by the name: version, status." },
+      {
+        name: "footer",
+        type: "ReactNode",
+        description: "The one thing to do: Open, Connect. Stays clickable over the link.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "settings-group",
+    name: "Settings group",
+    summary:
+      "A titled card of rows, label left and control right; a link row ends with a chevron. Composed from parts, with a props shorthand.",
+    imports: [
+      "SettingsGroup",
+      "SettingsGroupHeader",
+      "SettingsGroupTitle",
+      "SettingsGroupDescription",
+      "SettingsGroupCard",
+      "SettingsRow",
+      "SettingsRowText",
+      "SettingsRowLabel",
+      "SettingsRowDescription",
+      "SettingsRowControl",
+      "SettingsRowValue",
+    ],
+    props: [
+      {
+        name: "Settings parts",
+        type: "SettingsGroupHeader, SettingsGroupCard / SettingsRowText, SettingsRowControl…",
+        description:
+          "The same group from parts (D-156): put a SettingsGroupHeader or SettingsGroupCard in it and the children are laid out as written; a SettingsRow without label takes SettingsRowText and SettingsRowControl, asChild makes the child (a link) the row. className and rest on each.",
+      },
+      { name: "title / description", type: "ReactNode", description: "Of the group." },
+      {
+        name: "tone",
+        type: `"default" | "danger"`,
+        default: `"default"`,
+        description: "A danger zone, outlined in red. Last on the page.",
+      },
+      {
+        name: "SettingsRow label / description",
+        type: "ReactNode",
+        description: "Left: what the setting is.",
+      },
+      {
+        name: "SettingsRow children",
+        type: "ReactNode",
+        description: "Right: a switch, a select, a button, a value.",
+      },
+      {
+        name: "SettingsRow href / value",
+        type: "string / ReactNode",
+        description: "The row links to a sub-page, its current value before the chevron.",
+      },
+      {
+        name: "SettingsRow onNavigate",
+        type: "(href, event) => void",
+        description: "Routes a plain click without a page load.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "drawer",
+    name: "Drawer",
+    summary:
+      "A side panel for one record. Not modal; Escape closes, focus comes back. Composed from parts, with a props shorthand.",
+    imports: [
+      "Drawer",
+      "DrawerTrigger",
+      "DrawerContent",
+      "DrawerHeader",
+      "DrawerFooter",
+      "DrawerTitle",
+      "DrawerDescription",
+      "DrawerClose",
+      "DrawerPortal",
+      "DrawerOverlay",
+    ],
+    props: [
+      {
+        name: "Drawer parts / direction",
+        type: '"top" | "right" | "bottom" | "left"',
+        default: '"bottom"',
+        description:
+          "Without title, Drawer is shadcn's root (D-156): DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle, DrawerDescription, DrawerClose; direction is the edge it slides from.",
+      },
+      { name: "title", type: "ReactNode", description: "Names the panel." },
+      { name: "description", type: "ReactNode", description: "One line under the title." },
+      { name: "onClose", type: "() => void", description: "Escape and the close button." },
+      {
+        name: "actions",
+        type: "ReactNode",
+        description: "Small buttons before the close button: copy a link, open in full.",
+      },
+      { name: "footer", type: "ReactNode", description: "Buttons at the foot." },
+      { name: "children", type: "ReactNode", description: "The body; it scrolls." },
+      className,
+    ],
+  },
+  {
+    slug: "app-shell",
+    name: "App shell",
+    summary:
+      "Sidebar, content and a skip link; at phone width the sidebar folds behind a menu. Composed from parts, with a props shorthand.",
+    imports: [
+      "AppShell",
+      "Sidebar",
+      "Nav",
+      "AppShellHeader",
+      "AppShellSidebar",
+      "AppShellMain",
+      "SidebarHeader",
+      "SidebarContent",
+      "SidebarFooter",
+      "SidebarGroup",
+      "SidebarGroupLabel",
+      "SidebarMenu",
+      "SidebarMenuItem",
+      "SidebarMenuButton",
+      "NavList",
+      "NavListItem",
+      "NavLink",
+      "NavBadge",
+      "NavLabel",
+      "SidebarProvider",
+      "SidebarTrigger",
+    ],
+    props: [
+      {
+        name: "Parts",
+        type: "AppShellHeader / AppShellSidebar / AppShellMain",
+        description:
+          "Without sidebar, AppShell takes its parts (D-156), with defaultMenuOpen and onMenuOpenChange. Sidebar takes SidebarHeader, SidebarContent, SidebarFooter, SidebarGroup, SidebarMenu, SidebarMenuItem and SidebarMenuButton (asChild, isActive); SidebarProvider and SidebarTrigger collapse it. Nav without items takes NavHeading, NavList, NavListItem and NavLink.",
+      },
+      { name: "sidebar", type: "ReactNode", description: "Left column: a Sidebar, an AppSidebar." },
+      { name: "topbar", type: "ReactNode", description: "Beside the menu button at phone width." },
+      {
+        name: "menuOpen / onMenuToggle",
+        type: "boolean / () => void",
+        description: "The folded sidebar, opened by the menu button (phone width).",
+      },
+      {
+        name: "contentId",
+        type: "string",
+        default: `"content"`,
+        description: "Where the skip link jumps.",
+      },
+      {
+        name: "frame",
+        type: `"page" | "box"`,
+        default: `"page"`,
+        description: "Fills the window, or its parent: then it folds by the parent's width.",
+      },
+      {
+        name: "Nav items",
+        type: "{ id, label, href, current?, badge?, icon? }[]",
+        description: "The links; current gets aria-current.",
+      },
+      className,
+    ],
+  },
+];

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/stack",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [1, 1, 1.6],
+            [1, 1, 22.400000000000002]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11, 1, 1.6],
+            [11, 1, 22.400000000000002]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [1, 11, 1.6],
+            [1, 11, 22.400000000000002]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [11, 11, 1.6],
+            [11, 11, 22.400000000000002]
+          ],
+          "ink": "dim",
+          "dash": 2
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "stack": {
+      "title": "stack",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] },
+      "vars": { "active": { "type": "int", "default": -1 } }
+    }
+  }
+}

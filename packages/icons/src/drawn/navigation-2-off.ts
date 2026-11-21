@@ -1,0 +1,26 @@
+import type { PixelIcon } from "../types";
+
+// Upward navigation arrowhead crossed out, the stroke in the secondary tone.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "navigation-2-off",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "o",
+    ".o...##",
+    "..o.#..#",
+    "...o...#",
+    "...#o...#",
+    "...#.o..#",
+    "..#...o..#",
+    "..#....o.#",
+    ".#..####o.#",
+    ".###....#o",
+    "##........o",
+    "...........o",
+  ],
+};
+
+export default icon;

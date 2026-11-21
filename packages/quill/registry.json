@@ -1,0 +1,198 @@
+{
+  "skills": [
+    {
+      "name": "quill",
+      "invocation": "model",
+      "role": "Write a piece in one of the formats, from the project's context"
+    },
+    {
+      "name": "quill-review",
+      "invocation": "model",
+      "role": "Review a draft in four passes and a cold read"
+    },
+    {
+      "name": "quill-setup",
+      "invocation": "user",
+      "role": "Onboard: read the sources, interview, write .quill/"
+    }
+  ],
+  "context": ["company.md", "audience.md", "voice.md", "publishing.md"],
+  "formats": [
+    {
+      "id": "blog-post",
+      "name": "Blog post",
+      "summary": "A product or company story: a launch, a decision, a lesson, an announcement.",
+      "inspiredBy": [
+        {
+          "name": "Sentry, blog writing guide",
+          "url": "https://github.com/getsentry/skills/blob/main/skills/blog-writing-guide/SKILL.md"
+        },
+        {
+          "name": "Vercel, Workflow SDK 5",
+          "url": "https://vercel.com/blog/workflow-sdk-5"
+        },
+        {
+          "name": "Google developer documentation style guide",
+          "url": "https://developers.google.com/style/highlights"
+        },
+        {
+          "name": "Mailchimp, writing principles",
+          "url": "https://styleguide.mailchimp.com/writing-principles/"
+        },
+        {
+          "name": "GOV.UK, clear titles and summaries",
+          "url": "https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/writing-guidelines/clear-language/"
+        }
+      ]
+    },
+    {
+      "id": "deep-dive",
+      "name": "Engineering deep dive",
+      "summary": "How something was built or measured, for engineers, with code and numbers.",
+      "inspiredBy": [
+        {
+          "name": "Stripe, Online migrations at scale",
+          "url": "https://stripe.com/blog/online-migrations"
+        },
+        {
+          "name": "Anthropic, How we built our multi-agent research system",
+          "url": "https://www.anthropic.com/engineering/multi-agent-research-system"
+        },
+        {
+          "name": "Linear, CI reworked",
+          "url": "https://linear.app/now/ci-bottleneck-reworked"
+        },
+        {
+          "name": "Cloudflare, 18 November 2025 outage",
+          "url": "https://blog.cloudflare.com/18-november-2025-outage/"
+        },
+        {
+          "name": "Dan Luu, How (some) good corporate engineering blogs are written",
+          "url": "https://danluu.com/corp-eng-blogs/"
+        }
+      ]
+    },
+    {
+      "id": "manifesto",
+      "name": "Manifesto, essay or position",
+      "summary": "What we believe and why: one idea, argued in a line, as short as it allows.",
+      "inspiredBy": [
+        {
+          "name": "Paul Graham, Writing, Briefly",
+          "url": "https://paulgraham.com/writing44.html"
+        },
+        {
+          "name": "37signals, How we communicate",
+          "url": "https://basecamp.com/guides/how-we-communicate"
+        },
+        {
+          "name": "Amazon, an insider look at its culture and processes",
+          "url": "https://www.aboutamazon.com/md/news/workplace/an-insider-look-at-amazons-culture-and-processes"
+        }
+      ]
+    },
+    {
+      "id": "customer-story",
+      "name": "Customer story",
+      "summary": "What a customer changed with us, in their words, with their approved results.",
+      "inspiredBy": [
+        {
+          "name": "Stripe, Figma",
+          "url": "https://stripe.com/customers/figma"
+        },
+        {
+          "name": "Vercel, OpenEvidence",
+          "url": "https://vercel.com/customers/how-openevidence-scales-medical-search-for-doctors"
+        },
+        {
+          "name": "Cloudflare, Poki",
+          "url": "https://www.cloudflare.com/case-studies/poki"
+        },
+        {
+          "name": "Claude, Notion",
+          "url": "https://claude.com/customers/notion"
+        }
+      ]
+    },
+    {
+      "id": "paper",
+      "name": "Paper",
+      "summary": "Research or a lab project written up: a question, a method, results and limits.",
+      "inspiredBy": [
+        {
+          "name": "Simon Peyton Jones, How to write a great research paper",
+          "url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/07/How-to-write-a-great-research-paper.pdf"
+        },
+        {
+          "name": "Jennifer Widom, Tips for writing technical papers",
+          "url": "https://cs.stanford.edu/people/widom/paper-writing.html"
+        },
+        {
+          "name": "Distill, about the journal",
+          "url": "https://distill.pub/journal/"
+        },
+        {
+          "name": "Anthropic, Tracing the thoughts of a large language model",
+          "url": "https://www.anthropic.com/research/tracing-thoughts-language-model"
+        }
+      ]
+    },
+    {
+      "id": "changelog",
+      "name": "Changelog entry",
+      "summary": "One change or release, for the people it touches: what is new, improved or fixed.",
+      "inspiredBy": [
+        {
+          "name": "Keep a Changelog",
+          "url": "https://keepachangelog.com/en/1.1.0/"
+        },
+        {
+          "name": "Linear changelog",
+          "url": "https://linear.app/changelog"
+        },
+        {
+          "name": "Vercel changelog",
+          "url": "https://vercel.com/changelog"
+        },
+        {
+          "name": "Stripe changelog",
+          "url": "https://docs.stripe.com/changelog"
+        }
+      ]
+    }
+  ],
+  "skillSources": [
+    {
+      "name": "Anthropic, doc-coauthoring and internal-comms",
+      "url": "https://github.com/anthropics/skills"
+    },
+    {
+      "name": "Sentry skills",
+      "url": "https://github.com/getsentry/skills"
+    },
+    {
+      "name": "marketingskills, copywriting and product-marketing",
+      "url": "https://github.com/coreyhaines31/marketingskills"
+    },
+    {
+      "name": "Every, compound-writing",
+      "url": "https://github.com/EveryInc/compound-writing"
+    },
+    {
+      "name": "humanizer",
+      "url": "https://github.com/blader/humanizer"
+    },
+    {
+      "name": "Waza, write",
+      "url": "https://github.com/tw93/Waza"
+    },
+    {
+      "name": "superpowers, writing-skills",
+      "url": "https://github.com/obra/superpowers"
+    },
+    {
+      "name": "Wikipedia, Signs of AI writing",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing"
+    }
+  ]
+}

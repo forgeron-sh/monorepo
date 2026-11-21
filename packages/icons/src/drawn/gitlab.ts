@@ -1,0 +1,26 @@
+import type { PixelIcon } from "../types";
+
+// The GitLab mark: the tanuki head with two pointed ears, in one tone.
+// 12×12: `#` primary tone. Drawn on 2026-11-18.
+const icon: PixelIcon = {
+  name: "gitlab",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "..#......#",
+    ".##......##",
+    ".###....###",
+    "####....####",
+    "############",
+    "############",
+    "############",
+    ".##########",
+    "..########",
+    "...######",
+    "....####",
+    ".....##",
+  ],
+};
+
+export default icon;

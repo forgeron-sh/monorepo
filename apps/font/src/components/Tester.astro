@@ -1,0 +1,222 @@
+---
+import { EyeIcon, Settings01Icon, WarningIcon } from "@forgeron/icons";
+import type { Specimen } from "../lib/specimen";
+import PxIcon from "./PxIcon.astro";
+
+interface Props {
+  specimen: Specimen;
+  /** Font size at load, in px; a sharp size of every weight. */
+  size?: number;
+}
+const { specimen: s, size = 100 } = Astro.props;
+const config = {
+  unitsPerEm: s.unitsPerEm,
+  weights: s.weights.map((w) => ({ style: w.style, weight: w.weight, unit: w.unit, step: w.step })),
+  codepoints: s.codepoints,
+  size,
+};
+const presets = [
+  ["Pangram", "The quick brown fox jumps over the lazy dog"],
+  ["Code", 'forgeron deploy --env=prod\nctx.db.select("deals").where(id, 42);'],
+  ["Numbers", "0123456789\n42% · €1,280.50 · 12:45 · ×3 → 7°"],
+  ["UI", "DEPLOY → PROD\n3 TOOLS · STATUS: OK"],
+] as const;
+const themes = [
+  ["ink", "Ink on black"],
+  ["ember", "Ember on black"],
+  ["paper", "Black on ink"],
+  ["forge", "Black on ember"],
+] as const;
+const regular = s.weights[0]!;
+const medium = s.weights[1]!;
+const id = "pg";
+---
+
+<div class="tester tester-full" data-tester data-config={JSON.stringify(config)}>
+  <div class="t-bar">
+    <div class="t-group">
+      <span class="t-mono dim" id={`${id}-preset`}>Preset</span>
+      <div class="seg" role="group" aria-labelledby={`${id}-preset`}>
+        {
+          presets.map(([label, text], i) => (
+            <button type="button" data-preset={text} aria-pressed={i === 0 ? "true" : "false"}>
+              {label}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+    <div class="t-group">
+      <span class="t-mono dim" id={`${id}-weight`}>Weight</span>
+      <div class="seg" role="group" aria-labelledby={`${id}-weight`}>
+        {
+          s.weights.map((w, i) => (
+            <button type="button" data-weight={w.weight} aria-pressed={i === 0 ? "true" : "false"}>
+              {w.style}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+    <div class="t-group">
+      <label class="t-mono dim" for={`${id}-size`}>Size</label>
+      <select id={`${id}-size`} class="select" data-size></select>
+    </div>
+        <div class="t-group">
+          <span class="t-mono dim" id={`${id}-theme`}>Colour</span>
+          <div class="swatches" role="group" aria-labelledby={`${id}-theme`}>
+            {themes.map(([key, label], i) => (
+              <button
+                type="button"
+                class={`swatch sw-${key}`}
+                data-theme={key}
+                aria-pressed={i === 0 ? "true" : "false"}
+                aria-label={label}
+                title={label}
+              >
+                Aa
+              </button>
+            ))}
+          </div>
+        </div>
+        <div class="t-group">
+          <span class="t-mono dim" aria-hidden="true">Grid</span>
+          <label class="toggle t-mono">
+            <input type="checkbox" data-grid checked />
+            Pixel grid
+          </label>
+        </div>
+    <div class="t-group t-end">
+      <span class="t-mono dim" aria-hidden="true">&nbsp;</span>
+      <div class="t-actions">
+        <button type="button" class="btn btn-sm" popovertarget={`${id}-why`}>
+          <PxIcon icon={Settings01Icon} size={14} />Why ×10?
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="t-stage theme-ink" data-stage>
+    <label for={`${id}-text`} class="sr-only">Text to set in Forgeron Sans</label>
+    <textarea id={`${id}-text`} class="t-text" data-text spellcheck="false" rows="2">{presets[0][1]}</textarea>
+  </div>
+  <p class="t-status t-mono">
+    <span class="t-readout" data-readout aria-live="polite"></span>
+    <span class="t-missing" data-missing hidden><PxIcon icon={WarningIcon} size={14} /><span data-missing-text></span></span>
+  </p>
+
+  <div id={`${id}-why`} class="pop" popover>
+    <p class="t-mono pop-title"><PxIcon icon={EyeIcon} size={14} /> Sharp sizes</p>
+    <ul class="icon-list t-small">
+      <li><span class="pop-k t-mono">1 px</span> = {regular.unit} / {s.unitsPerEm} em</li>
+      <li><span class="pop-k t-mono">×{regular.step}</span> Regular, Bold: every edge on a screen pixel</li>
+      <li><span class="pop-k t-mono">×{medium.step}</span> Medium: strokes of 1.5 px</li>
+      <li><span class="pop-k t-mono">2×</span> Retina: more sizes land whole</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  import { missingChars } from "../lib/charmap";
+  import { isPixelPerfect, pixelPerfectSizes, pixelScale, snapSize } from "../lib/sizes";
+
+  interface Config {
+    unitsPerEm: number;
+    weights: { style: string; weight: number; unit: number; step: number }[];
+    codepoints: number[];
+    size: number;
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-tester]")) {
+    const config = JSON.parse(root.dataset.config ?? "{}") as Config;
+    const cmap = new Set(config.codepoints);
+    const q = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
+    const text = q<HTMLTextAreaElement>("[data-text]");
+    const size = q<HTMLSelectElement>("[data-size]");
+    const readout = q<HTMLSpanElement>("[data-readout]");
+    const stage = q<HTMLDivElement>("[data-stage]");
+    const missing = q<HTMLSpanElement>("[data-missing]");
+    const missingText = q<HTMLSpanElement>("[data-missing-text]");
+    const gridToggle = root.querySelector<HTMLInputElement>("[data-grid]");
+    let weight = config.weights[0]!;
+    // A phone starts smaller, still on the grid.
+    let px = window.innerWidth < 760 ? 40 : config.size;
+
+    const press = (group: NodeListOf<HTMLButtonElement>, on: HTMLButtonElement) => {
+      for (const b of group) b.setAttribute("aria-pressed", String(b === on));
+    };
+    const fit = () => {
+      text.style.height = "auto";
+      text.style.height = `${text.scrollHeight}px`;
+    };
+    const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, ""));
+
+    // Only the sharp sizes of the current weight; a size that is not one moves to the nearest.
+    const renderSizes = () => {
+      if (px % weight.step !== 0) px = snapSize(px, weight.step);
+      size.replaceChildren(
+        ...pixelPerfectSizes(weight.step, 10, 200).map((v) => {
+          const o = document.createElement("option");
+          o.value = String(v);
+          o.textContent = `${v} px`;
+          o.selected = v === px;
+          return o;
+        }),
+      );
+    };
+
+    const update = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const scale = pixelScale(px, config.unitsPerEm, weight.unit);
+      const share = (weight.unit * 10) / config.unitsPerEm;
+      const device = isPixelPerfect(px, config.unitsPerEm, weight.unit, dpr);
+      readout.textContent = `${px} px · ${share === 1 ? "1 pixel" : `${fmt(share)} pixel`} = ${fmt(scale)} px${device ? " · sharp" : ""}`;
+      stage.style.setProperty("--size", `${px}px`);
+      stage.style.setProperty("--cell", `${scale}px`);
+      stage.style.setProperty("--weight", String(weight.weight));
+      const lack = missingChars(text.value, cmap);
+      missing.hidden = lack.length === 0;
+      missingText.textContent = lack.length
+        ? `Not in the font: ${lack.map((c) => (c === " " ? "space" : c)).join(" ")}`
+        : "";
+      fit();
+    };
+
+    const weightButtons = root.querySelectorAll<HTMLButtonElement>("[data-weight]");
+    for (const b of weightButtons)
+      b.addEventListener("click", () => {
+        weight = config.weights.find((w) => String(w.weight) === b.dataset.weight) ?? weight;
+        press(weightButtons, b);
+        renderSizes();
+        update();
+      });
+    const presetButtons = root.querySelectorAll<HTMLButtonElement>("[data-preset]");
+    for (const b of presetButtons)
+      b.addEventListener("click", () => {
+        text.value = b.dataset.preset ?? "";
+        press(presetButtons, b);
+        update();
+      });
+    const themeButtons = root.querySelectorAll<HTMLButtonElement>("[data-theme]");
+    for (const b of themeButtons)
+      b.addEventListener("click", () => {
+        stage.className = stage.className.replace(/theme-\w+/, `theme-${b.dataset.theme}`);
+        press(themeButtons, b);
+      });
+    gridToggle?.addEventListener("change", () =>
+      stage.classList.toggle("no-grid", !gridToggle.checked),
+    );
+    size.addEventListener("change", () => {
+      px = Number(size.value);
+      update();
+    });
+    text.addEventListener("input", () => {
+      for (const b of presetButtons) b.setAttribute("aria-pressed", "false");
+      update();
+    });
+    window.addEventListener("resize", fit);
+
+    renderSizes();
+    update();
+  }
+</script>

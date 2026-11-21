@@ -1,0 +1,9 @@
+{
+  "extends": "@forgeron/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "noUncheckedIndexedAccess": false,
+    "jsx": "react-jsx"
+  },
+  "include": ["."]
+}

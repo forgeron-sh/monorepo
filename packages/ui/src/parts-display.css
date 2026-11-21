@@ -1,0 +1,141 @@
+/* shadcn parts of the "display" group (D-156). */
+
+/* Badge: shadcn's secondary, a quiet raised label. */
+.fg-badge-secondary {
+  background: var(--bg-raised);
+  border-color: var(--line);
+  color: var(--ink);
+}
+a.fg-badge:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Avatar parts: the same square, sized by data-size; the fallback shows while the image loads. */
+.fg-avatar-part {
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  font-size: 10px;
+}
+.fg-avatar-part[data-size="sm"] {
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+}
+.fg-avatar-part[data-size="lg"] {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+.fg-avatar-image {
+  display: block;
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fg-avatar-fallback {
+  display: grid;
+  grid-area: 1 / 1;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  text-transform: uppercase;
+}
+
+/* Card */
+.fg-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border: var(--border-width, 1px) solid var(--line);
+  border-radius: var(--radius-none, 0);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.fg-card[data-size="sm"] {
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+.fg-card-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 2px var(--space-3);
+  padding: 0 var(--space-4);
+}
+.fg-card-title {
+  grid-column: 1;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.fg-card-description {
+  grid-column: 1;
+  color: var(--ink-muted);
+  font-size: 0.875em;
+}
+.fg-card-action {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-self: end;
+}
+.fg-card-content {
+  padding: 0 var(--space-4);
+}
+.fg-card-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) 0;
+  border-top: var(--border-width, 1px) solid var(--line);
+}
+.fg-card-header:not(:first-child),
+.fg-card-content:not(:first-child) {
+  padding-top: 0;
+}
+
+/* Alert */
+.fg-alert {
+  display: grid;
+  grid-template-columns: 0 1fr;
+  align-items: start;
+  gap: 2px var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-left-color: var(--line-strong);
+  border-radius: var(--radius-none, 0);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.fg-alert:has(> svg) {
+  grid-template-columns: 16px 1fr;
+}
+.fg-alert > svg {
+  grid-row: span 2;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+.fg-alert > :not(svg) {
+  grid-column: 2;
+}
+.fg-alert-title {
+  font-weight: 600;
+}
+.fg-alert-description {
+  color: var(--ink-muted);
+  font-size: 0.875em;
+}
+.fg-alert-destructive {
+  border-left-color: var(--danger);
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+.fg-alert-destructive .fg-alert-description {
+  color: var(--ink);
+}

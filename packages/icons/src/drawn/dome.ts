@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// Domed building: a dome over a row of columns on a base.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "dome",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".....##",
+    "...##..##",
+    "..#......#",
+    ".#........#",
+    "############",
+    ".#.#....#.#",
+    ".#.#....#.#",
+    ".#.#....#.#",
+    ".#.#....#.#",
+    "############",
+  ],
+};
+
+export default icon;

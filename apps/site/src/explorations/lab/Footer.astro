@@ -1,0 +1,12 @@
+---
+import { pixelText } from "./pixel";
+---
+
+<footer class="rail hr">
+  <div class="foot-word" set:html={pixelText("forgeron")} />
+  <div class="pad" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-bottom:32px;">
+    <span class="t-mono dim">Open source · Apache-2.0</span>
+    <span class="t-mono dim">Runs on Cloudflare Workers</span>
+    <span class="t-mono dim">forgeron.sh</span>
+  </div>
+</footer>

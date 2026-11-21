@@ -1,0 +1,244 @@
+/* The layout plugins: callout, toggle, columns, table of contents. Tokens only, sharp corners, 1 px
+   lines. The same rules draw the editor and the static view (`RichTextView`). The icons are the
+   pixel icons of @forgeron/icons, drawn as masks so they take the tone's colour. */
+
+.fg-rt {
+  --fg-rt-icon-note: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2012%2012%22%20shape-rendering%3D%22crispEdges%22%20aria-hidden%3D%22true%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M1%200h7v1h-7zM1%201h1v1h-1zM7%201h2v1h-2zM1%202h1v1h-1zM7%202h1v1h-1zM9%202h1v1h-1zM1%203h1v1h-1zM7%203h4v1h-4zM1%204h1v1h-1zM10%204h1v1h-1zM1%205h1v1h-1zM3%205h6v1h-6zM10%205h1v1h-1zM1%206h1v1h-1zM10%206h1v1h-1zM1%207h1v1h-1zM3%207h6v1h-6zM10%207h1v1h-1zM1%208h1v1h-1zM10%208h1v1h-1zM1%209h1v1h-1zM3%209h4v1h-4zM10%209h1v1h-1zM1%2010h1v1h-1zM10%2010h1v1h-1zM1%2011h10v1h-10z%22%2F%3E%3C%2Fsvg%3E");
+  --fg-rt-icon-info: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2012%2012%22%20shape-rendering%3D%22crispEdges%22%20aria-hidden%3D%22true%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M3%201h6v1h-6zM2%202h1v1h-1zM9%202h1v1h-1zM1%203h1v1h-1zM5%203h2v1h-2zM10%203h1v1h-1zM1%204h1v1h-1zM10%204h1v1h-1zM1%205h1v1h-1zM5%205h2v1h-2zM10%205h1v1h-1zM1%206h1v1h-1zM5%206h2v1h-2zM10%206h1v1h-1zM1%207h1v1h-1zM5%207h2v1h-2zM10%207h1v1h-1zM1%208h1v1h-1zM5%208h2v1h-2zM10%208h1v1h-1zM2%209h1v1h-1zM9%209h1v1h-1zM3%2010h6v1h-6z%22%2F%3E%3C%2Fsvg%3E");
+  --fg-rt-icon-success: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2012%2012%22%20shape-rendering%3D%22crispEdges%22%20aria-hidden%3D%22true%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M3%201h6v1h-6zM2%202h1v1h-1zM9%202h1v1h-1zM1%203h1v1h-1zM10%203h1v1h-1zM1%204h1v1h-1zM8%204h1v1h-1zM10%204h1v1h-1zM1%205h1v1h-1zM3%205h1v1h-1zM7%205h1v1h-1zM10%205h1v1h-1zM1%206h1v1h-1zM4%206h1v1h-1zM6%206h1v1h-1zM10%206h1v1h-1zM1%207h1v1h-1zM5%207h1v1h-1zM10%207h1v1h-1zM1%208h1v1h-1zM10%208h1v1h-1zM2%209h1v1h-1zM9%209h1v1h-1zM3%2010h6v1h-6z%22%2F%3E%3C%2Fsvg%3E");
+  --fg-rt-icon-warning: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2012%2012%22%20shape-rendering%3D%22crispEdges%22%20aria-hidden%3D%22true%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M5%200h2v1h-2zM4%201h1v1h-1zM7%201h1v1h-1zM3%202h1v1h-1zM8%202h1v1h-1zM2%203h1v1h-1zM5%203h2v1h-2zM9%203h1v1h-1zM1%204h1v1h-1zM5%204h2v1h-2zM10%204h1v1h-1zM0%205h1v1h-1zM5%205h2v1h-2zM11%205h1v1h-1zM0%206h1v1h-1zM11%206h1v1h-1zM1%207h1v1h-1zM10%207h1v1h-1zM2%208h1v1h-1zM5%208h2v1h-2zM9%208h1v1h-1zM3%209h1v1h-1zM8%209h1v1h-1zM4%2010h1v1h-1zM7%2010h1v1h-1zM5%2011h2v1h-2z%22%2F%3E%3C%2Fsvg%3E");
+  --fg-rt-icon-danger: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2012%2012%22%20shape-rendering%3D%22crispEdges%22%20aria-hidden%3D%22true%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M3%201h6v1h-6zM2%202h1v1h-1zM9%202h1v1h-1zM1%203h1v1h-1zM10%203h1v1h-1zM1%204h1v1h-1zM4%204h1v1h-1zM7%204h1v1h-1zM10%204h1v1h-1zM1%205h1v1h-1zM5%205h2v1h-2zM10%205h1v1h-1zM1%206h1v1h-1zM5%206h2v1h-2zM10%206h1v1h-1zM1%207h1v1h-1zM4%207h1v1h-1zM7%207h1v1h-1zM10%207h1v1h-1zM1%208h1v1h-1zM10%208h1v1h-1zM2%209h1v1h-1zM9%209h1v1h-1zM3%2010h6v1h-6z%22%2F%3E%3C%2Fsvg%3E");
+  --fg-rt-icon-chevron: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2012%2012%22%20shape-rendering%3D%22crispEdges%22%20aria-hidden%3D%22true%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M3%202h2v1h-2zM4%203h2v1h-2zM5%204h2v1h-2zM6%205h2v1h-2zM6%206h2v1h-2zM5%207h2v1h-2zM4%208h2v1h-2zM3%209h2v1h-2z%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* ---------------------------------------------------------------- Callout */
+
+.fg-rt-callout {
+  --fg-rt-tone: var(--ink-muted);
+  --fg-rt-tone-bg: var(--bg-raised);
+  --fg-rt-tone-icon: var(--fg-rt-icon-note);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px 10px 12px;
+  border: var(--border-width) solid var(--line);
+  border-left: 2px solid var(--fg-rt-tone);
+  background: var(--fg-rt-tone-bg);
+}
+.fg-rt-callout[data-tone="info"] {
+  --fg-rt-tone: var(--accent);
+  --fg-rt-tone-icon: var(--fg-rt-icon-info);
+}
+.fg-rt-callout[data-tone="success"] {
+  --fg-rt-tone: var(--success);
+  --fg-rt-tone-bg: var(--success-subtle);
+  --fg-rt-tone-icon: var(--fg-rt-icon-success);
+}
+.fg-rt-callout[data-tone="warning"] {
+  --fg-rt-tone: var(--warning);
+  --fg-rt-tone-bg: var(--warning-subtle);
+  --fg-rt-tone-icon: var(--fg-rt-icon-warning);
+}
+.fg-rt-callout[data-tone="danger"] {
+  --fg-rt-tone: var(--danger);
+  --fg-rt-tone-bg: var(--danger-subtle);
+  --fg-rt-tone-icon: var(--fg-rt-icon-danger);
+}
+.fg-rt-callout-icon {
+  flex: none;
+  width: 16px;
+  height: 24px;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  user-select: none;
+}
+/* No emoji: the tone's pixel icon. */
+.fg-rt-callout-icon:empty::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin-top: 4px;
+  background: var(--fg-rt-tone);
+  -webkit-mask: var(--fg-rt-tone-icon) center / contain no-repeat;
+  mask: var(--fg-rt-tone-icon) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.fg-rt-callout-body {
+  flex: 1;
+  min-width: 0;
+}
+.fg-rt-callout-body > * + * {
+  margin-top: 8px;
+}
+.fg-rt-callout-body > :first-child {
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------- Toggle */
+
+.fg-rt-toggle {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+}
+details.fg-rt-toggle {
+  display: block;
+}
+.fg-rt-toggle-btn {
+  display: block;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+.fg-rt-toggle-btn::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 4px;
+  background: currentColor;
+  -webkit-mask: var(--fg-rt-icon-chevron) center / contain no-repeat;
+  mask: var(--fg-rt-icon-chevron) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.fg-rt-toggle-btn:hover {
+  color: var(--ink);
+}
+.fg-rt-toggle-btn:focus-visible {
+  outline: var(--border-width) solid var(--accent);
+  outline-offset: -2px;
+}
+.fg-rt-toggle[data-open="true"] > .fg-rt-toggle-btn::before {
+  transform: rotate(90deg);
+}
+.fg-rt-toggle-summary {
+  min-height: 24px;
+  font-weight: 500;
+}
+.fg-rt-toggle-content > * + * {
+  margin-top: 8px;
+}
+.fg-rt-toggle-content > :not(.fg-rt-toggle-summary) {
+  margin-left: 0;
+}
+/* Closed: only the summary shows. */
+.fg-rt-toggle[data-open="false"] > .fg-rt-toggle-content > :not(.fg-rt-toggle-summary) {
+  display: none;
+}
+
+/* The static view: the native element, with the same chevron. */
+details.fg-rt-toggle > summary {
+  position: relative;
+  min-height: 24px;
+  padding-left: 24px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+details.fg-rt-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+details.fg-rt-toggle > summary::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  background: var(--ink-muted);
+  -webkit-mask: var(--fg-rt-icon-chevron) center / contain no-repeat;
+  mask: var(--fg-rt-icon-chevron) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+details.fg-rt-toggle[open] > summary::before {
+  transform: rotate(90deg);
+}
+.fg-rt-toggle-body {
+  margin-left: 24px;
+  padding-top: 8px;
+}
+.fg-rt-toggle-body > * + * {
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------- Columns */
+
+/* The container is the block itself: it is the width of the page column that decides, not the
+   window, so columns also stack in a side panel. */
+.fg-rt-columns {
+  container-type: inline-size;
+}
+.fg-rt-columns-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.fg-rt-column {
+  min-width: 0;
+}
+.fg-rt-column > * + * {
+  margin-top: 8px;
+}
+.fg-rt-content .fg-rt-column {
+  padding: 4px 6px;
+  border: var(--border-width) dashed transparent;
+}
+.fg-rt-content .fg-rt-columns:hover .fg-rt-column,
+.fg-rt-content .fg-rt-columns:focus-within .fg-rt-column {
+  border-color: var(--line);
+}
+@container (max-width: 36rem) {
+  .fg-rt-columns-grid {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------- Table of contents */
+
+.fg-rt-toc {
+  padding: 8px 12px;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-raised);
+}
+.fg-rt-toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-rt-toc li {
+  margin: 0;
+  padding: 1px 0;
+}
+.fg-rt-toc li[data-level="2"] {
+  padding-left: 16px;
+}
+.fg-rt-toc li[data-level="3"] {
+  padding-left: 32px;
+}
+.fg-rt-toc a {
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.fg-rt-toc a:hover {
+  color: var(--ink);
+  background: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+.fg-rt-toc-empty {
+  color: var(--ink-dim);
+  font: 400 12px/24px var(--font-mono, monospace);
+}
+.ProseMirror-selectednode.fg-rt-toc {
+  outline: var(--border-width) solid var(--accent);
+}

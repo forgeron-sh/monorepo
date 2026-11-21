@@ -1,0 +1,275 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/network",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-16, -16, 0],
+            [-16, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, -16, 0],
+            [16, -16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, -16, 0],
+            [-12, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, -12, 0],
+            [16, -12, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-8, -16, 0],
+            [-8, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, -8, 0],
+            [16, -8, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, -16, 0],
+            [-4, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, -4, 0],
+            [16, -4, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, -16, 0],
+            [0, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, 0, 0],
+            [16, 0, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -16, 0],
+            [4, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, 4, 0],
+            [16, 4, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8, -16, 0],
+            [8, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, 8, 0],
+            [16, 8, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [12, -16, 0],
+            [12, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, 12, 0],
+            [16, 12, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [16, -16, 0],
+            [16, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, 16, 0],
+            [16, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, 0, 0.05],
+            [-13, 0, 0.05]
+          ],
+          "ink": "accent"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-13, 0, 0.05],
+            [-13, -13, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [-15.5, -15.5, 0], "size": [5, 5, 2.5], "plate": true },
+        {
+          "kind": "line",
+          "points": [
+            [0, 0, 0.05],
+            [13, 0, 0.05]
+          ],
+          "ink": "accent"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [13, 0, 0.05],
+            [13, -13, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [10.5, -15.5, 0], "size": [5, 5, 2.5], "plate": true },
+        {
+          "kind": "line",
+          "points": [
+            [0, 0, 0.05],
+            [-13, 0, 0.05]
+          ],
+          "ink": "accent"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-13, 0, 0.05],
+            [-13, 13, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [-15.5, 10.5, 0], "size": [5, 5, 2.5], "plate": true },
+        {
+          "kind": "line",
+          "points": [
+            [0, 0, 0.05],
+            [13, 0, 0.05]
+          ],
+          "ink": "accent"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [13, 0, 0.05],
+            [13, 13, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [10.5, 10.5, 0], "size": [5, 5, 2.5], "plate": true },
+        { "kind": "box", "at": [-4, -4, 0], "size": [8, 8, 7], "floors": 3.5, "vents": "+x" },
+        {
+          "kind": "box",
+          "at": [-3, -3, 7.6],
+          "size": [6, 6, 1.2],
+          "look": "accent",
+          "plate": true
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "network": {
+      "title": "network",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

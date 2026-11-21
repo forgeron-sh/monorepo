@@ -1,0 +1,24 @@
+import type { PixelIcon } from "../types";
+
+// Liver: a broad lobe on the left tapering to a point on the right.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-18.
+const icon: PixelIcon = {
+  name: "liver",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    "",
+    "",
+    "..######",
+    ".#......####",
+    "#..........#",
+    "#.........#",
+    "#.......##",
+    ".#....##",
+    "..####",
+  ],
+};
+
+export default icon;

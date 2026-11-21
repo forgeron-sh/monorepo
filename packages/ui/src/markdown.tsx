@@ -1,4 +1,10 @@
-import { Children, isValidElement, type ReactElement, type ReactNode } from "react";
+import {
+  Children,
+  isValidElement,
+  type ComponentProps,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CopyBlock } from "./copy-block";
@@ -9,7 +15,7 @@ import { cx } from "./cx";
 // `rehype-raw`), and every address goes through `safeHref` or `safeImage` below, which keep only what
 // is listed. A README is written by whoever owns the tool: it is shown to every member.
 
-export interface MarkdownProps {
+export interface MarkdownProps extends Omit<ComponentProps<"div">, "children"> {
   /** The markdown text. */
   source: string;
   /**
@@ -18,7 +24,6 @@ export interface MarkdownProps {
    * out) is not drawn.
    */
   images: Readonly<Record<string, string>>;
-  className?: string;
 }
 
 const ANCHOR_PREFIX = "md-";
@@ -172,9 +177,9 @@ function buildComponents(images: Readonly<Record<string, string>>): Components {
 }
 
 /** A README as markdown: headings with anchors, lists, task lists, tables, code with a copy button, links, images of the bundle. */
-export function Markdown({ source, images, className }: MarkdownProps) {
+export function Markdown({ source, images, className, ...rest }: MarkdownProps) {
   return (
-    <div className={cx("fg-md", className)}>
+    <div data-slot="markdown" {...rest} className={cx("fg-md", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={buildComponents(images)}

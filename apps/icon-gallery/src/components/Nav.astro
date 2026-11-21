@@ -1,0 +1,21 @@
+---
+import { ForgeronIcon, toSvg } from "@forgeron/icons";
+
+interface Props {
+  page: "gallery";
+}
+const { page } = Astro.props;
+const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
+---
+
+<nav class="nav" aria-label="Main navigation">
+  <div class="rail">
+    <a href="/" class="nav-brand" aria-label="Forgeron icons, gallery">
+      <span set:html={mark} />
+      <span class="nav-word">Forgeron<span class="dim">/</span><span class="accent">Icons</span></span>
+    </a>
+    <div class="nav-links t-mono">
+      <a href="/" aria-current={page === "gallery" ? "page" : undefined}>/0.1 Gallery</a>
+    </div>
+  </div>
+</nav>

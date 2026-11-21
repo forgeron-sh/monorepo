@@ -1,0 +1,24 @@
+---
+import { Search01Icon } from "@forgeron/icons";
+import Gallery from "../components/Gallery";
+import Layout from "../components/Layout.astro";
+import SectionHead from "../components/SectionHead.astro";
+import { catalogData } from "../lib/data";
+
+const { version, index } = catalogData();
+---
+
+<Layout title="Forgeron icons — gallery" description="Every icon of @forgeron/icons." page="gallery">
+  <section class="rail hero">
+    <SectionHead index="/0.1" label="Gallery" meta={`${index.entries.length.toLocaleString("en")} icons · ${index.categories.length} categories`}>
+      <h1 class="f-title f-h1">Every icon,<br />one grid.</h1>
+      <p class="t-lead">Our own icons, drawn on a 12-pixel grid in two tones.</p>
+    </SectionHead>
+    <canvas class="hero-dither" data-dither data-px="4" aria-hidden="true"></canvas>
+  </section>
+  <div class="rail spacer t-mono dim"><span>/0.1 → Catalog</span><span>[ Search · filter · open ]</span></div>
+  <section class="rail">
+    <link rel="preload" href={`/data/${version}/index.json`} as="fetch" crossorigin="anonymous" />
+    <Gallery client:only="react" version={version} searchIcon={Search01Icon} />
+  </section>
+</Layout>

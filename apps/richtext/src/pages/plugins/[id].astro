@@ -1,0 +1,146 @@
+---
+import Layout from "../../components/Layout.astro";
+import PluginDemo from "../../islands/PluginDemo";
+import { catalog, docOf, familyLabel, importedFrom, originOf } from "../../lib/catalog";
+import { highlight } from "../../lib/highlight";
+
+export function getStaticPaths() {
+  return catalog.map((d) => ({ params: { id: d.id } }));
+}
+
+const { id } = Astro.params;
+const doc = docOf(id as string)!;
+const family = familyLabel(doc.family);
+// The names are the ones its own usage snippet imports from each subpath (a plugin with options is a
+// factory, `pagesEditor`); else the id, which is the export name of the bundled plugins.
+const names = (module: string, fallback: string) => {
+  const found = importedFrom(doc, module);
+  return (found.length ? found : [fallback]).join(", ");
+};
+const imports = `// core half: ids, JSON, Markdown, plain text, static view. No editor is loaded.
+import { ${names(doc.core, doc.id)} } from "${doc.core}";
+
+// editor half: the Tiptap extensions and the interface.
+import { ${names(doc.editor, doc.id === "core" ? "coreEditor" : doc.id)} } from "${doc.editor}";`;
+const siblings = catalog.filter((d) => d.family === doc.family && d.id !== doc.id);
+---
+
+<Layout
+  title={`${doc.name} — Richtext plugins`}
+  description={doc.summary.replace(/`/g, "")}
+  page="plugins"
+>
+  <header class="rail sec-head">
+    <span class="sec-index">0.1</span>
+    <div class="sec-title">
+      <span class="t-mono dim"><a href="/plugins">Plugins</a> <span class="accent">/</span> <a href={`/plugins#${doc.family}`}>{family}</a></span>
+      <h1 class="f-title f-h2">{doc.name}</h1>
+      <p class="t-lead" set:html={doc.summary.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/`([^`]+)`/g, "<code>$1</code>")} />
+    </div>
+    <div class="sec-meta t-mono">
+      <div>id {doc.id}</div>
+      {doc.requires?.length ? <div>needs {doc.requires.join(", ")}</div> : null}
+      {originOf(doc.id) !== "builtin" && <div>docs/{originOf(doc.id)}</div>}
+    </div>
+  </header>
+
+  <div class="rail spacer t-mono dim"><span>/ Live demo</span><span>core{doc.requires?.length ? ` + ${doc.requires.join(" + ")}` : ""} + {doc.id}</span></div>
+  <section class="rail rt-section" aria-label="Live demo">
+    <PluginDemo id={doc.id} client:only="react" />
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/ Import</span><span>two halves, two entry points</span></div>
+  <section class="rail rt-section" aria-label="Import">
+    <div class="code" set:html={highlight(imports)} />
+    {
+      doc.requires?.length ? (
+        <p class="t-small muted">
+          Requires:{" "}
+          {doc.requires.map((r, i) => (
+            <>
+              {i > 0 && ", "}
+              {docOf(r) ? <a href={`/plugins/${r}`}><code>{r}</code></a> : <code>{r}</code>}
+            </>
+          ))}
+          . The editor puts them in front of the plugin; a list that lacks one is refused with a <code>PluginError</code>.
+        </p>
+      ) : null
+    }
+  </section>
+
+  {
+    doc.options?.length ? (
+      <>
+        <div class="rail spacer t-mono dim"><span>/ Options</span><span>what the app provides</span></div>
+        <section class="rail rt-section" aria-label="Options">
+          <div class="table-wrap">
+            <table class="props">
+              <thead>
+                <tr>
+                  <th scope="col">Option</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Default</th>
+                  <th scope="col">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.options.map((o) => (
+                  <tr>
+                    <td><code>{o.name}</code></td>
+                    <td><code class="dim-code">{o.type}</code></td>
+                    <td>{o.default ? <code class="dim-code">{o.default}</code> : <span class="dim">—</span>}</td>
+                    <td>{o.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </>
+    ) : null
+  }
+
+  {
+    doc.markdown ? (
+      <>
+        <div class="rail spacer t-mono dim"><span>/ Markdown</span><span>read and written</span></div>
+        <section class="rail rt-section" aria-label="Markdown">
+          <div class="code" set:html={highlight(doc.markdown, "markdown")} />
+        </section>
+      </>
+    ) : null
+  }
+
+  {
+    doc.notes?.length ? (
+      <>
+        <div class="rail spacer t-mono dim"><span>/ Notes</span><span>limits and degradation</span></div>
+        <section class="rail rt-section" aria-label="Notes">
+          <ul class="rt-notes-list-doc t-small">
+            {doc.notes.map((n) => (
+              <li set:html={n.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/`([^`]+)`/g, "<code>$1</code>")} />
+            ))}
+          </ul>
+        </section>
+      </>
+    ) : null
+  }
+
+  <div class="rail spacer t-mono dim"><span>/ Usage</span><span>TypeScript</span></div>
+  <section class="rail rt-section" aria-label="Usage">
+    <div class="code" set:html={highlight(doc.usage)} />
+  </section>
+
+  {
+    siblings.length ? (
+      <section class="rail rt-section rt-more" aria-label="Same family">
+        <span class="t-mono dim">Also in {family}</span>
+        <ul class="rt-chips">
+          {siblings.map((s) => (
+            <li><a class="chip" href={`/plugins/${s.id}`}>{s.name}</a></li>
+          ))}
+        </ul>
+      </section>
+    ) : null
+  }
+</Layout>

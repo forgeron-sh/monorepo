@@ -1,0 +1,11 @@
+/* Status (D-157): a tone indicator and its word. Zero specificity, so a block's own class wins. */
+:where(.fg-status) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-status-indicator {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}

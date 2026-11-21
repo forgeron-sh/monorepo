@@ -1,0 +1,9 @@
+language: typescript
+
+tasks:
+  # CPU and GLSL of every pass and built-in preset in headless Chrome (chrome-headless-shell of
+  # Playwright's cache, or CHROME): exact for the integer and ordered passes, a stated share of
+  # cells for the float ones (docs/shaders/design.md §6).
+  agreement:
+    command: bun ../../scripts/shaders/check-agreement.ts
+    inputs: ["src/**/*", "test/browser/**/*", "/scripts/shaders/check-agreement.ts"]

@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// Gem of `diamond` with a plus badge.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "diamond-plus",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".....##",
+    "....#oo#",
+    "...#oooo#",
+    "..########",
+    ".#........#",
+    ".#......o.#",
+    "..#.....o",
+    "...#..ooooo",
+    "....#...o",
+    ".....##.o",
+  ],
+};
+
+export default icon;

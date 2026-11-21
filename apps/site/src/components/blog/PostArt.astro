@@ -1,0 +1,55 @@
+---
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+
+interface Props {
+  /** An iso scene of `src/illustrations/scenes.ts`, played by Blueprint. Wins over `image`. */
+  scene?: string | undefined;
+  /** A picture, when the post has no scene. */
+  image?: ImageMetadata | undefined;
+  alt?: string | undefined;
+  /** The dithered `field` shader under the scene: for the large frames (lead, banner), not the cards. */
+  field?: boolean;
+  /** How much of the frame the scene fills, 0 to 1. */
+  fill?: number;
+  /** The `sizes` of the picture. */
+  sizes?: string;
+  /** Above the fold: the picture loads at once. */
+  eager?: boolean;
+  class?: string;
+}
+const {
+  scene,
+  image,
+  alt = "",
+  field = false,
+  fill = 0.8,
+  sizes = "100vw",
+  eager = false,
+  class: className,
+} = Astro.props;
+---
+
+<!--
+  A post's art: a Blueprint iso scene over the dotted grid (and, in the large frames, over the
+  dithered field of the home page), or a picture. The canvases mount through
+  `src/illustrations/canvas.ts` when they come near the screen; without JavaScript the frame keeps
+  its dots.
+-->
+<div class:list={["post-art", { "fg-dots": !field }, className]}>
+  {field ? <canvas class="post-art-field" data-shader="field" data-px="4" data-accent="off" aria-hidden="true" /> : null}
+  {
+    scene ? (
+      <canvas class="post-art-iso" data-iso={scene} data-scale="2" data-fill={fill} data-unit="any" aria-hidden="true" />
+    ) : image ? (
+      <Image
+        class="post-art-img"
+        src={image}
+        alt={alt}
+        widths={[480, 720, 1080, 1440, 2160]}
+        sizes={sizes}
+        loading={eager ? "eager" : "lazy"}
+      />
+    ) : null
+  }
+</div>

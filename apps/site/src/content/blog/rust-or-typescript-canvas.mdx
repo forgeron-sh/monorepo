@@ -1,0 +1,116 @@
+---
+title: "We measured Rust against TypeScript, then kept TypeScript"
+description: "Our canvas engine missed its targets at 20,000 items. A spatial index fixed it in TypeScript; Rust was faster still, on times that had stopped mattering."
+date: 2026-11-20
+category: Engineering
+authors: [forgeron]
+scene: spatial-index
+---
+
+Our canvas engine missed its own targets at 20,000 items: a hit test took half a millisecond, and moving 500 items took 67 ms. The question on the table was whether to move its core to Rust, compiled to WebAssembly. We built the Rust version, ported its algorithm back to TypeScript, and measured both. The algorithm fixed the engine in either language, so we kept TypeScript, and the Rust crate as a measured option.
+
+This post is the short version of the benchmark. The full tables, the method and the commands to rerun it are in the [lab paper](https://github.com/forgeron-sh/monorepo/blob/main/docs/benchmarks/canvas-engine.md).
+
+## The engine failed its own bar at 20,000 items
+
+`@forgeron/canvas` is the engine under our two editors, Draw (a whiteboard) and Flow (diagrams). It holds the items and answers three questions many times a second: which item is under the pointer, which items a selection box covers, which items the camera sees.
+
+Our decision record for the editors, D-148, set its bar: 20,000 items panned and zoomed at 60 frames per second, a hit test under 1 ms, and a WebAssembly module within 150 to 300 KB if we went that way.
+
+The engine scanned everything. Under Bun on an Apple M4:
+
+- A hit test copied and sorted every item before looking: 0.5 ms at the median and 1.6 ms at p99 at 20,000 items, 3 ms at 100,000. The target was 1 ms.
+- Culling tested every item: 1.4 ms a frame at 100,000 items, zoomed in.
+- Moving 500 items rebuilt the whole document once per moved item: 67 ms at 20,000 items, 450 ms at 100,000. Dragging a large selection would stutter.
+
+## A fair fight: the Rust algorithm, ported to TypeScript
+
+We wrote a crate, `fg-canvas-core`, and compiled it to WebAssembly in two builds: one tuned for size, the one we would ship, and one tuned for speed. Measured against the scanning engine, it would only have shown that an index beats a scan. So we ported the crate's algorithm to TypeScript and ran four engines side by side: the old scan, the TypeScript port, and the two Rust builds. Before timing anything, the runner checks that all four give the same answers on 500 hit tests, two box selections, 30 frames and 200 hit tests after a move.
+
+The algorithm, the same in both languages:
+
+- **A hashed grid of 256-unit cells**, about twice a typical item. An item is listed in every cell it touches; one that would touch more than 16 cells, a large frame, goes on a short list every query visits. We chose a grid over an R-tree because canvas items have similar sizes and the frequent write is a move: a move that stays in its cells rewrites four numbers.
+- **One 32-byte record per item**: bounds, depth, kind, flags and rank (the item's place in the stacking order), in one cache line.
+- **A stacking order sorted lazily**: moves leave it alone, and the next query after a change of depth sorts once.
+- **Answers in stacking order without a sort**: a query marks each kept item's rank in a bitmap and reads the bitmap in order.
+- **A scan when the grid would not pay**: past an eighth of the items, a sequential pass is faster, since sequential reads were about 8 times faster than random ones here.
+
+<Figure
+  scene="spatial-index"
+  caption="The index at work: the view covers some cells, culled items fade to outlines, and a hit test lands on one item."
+/>
+
+## The index fixed it, in either language
+
+At 20,000 items under Bun, median times:
+
+| Operation             | Scan (before) | TypeScript, indexed | Rust, size build | Rust, speed build |
+| --------------------- | ------------: | ------------------: | ---------------: | ----------------: |
+| Frame, zoomed in (ms) |         0.283 |               0.018 |            0.007 |             0.003 |
+| Hit test (µs)         |           499 |                 0.7 |              0.3 |               0.3 |
+| Move 500 items (ms)   |          67.1 |               0.071 |            0.017 |             0.012 |
+| Box selection (ms)    |         0.636 |               0.493 |            0.183 |             0.049 |
+
+Most of the gain is between the first two columns. Box selection gains least: our test box covers a quarter of the world, 5,158 items, and past an eighth of the items the engine scans instead of asking the grid. Once the index went into the production engine, a hit test took 2 µs at p99 against a 1 ms target, and moving 500 items took a fifth of a millisecond at 100,000 items.
+
+One operation got slower: opening a document now builds the index, once, in 9 ms at 20,000 items and 58 ms at 100,000.
+
+## Data layout mattered as much as the language
+
+Three changes moved the numbers as much as Rust did, and each one helped both languages:
+
+- **One record per item instead of six separate arrays.** Together with the rank bitmap, a box selection of 25,000 items out of 100,000 went from 4–8 ms to about 1 ms in native Rust. The TypeScript port gained too, by a margin our loaded machine could not pin down.
+- **No sort of the answer.** Sorting a large answer by rank cost more than finding it.
+- **A better hash.** Our first hash mixed a cell's coordinates so poorly that whole columns of cells landed in the same slot of the table, and every lookup walked a long chain.
+
+## Rust's lead, and what it would cost us
+
+On the same algorithm, Rust is 2 to 7 times faster on most paths under Bun, and 10 times on one: a box selection at 20,000 items in the speed build. In Chrome, the size build we would ship is at times no faster than TypeScript: 0.35 µs against 0.28 µs for a hit test at 20,000 items, 1.46 ms against 1.24 ms for a view of all 100,000.
+
+In absolute terms, a zoomed-in frame at 20,000 items costs 0.02 ms in TypeScript and 0.003 to 0.007 ms in Rust: both under 0.2 % of a 16.7 ms frame. The gap shows only where every item is touched each frame. A view of all 100,000 items costs 1.9 ms in TypeScript and 0.5 to 0.8 ms in Rust.
+
+The module itself is small, 37 KB or 16 KB gzipped, well inside the budget. Crossing from JavaScript into WebAssembly costs about 11 ns a call under Bun: invisible at two calls a frame, a millisecond at one call per item for 100,000 items. So a WebAssembly engine has to move its data in bulk, through buffers both sides share.
+
+What Rust would cost us:
+
+- A second toolchain in CI and on every contributor's machine: rustup, the WebAssembly target, a `wasm-bindgen` CLI pinned to the crate's exact version, `wasm-opt`.
+- A slower edit-and-compile loop for interaction work, the part of an editor we change most.
+- An engine split in two: ids, item data and kinds stay in JavaScript either way, so every feature is designed around the boundary.
+- Memory that only grows: WebAssembly memory never shrinks.
+
+So the index went into the TypeScript engine, and the crate and the benchmark stayed in the repository. Any engine, in either language, has to pass the same 14 contract tests behind the same `CanvasEngine` interface, so swapping one for the other stays a local change.
+
+## In the editors, the engine was never the cost
+
+With the engine answering in microseconds, Draw still took 7.3 ms of main-thread time per pan step. The next day we traced the editors on the M4's GPU, panning and zooming Draw with 2,000 items and Flow with 500 nodes and 700 edges. The time went to the page around the engine:
+
+- Six CSS selectors in `@forgeron/ui`, such as `.fg-avatars > * + *`, restyled the whole canvas each time culling mounted or unmounted an item. They became class selectors.
+- Culling churned on every small pan. A window with some slack now keeps items mounted until the view really leaves it.
+- The renderer rewrote the DOM every frame, the canvas re-rendered on every camera move, and the minimap repainted every item. Each now does only what changed.
+
+On Draw at its opening zoom, the main thread's time per pan step went from 7.3 ms to 5.4 ms, one fix at a time: 6.7 after the selectors, 6.4 after the cull window, 6.0 after the renderer, 5.6 with the camera outside React, 5.4 with the minimap. Long tasks, the main-thread tasks over 12 ms that a user feels as a stutter, fell from 24 to 8 over a 120-step pan. Screenshots of 11 states of the editors were identical to the pixel before and after. Promoting the world layer to its own GPU layer (`will-change: transform`) made zooming slower and shifted the pixels of our dither patterns, so we left it out.
+
+## Then the GPU took over drawing
+
+With the DOM fixed, drawing 2,000 DOM items was what remained. Over the next steps the editors moved their drawing to WebGL2:
+
+- **Far zoom.** Below 35 % in Draw and 40 % in Flow, items became GPU instances, one draw call per layer. A pan step on Draw at its opening zoom went from 5.2 ms to 2.1 ms, and long tasks from 6 to none.
+- **Every zoom.** All of Draw's shapes, arrows, pen strokes and images moved to the GPU. Dragging a selection of 2,000 items went from 62 long tasks, the longest 207 ms, to none, with frames at 16.7 ms.
+- **Words.** Every word is now drawn from an atlas of glyphs rasterized by the browser itself, at the size it takes on screen. Crossing the 35 % threshold, where words appear, went from 5.2 ms to 3.4 ms a step on the demo board.
+
+## What we did not measure, and when we revisit
+
+- **A quiet machine.** The engine benchmark ran with a load average of 38 to 41 on 10 cores. Every absolute number here is noisier and slower than on a quiet machine, the p99s most of all. The engines were measured in the same conditions minutes apart, so we read their ratios, and we will rerun on a quiet machine before quoting an absolute.
+- **A real GPU for the engine run.** Headless Chrome drew with SwiftShader, a CPU rasterizer, so that run measured the CPU side of a frame only. The editor traces did use the M4's GPU.
+- **A throttled CPU.** At 4 times CPU throttling, Draw still has long tasks in some pans and zooms, mostly from rebuilding its GPU buffers when the view moves. The next step is to repack only what changed.
+
+We will revisit Rust when a workload needs per-frame CPU work for every visible item, at thousands of items, or when a view of 100,000 items on a mid-range laptop shows the TypeScript buffer build in its profile. The benchmark named the first candidate, and it has arrived: Blueprint, the engine that draws this site's isometric illustrations, animates many items every frame, and it now renders from a Rust core.
+
+To rerun the benchmark:
+
+```sh
+cargo test -p fg-canvas-core              # the crate agrees with a linear scan
+bun packages/canvas/bench/build-wasm.ts   # builds both variants, prints their sizes
+bun packages/canvas/bench/run.ts          # Bun, JavaScriptCore
+bun packages/canvas/bench/browser.ts      # headless Chrome, V8 and WebGL2
+```

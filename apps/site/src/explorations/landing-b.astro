@@ -1,0 +1,510 @@
+---
+import Footer from "./lab/Footer.astro";
+import LabLayout from "./lab/LabLayout.astro";
+import Nav from "./lab/Nav.astro";
+import PixelTitle from "./lab/PixelTitle.astro";
+import SectionHead from "./lab/SectionHead.astro";
+import { pixelLogo, pixelText } from "./lab/pixel";
+
+const doors = [
+  { name: "MCP", shader: "ember", text: "Your teams use the tool from Claude, with their own rights." },
+  { name: "API", shader: "field", text: "A REST endpoint per action, for your scripts and other tools." },
+  { name: "Web", shader: "globe", text: "The tool's own web interface, behind your company's SSO." },
+  { name: "CLI", shader: "dissolve", text: "forgeron <tool> <action>, with --json for scripts." },
+];
+
+const steps = [
+  { n: "01", iso: "module", title: "Write", text: "Define actions, inputs and access with the SDK." },
+  { n: "02", iso: "blocks", title: "Push", text: "Every push is a version. Preview it, then promote it." },
+  { n: "03", iso: "network", title: "Use", text: "From Claude, the API, the web and the terminal." },
+];
+---
+
+<LabLayout title="Forgeron — Spec sheet (lab B)" description="Landing exploration B: poster, spec sheet, dithered cards.">
+  <Nav />
+
+  <main>
+    <!-- HERO: spec poster -->
+    <section id="top" class="rail poster">
+      <div class="poster-top pad">
+        <div class="poster-id">
+          <div class="big-bit" set:html={pixelText("F1")} />
+          <span class="t-mono">Tool<br />forge</span>
+        </div>
+        <div class="big-bit" set:html={pixelText("01")} />
+      </div>
+      <div class="poster-art dots-bg">
+        <canvas data-iso="module" data-fill="0.7" aria-hidden="true"></canvas>
+        <span class="callout c-a t-mono"><span class="tick-line"></span>Interfaces · MCP</span>
+        <span class="callout c-b t-mono"><span class="tick-line"></span>Actions · read / write</span>
+        <span class="callout c-c t-mono"><span class="tick-line"></span>Runtime · Workers</span>
+      </div>
+      <div class="poster-head pad">
+        <PixelTitle as="h1" class="t-h2" text={"Internal tools,\nforged once."} />
+        <div class="poster-cta">
+          <a class="btn btn-primary" href="#start"><span class="sq"></span>Get started</a>
+          <span class="cmd"><span class="p">$</span>npx forgeron init</span>
+        </div>
+      </div>
+      <div class="poster-spec">
+        <div>
+          <span class="t-mono dim">Overview</span>
+          <p class="t-small">Write a tool once. It's versioned, deployed and served behind your company's SSO.</p>
+        </div>
+        <div>
+          <span class="t-mono dim">Interfaces</span>
+          <p class="t-mono">MCP · API<br />Web · CLI</p>
+        </div>
+        <div>
+          <span class="t-mono dim">Runtime</span>
+          <p class="t-mono">Cloudflare<br />Workers</p>
+        </div>
+        <div>
+          <span class="t-mono dim">License</span>
+          <p class="t-mono">Open source<br />Apache-2.0</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0.1 BEFORE / AFTER -->
+    <section id="system" class="rail">
+      <SectionHead index="/0.1" label="Why" meta="Before → after">
+        <PixelTitle as="h2" class="t-h2" text={"Less suite, more tool"} />
+      </SectionHead>
+      <div class="versus">
+        <div class="vs-side">
+          <div class="vs-art"><canvas data-shader="dissolve" data-px="6" data-accent="off" aria-hidden="true"></canvas></div>
+          <div class="vs-copy">
+            <span class="t-mono dim">Today</span>
+            <PixelTitle as="h3" class="t-h3 muted" text={"A giant suite"} />
+            <ul class="t-small">
+              <li>— Licenses for modules nobody opens</li>
+              <li>— A fixed interface, heavy to adapt</li>
+              <li>— No clean access from an AI assistant</li>
+            </ul>
+          </div>
+        </div>
+        <div class="vs-side vs-on">
+          <div class="vs-art"><canvas data-iso="cube" aria-hidden="true"></canvas></div>
+          <div class="vs-copy">
+            <span class="t-mono accent">With Forgeron</span>
+            <PixelTitle as="h3" class="t-h3" text={"Tools forged to fit"} />
+            <ul class="t-small">
+              <li>■ Only the tools you need</li>
+              <li>■ Usable from Claude, an API, the terminal, the web</li>
+              <li>■ Hosted by us or by you, open source</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0.2 DOORS -->
+    <section id="interfaces" class="rail">
+      <SectionHead index="/0.2" label="Interfaces" meta="1 definition · 4 doors">
+        <PixelTitle as="h2" class="t-h2" text={"Pick a door"} />
+      </SectionHead>
+      <div class="doors">
+        {
+          doors.map((d, i) => (
+            <article class="door ticks">
+              <div class="door-art">
+                <canvas data-shader={d.shader} data-px="5" data-accent={i === 0 ? "on" : "off"} aria-hidden="true" />
+              </div>
+              <div class="door-copy">
+                <span class="t-mono dim">0{i + 1}</span>
+                <PixelTitle as="h3" class="door-name" text={d.name} />
+                <p class="t-small">{d.text}</p>
+              </div>
+              <a class={i === 0 ? "btn btn-primary door-btn" : "btn door-btn"} href="#start">
+                Explore {d.name}
+              </a>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- 0.3 PROCESS -->
+    <section id="sdk" class="rail">
+      <SectionHead index="/0.3" label="Process" meta="3 steps">
+        <PixelTitle as="h2" class="t-h2" text={"Write, push, use"} />
+      </SectionHead>
+      <ol class="steps">
+        {
+          steps.map((s) => (
+            <li>
+              <div class="step-art">
+                <canvas data-iso={s.iso} data-fill="0.78" aria-hidden="true" />
+              </div>
+              <div class="step-copy">
+                <div class="step-n" set:html={pixelText(s.n)} />
+                <h3 class="t-title">{s.title}</h3>
+                <p class="t-small">{s.text}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <!-- 0.4 STATEMENT -->
+    <section id="deploy" class="rail statement">
+      <div class="statement-copy pad">
+        <span class="tag"><b>/0.4</b> Thesis</span>
+        <PixelTitle as="p" class="t-h3" text={"Your teams talk to Claude. They no longer need an ERP."} />
+        <p class="t-small">
+          When the interface becomes the conversation, what matters is that data and actions work.
+        </p>
+      </div>
+      <div class="statement-art" set:html={pixelLogo(40, "fade")} />
+    </section>
+
+    <!-- CTA -->
+    <section id="start" class="rail cta-b">
+      <div class="pad cta-b-inner">
+        <PixelTitle as="h2" class="t-hero" text={"Start\nforging."} />
+        <div class="poster-cta">
+          <a class="btn btn-primary" href="#start"><span class="sq"></span>Get started</a>
+          <a class="btn" href="#github">Read the docs</a>
+        </div>
+      </div>
+      <canvas data-shader="ember" data-px="6" aria-hidden="true"></canvas>
+    </section>
+  </main>
+
+  <Footer />
+</LabLayout>
+
+<style>
+  .poster {
+    border-bottom: 1px solid var(--line);
+  }
+  .poster-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-top: 32px;
+    padding-bottom: 16px;
+  }
+  .poster-id {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .big-bit {
+    height: clamp(48px, 8vw, 104px);
+  }
+  .big-bit :global(svg) {
+    height: 100%;
+    width: auto;
+    display: block;
+  }
+  .poster-art {
+    position: relative;
+    height: clamp(380px, 52vh, 560px);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .poster-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .callout {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-muted);
+  }
+  .tick-line {
+    width: 64px;
+    height: 1px;
+    background: var(--ink-dim);
+    position: relative;
+  }
+  .tick-line::before {
+    content: "";
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    width: 6px;
+    height: 6px;
+    background: var(--ink);
+  }
+  .c-a {
+    top: 18%;
+    left: 60%;
+  }
+  .c-b {
+    top: 47%;
+    left: 62%;
+  }
+  .c-c {
+    top: 74%;
+    left: 60%;
+  }
+  .c-b .tick-line::before {
+    background: var(--accent);
+  }
+  @media (max-width: 760px) {
+    .callout {
+      display: none;
+    }
+  }
+  .poster-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  .poster-cta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .poster-spec {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    border-top: 1px solid var(--line);
+  }
+  .poster-spec > div {
+    padding: 20px var(--gutter) 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-right: 1px solid var(--line);
+  }
+  .poster-spec > div:last-child {
+    border-right: 0;
+  }
+  @media (max-width: 760px) {
+    .poster-spec {
+      grid-template-columns: 1fr 1fr;
+    }
+    .poster-spec > div:first-child {
+      grid-column: span 2;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .versus {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .vs-side {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--line);
+  }
+  .vs-side:last-child {
+    border-right: 0;
+  }
+  .vs-art {
+    position: relative;
+    height: 300px;
+    border-bottom: 1px solid var(--line);
+  }
+  .vs-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .vs-side:first-child .vs-art canvas {
+    transform: scaleX(-1);
+    opacity: 0.5;
+  }
+  .vs-copy {
+    padding: 28px var(--gutter) 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .vs-copy ul {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .vs-on .vs-copy li {
+    color: var(--ink);
+  }
+  @media (max-width: 760px) {
+    .versus {
+      grid-template-columns: 1fr;
+    }
+    .vs-side {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .doors {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 32px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .door {
+    border: 1px solid var(--line-strong);
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s;
+  }
+  .door:hover {
+    border-color: var(--ink-dim);
+  }
+  .door-art {
+    position: relative;
+    height: 220px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .door-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .door-copy {
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+  .door-copy :global(.door-name) {
+    font-size: 42px;
+  }
+  .door-btn {
+    margin: 0 16px 16px;
+    justify-content: center;
+  }
+  @media (max-width: 960px) {
+    .doors {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 560px) {
+    .doors {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .steps li {
+    border-right: 1px solid var(--line);
+  }
+  .steps li:last-child {
+    border-right: 0;
+  }
+  .step-art {
+    position: relative;
+    height: 280px;
+    border-bottom: 1px solid var(--line);
+  }
+  .step-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .step-copy {
+    padding: 20px var(--gutter) 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .step-n {
+    height: 28px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .step-n :global(svg) {
+    height: 100%;
+    width: auto;
+    display: block;
+  }
+  @media (max-width: 760px) {
+    .steps {
+      grid-template-columns: 1fr;
+    }
+    .steps li {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .statement {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .statement-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 80px;
+    padding-bottom: 80px;
+  }
+  .statement-copy :global(.px-title) {
+    max-width: 22em;
+  }
+  .statement-art {
+    padding: 48px;
+    color: var(--ink);
+    border-left: 1px solid var(--line);
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+  .statement-art :global(svg) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  @media (max-width: 760px) {
+    .statement {
+      grid-template-columns: 1fr;
+    }
+    .statement-art {
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+  }
+
+  .cta-b {
+    position: relative;
+    min-height: 560px;
+    display: flex;
+    align-items: flex-start;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .cta-b > canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .cta-b-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding-top: 64px;
+  }
+</style>

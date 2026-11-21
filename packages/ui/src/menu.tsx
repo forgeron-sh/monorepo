@@ -1,5 +1,19 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+// A button that opens a menu of links, actions and one-of-many choices. A preset over the
+// DropdownMenu parts (dropdown-menu.tsx), so focus, arrows, typeahead, Escape and dismissal are
+// Base UI's Menu. Without `entries`, `Menu` is the root of those parts (shadcn's composition, D-156).
+
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { cx } from "./cx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";
 
 export type MenuEntry =
   | { kind: "link"; label: ReactNode; href: string; onSelect?: (href: string) => void }
@@ -10,7 +24,10 @@ export type MenuEntry =
   | { kind: "text"; label: ReactNode }
   | { kind: "separator" };
 
-export interface MenuProps {
+export interface MenuProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "onSelect" | "title"
+> {
   /** What the button shows: a name, an avatar, a chevron. */
   trigger: ReactNode;
   /** Accessible name of the button and of the menu. */
@@ -18,175 +35,154 @@ export interface MenuProps {
   entries: ReadonlyArray<MenuEntry>;
   /** Where the menu opens: `above` for a button at the bottom of the screen. */
   placement?: "below" | "above";
+  /** Which edge of the button the menu lines up with. */
+  align?: "start" | "center" | "end";
   className?: string;
 }
 
-const ITEMS = '[role="menuitem"], [role="menuitemradio"]';
+/** `entries` stays undefined: with entries, `Menu` is the props-driven one. */
+export type MenuRootProps = ComponentProps<typeof DropdownMenu> & { entries?: undefined };
 
 /**
- * A button that opens a menu of links, actions and one-of-many choices. Focus goes to the first
- * item (the checked one for a choice); Up, Down, Home and End move; Escape closes and returns focus
- * to the button; Tab and a click outside close it.
+ * With `entries`: a button that opens a menu of links, actions and one-of-many choices. Focus goes
+ * to the first item (the checked one for a choice); Up, Down, Home and End move; Escape closes and
+ * returns focus to the button; Tab and a click outside close it. Without `entries`: the root of the
+ * DropdownMenu parts (`DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem`…).
  */
-export function Menu({ trigger, label, entries, placement = "below", className }: MenuProps) {
-  const id = useId();
+export function Menu(props: MenuProps | MenuRootProps) {
+  if (props.entries !== undefined) return <MenuPreset {...(props as MenuProps)} />;
+  const { entries: _entries, ...root } = props as MenuRootProps;
+  return <DropdownMenu {...root} />;
+}
+
+const plainClick = (e: {
+  button: number;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
+/** Consecutive choices share one radio group; everything else stands alone. */
+function drawEntries(entries: ReadonlyArray<MenuEntry>): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i]!;
+    switch (entry.kind) {
+      case "separator":
+        nodes.push(<DropdownMenuSeparator key={i} className="fg-menu-sep" />);
+        break;
+      case "heading":
+        nodes.push(
+          <DropdownMenuLabel key={i} role="presentation" className="fg-menu-heading">
+            {entry.label}
+          </DropdownMenuLabel>,
+        );
+        break;
+      case "text":
+        nodes.push(
+          <div key={i} role="presentation" className="fg-menu-text">
+            {entry.label}
+          </div>,
+        );
+        break;
+      case "link":
+        nodes.push(
+          <DropdownMenuItem
+            key={i}
+            className="fg-menu-item"
+            render={<a href={entry.href} />}
+            onClick={(e) => {
+              if (entry.onSelect && plainClick(e)) {
+                e.preventDefault();
+                entry.onSelect(entry.href);
+              }
+            }}
+          >
+            {entry.label}
+          </DropdownMenuItem>,
+        );
+        break;
+      case "action":
+        nodes.push(
+          <DropdownMenuItem
+            key={i}
+            className="fg-menu-item"
+            variant={entry.tone === "danger" ? "destructive" : "default"}
+            onClick={() => entry.onSelect()}
+          >
+            {entry.label}
+          </DropdownMenuItem>,
+        );
+        break;
+      case "radio": {
+        const start = i;
+        const run: Array<Extract<MenuEntry, { kind: "radio" }>> = [];
+        while (i < entries.length && entries[i]!.kind === "radio") {
+          run.push(entries[i] as Extract<MenuEntry, { kind: "radio" }>);
+          i++;
+        }
+        i--;
+        const checked = run.findIndex((r) => r.checked);
+        nodes.push(
+          <DropdownMenuRadioGroup key={start} value={checked < 0 ? "" : String(checked)}>
+            {run.map((r, j) => (
+              <DropdownMenuRadioItem
+                key={j}
+                value={String(j)}
+                className="fg-menu-item"
+                closeOnClick
+                onClick={() => r.onSelect()}
+              >
+                {r.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>,
+        );
+        break;
+      }
+    }
+  }
+  return nodes;
+}
+
+function MenuPreset({
+  trigger,
+  label,
+  entries,
+  placement = "below",
+  align = "start",
+  className,
+  ...rest
+}: MenuProps) {
   const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
 
+  // A choice menu opens on the current choice, not on the first row.
   useEffect(() => {
     if (!open) return;
-    const items = [...(list.current?.querySelectorAll<HTMLElement>(ITEMS) ?? [])];
-    (items.find((i) => i.getAttribute("aria-checked") === "true") ?? items[0])?.focus();
-    const outside = (e: MouseEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", outside);
-    return () => document.removeEventListener("mousedown", outside);
+    const frame = requestAnimationFrame(() =>
+      list.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus(),
+    );
+    return () => cancelAnimationFrame(frame);
   }, [open]);
 
-  const close = (refocus: boolean) => {
-    setOpen(false);
-    if (refocus) button.current?.focus();
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape") {
-      event.stopPropagation();
-      close(true);
-      return;
-    }
-    if (event.key === "Tab") {
-      setOpen(false);
-      return;
-    }
-    const items = [...(list.current?.querySelectorAll<HTMLElement>(ITEMS) ?? [])];
-    const at = items.indexOf(document.activeElement as HTMLElement);
-    const next =
-      event.key === "ArrowDown"
-        ? (at + 1) % items.length
-        : event.key === "ArrowUp"
-          ? (at - 1 + items.length) % items.length
-          : event.key === "Home"
-            ? 0
-            : event.key === "End"
-              ? items.length - 1
-              : -1;
-    if (next < 0) return;
-    event.preventDefault();
-    items[next]?.focus();
-  };
-
   return (
-    <div ref={root} className={cx("fg-menu", className)}>
-      <button
-        ref={button}
-        type="button"
-        className="fg-menu-trigger"
-        aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? `${id}-menu` : undefined}
-        onClick={() => setOpen(!open)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-            e.preventDefault();
-            setOpen(true);
-          }
-        }}
-      >
-        {trigger}
-      </button>
-      {open ? (
-        <div
+    <div data-slot="menu" {...rest} className={cx("fg-menu", className)}>
+      <DropdownMenu open={open} onOpenChange={(next) => setOpen(next)}>
+        <DropdownMenuTrigger className="fg-menu-trigger" aria-label={label}>
+          {trigger}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
           ref={list}
-          id={`${id}-menu`}
-          role="menu"
+          side={placement === "above" ? "top" : "bottom"}
+          align={align}
+          className="fg-menu-list"
           aria-label={label}
-          className={cx("fg-menu-list", placement === "above" && "fg-menu-above")}
-          onKeyDown={onKeyDown}
         >
-          {entries.map((entry, i) => {
-            switch (entry.kind) {
-              case "separator":
-                return <div key={i} role="separator" className="fg-menu-sep" />;
-              case "heading":
-                return (
-                  <div key={i} role="presentation" className="fg-menu-heading">
-                    {entry.label}
-                  </div>
-                );
-              case "text":
-                return (
-                  <div key={i} role="presentation" className="fg-menu-text">
-                    {entry.label}
-                  </div>
-                );
-              case "link":
-                return (
-                  <a
-                    key={i}
-                    role="menuitem"
-                    href={entry.href}
-                    tabIndex={-1}
-                    className="fg-menu-item"
-                    onClick={(e) => {
-                      close(false);
-                      if (
-                        entry.onSelect &&
-                        e.button === 0 &&
-                        !e.metaKey &&
-                        !e.ctrlKey &&
-                        !e.shiftKey &&
-                        !e.altKey
-                      ) {
-                        e.preventDefault();
-                        entry.onSelect(entry.href);
-                      }
-                    }}
-                  >
-                    {entry.label}
-                  </a>
-                );
-              case "radio":
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={entry.checked}
-                    tabIndex={-1}
-                    className="fg-menu-item"
-                    onClick={() => {
-                      entry.onSelect();
-                      close(true);
-                    }}
-                  >
-                    <span>{entry.label}</span>
-                    {entry.checked ? <span aria-hidden="true">✓</span> : null}
-                  </button>
-                );
-              case "action":
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    role="menuitem"
-                    tabIndex={-1}
-                    className={cx("fg-menu-item", entry.tone === "danger" && "fg-menu-danger")}
-                    onClick={() => {
-                      close(false);
-                      entry.onSelect();
-                    }}
-                  >
-                    {entry.label}
-                  </button>
-                );
-            }
-          })}
-        </div>
-      ) : null}
+          {drawEntries(entries)}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

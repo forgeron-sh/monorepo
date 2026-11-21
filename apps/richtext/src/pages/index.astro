@@ -1,0 +1,75 @@
+---
+import Layout from "../components/Layout.astro";
+import Picker from "../islands/Picker";
+import { catalog, families } from "../lib/catalog";
+import { entries } from "../lib/entries";
+
+const facts = [
+  ["Minimal core", "Paragraphs, text and line breaks, with a history. Nothing else is in there until you ask."],
+  ["Plugins of two halves", "A core half (JSON, Markdown, static view) with no editor in it, and an editor half (Tiptap, the menus). Read-only places load the first only."],
+  ["Headless, ours on top", "Tiptap 3 on ProseMirror with no interface of its own. The menus are @forgeron/ui and pixel icons."],
+  ["Yjs built in", "Give the editor a Y.Doc and it reads and writes it, with the other carets. Every dependency is MIT."],
+] as const;
+---
+
+<Layout
+  title="Richtext — the page editor as a list of plugins"
+  description="@forgeron/richtext is a page editor with a minimal core where every feature is a plugin: marks, blocks, tables, references, menus. A catalog with a live demo of each, and a playground."
+  page="home"
+>
+  <section class="rail rt-hero">
+    <span class="tag"><b>@forgeron/richtext</b> plugins</span>
+    <h1 class="f-title f-h1">Richtext</h1>
+    <p class="t-lead">
+      A page editor that is only paragraphs until you add plugins. Marks, blocks, tables, references and the
+      menus are plugins: one list says what an editor is.
+    </p>
+    <div class="rt-actions">
+      <a class="btn btn-primary" href="/plugins"><span class="sq"></span>Browse {catalog.length} plugins</a>
+    </div>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/01 → What it is</span><span>D-151 · D-152</span></div>
+
+  <section class="rail bento rt-facts" aria-label="What the editor is">
+    {
+      facts.map(([title, body], i) => (
+        <article class="cell c3">
+          <div class="copy">
+            <span class="t-mono accent">0{i + 1}</span>
+            <h2 class="t-title">{title}</h2>
+            <p class="t-small">{body}</p>
+          </div>
+        </article>
+      ))
+    }
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/02 → Build your editor</span><span>tick a plugin, the editor is rebuilt</span></div>
+
+  <section class="rail rt-section" aria-label="Build an editor from plugins">
+    <Picker entries={entries} client:only="react" />
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/03 → The catalog</span><span>a live demo of each</span></div>
+
+  <section class="rail rt-section rt-families" aria-label="The catalog">
+    {
+      families.map((f) => (
+        <div class="rt-family">
+          <h2 class="t-title">{f.label}</h2>
+          <ul class="rt-chips">
+            {f.docs.map((d) => (
+              <li>
+                <a class="chip" href={`/plugins/${d.id}`}>
+                  {d.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+    <p class="t-mono"><a href="/plugins">All plugins →</a></p>
+  </section>
+</Layout>

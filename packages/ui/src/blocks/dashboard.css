@@ -1,0 +1,355 @@
+/* Blocks of the "dashboard and analytics" group: the grid of widgets, the frame of a widget, the
+   comparison of periods, the picker of a question. Values come from tokens/tokens.css. Prefix:
+   fg-dash. The pixel charts have their own sheet: parts-charts.css. */
+
+/* ---------------------------------------------------------------- widget frame */
+
+.fg-dash-frame {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 100%;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-dash-frame-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) 0 var(--space-4);
+}
+.fg-dash-frame-grip {
+  display: inline-flex;
+  flex: none;
+  margin: 2px 0 0 calc(var(--space-2) * -1);
+  color: var(--ink-dim);
+  cursor: grab;
+}
+.fg-dash-frame-titles {
+  flex: 1;
+  min-width: 0;
+}
+.fg-dash-frame-title {
+  overflow: hidden;
+  margin: 0;
+  font: 500 11px/24px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-muted);
+}
+.fg-dash-frame-sub {
+  overflow: hidden;
+  margin: 0;
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dash-frame-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+.fg-dash-frame-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  overflow: auto;
+}
+.fg-dash-frame-foot {
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--border-width) solid var(--line);
+  color: var(--ink-dim);
+  font: 400 11.5px/16px var(--font-mono);
+}
+.fg-dash-frame-skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fg-dash-frame-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 80px;
+  padding: var(--space-4);
+  color: var(--ink-dim);
+  text-align: center;
+}
+.fg-dash-frame-state p {
+  margin: 0;
+}
+.fg-dash-frame-error {
+  color: var(--danger);
+}
+.fg-dash-frame-error p {
+  color: var(--ink-muted);
+}
+.fg-dash-wide.fg-dialog {
+  max-width: min(1080px, calc(100vw - 48px));
+}
+
+/* ---------------------------------------------------------------- widget grid */
+
+.fg-dash-gridwrap {
+  min-width: 0;
+  outline: none;
+}
+.fg-dash-editbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) dashed var(--line-strong);
+  background: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+.fg-dash-edithint {
+  padding: 0 var(--space-1);
+  background: var(--bg);
+  color: var(--ink-muted);
+  font: 400 11.5px/16px var(--font-mono);
+}
+.fg-dash-gridempty {
+  padding: var(--space-8) var(--space-4);
+  border: var(--border-width) dashed var(--line-strong);
+  color: var(--ink-dim);
+  text-align: center;
+}
+.fg-dash-grid {
+  position: relative;
+  height: calc(
+    var(--fg-dash-rows) * (var(--fg-dash-row) + var(--fg-dash-gap)) - var(--fg-dash-gap)
+  );
+}
+.fg-dash-cell {
+  position: absolute;
+  top: calc(var(--y) * (var(--fg-dash-row) + var(--fg-dash-gap)));
+  left: calc((100% + var(--fg-dash-gap)) / var(--fg-dash-cols) * var(--x));
+  width: calc((100% + var(--fg-dash-gap)) / var(--fg-dash-cols) * var(--w) - var(--fg-dash-gap));
+  height: calc(var(--h) * (var(--fg-dash-row) + var(--fg-dash-gap)) - var(--fg-dash-gap));
+  min-width: 0;
+  transition:
+    top var(--motion-base),
+    left var(--motion-base),
+    width var(--motion-base),
+    height var(--motion-base);
+}
+.fg-dash-grid-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fg-dash-gap);
+  height: auto;
+}
+.fg-dash-grid-stack .fg-dash-cell {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: auto;
+  height: calc(var(--h) * (var(--fg-dash-row) + var(--fg-dash-gap)) - var(--fg-dash-gap));
+}
+.fg-dash-content {
+  height: 100%;
+  min-width: 0;
+}
+.fg-dash-content > .fg-dash-frame {
+  height: 100%;
+}
+.fg-dash-cell-edit {
+  outline: 1px dashed var(--line-strong);
+  outline-offset: 0;
+}
+.fg-dash-cell-edit .fg-dash-content {
+  opacity: 0.55;
+}
+.fg-dash-grab {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink);
+  cursor: grab;
+  touch-action: none;
+}
+.fg-dash-grab:hover {
+  background-color: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.fg-dash-grab:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-dash-grab-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: calc(100% - 40px);
+  margin: var(--space-2);
+  padding: 2px var(--space-2);
+  overflow: hidden;
+  background: var(--bg);
+  border: var(--border-width) solid var(--line-strong);
+  font: 500 10.5px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fg-dash-dragging {
+  z-index: 3;
+  transition: none;
+  outline: 1px solid var(--accent);
+}
+.fg-dash-dragging .fg-dash-grab {
+  cursor: grabbing;
+}
+.fg-dash-size {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, transparent 50%, var(--ink) 50%);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+.fg-dash-remove {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+.fg-dash-remove:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.fg-dash-remove:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* ---------------------------------------------------------------- compare */
+
+.fg-dash-compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  color: var(--ink);
+}
+.fg-dash-compare-vs {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-dash-compare-sum {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  color: var(--ink);
+  font: 400 11.5px/16px var(--font-mono);
+}
+.fg-dash-compare-prev {
+  color: var(--ink-dim);
+}
+
+/* ---------------------------------------------------------------- metric picker */
+
+.fg-dash-mp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-dash-mp-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-dash-mp-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--ink-dim);
+  font: 500 10.5px/16px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-dash-mp-n {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+}
+.fg-dash-mp-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-raised);
+}
+.fg-dash-mp-word {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-dash-mp-sum {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--accent);
+  color: var(--ink);
+  font: 400 12px/18px var(--font-mono);
+}
+
+/* ---------------------------------------------------------------- narrow and calm */
+
+@media (prefers-reduced-motion: reduce) {
+  .fg-dash-cell,
+  .fg-dash-grab,
+  .fg-dash-frame * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

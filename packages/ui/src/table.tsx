@@ -1,4 +1,11 @@
-import type { Key, ReactNode } from "react";
+import type {
+  HTMLAttributes,
+  Key,
+  ReactNode,
+  TableHTMLAttributes,
+  TdHTMLAttributes,
+  ThHTMLAttributes,
+} from "react";
 import { cx } from "./cx";
 
 export interface TableColumn<Row> {
@@ -11,7 +18,10 @@ export interface TableColumn<Row> {
   render?: (row: Row) => ReactNode;
 }
 
-export interface TableProps<Row> {
+export interface TableProps<Row> extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "className" | "children" | "onClick"
+> {
   columns: ReadonlyArray<TableColumn<Row>>;
   rows: ReadonlyArray<Row>;
   rowKey: (row: Row) => Key;
@@ -19,21 +29,79 @@ export interface TableProps<Row> {
   onRowClick?: (row: Row) => void;
   /** Shown when `rows` is empty. */
   empty?: ReactNode;
+  /** Names the table for assistive technology, when no heading does. */
+  label?: string;
   className?: string;
 }
 
-/** Data table, 44px rows, header in `Label` style. */
-export function Table<Row>({
+/** `columns` stays undefined: with columns, `Table` is the data one. */
+export type TableRootProps = TableHTMLAttributes<HTMLTableElement> & {
+  columns?: undefined;
+  /** Classes of the scrolling frame around the `<table>`. */
+  containerClassName?: string;
+};
+
+/**
+ * With `columns` and `rows`: a data table, 44px rows, a mono header; a clickable row is a button on
+ * Enter and Space. Without: the root of shadcn's parts (`TableHeader`, `TableBody`, `TableRow`,
+ * `TableHead`, `TableCell`…), D-156.
+ */
+export function Table<Row>(props: TableProps<Row> | TableRootProps) {
+  return props.columns !== undefined ? (
+    <DataTable {...(props as TableProps<Row>)} />
+  ) : (
+    <TableRoot {...(props as TableRootProps)} />
+  );
+}
+
+function TableRoot({ className, containerClassName, columns: _columns, ...rest }: TableRootProps) {
+  return (
+    <div data-slot="table-container" className={cx("fg-table-wrap", containerClassName)}>
+      <table data-slot="table" {...rest} className={cx("fg-table", className)} />
+    </div>
+  );
+}
+
+type RowProps = HTMLAttributes<HTMLTableRowElement>;
+type SectionProps = HTMLAttributes<HTMLTableSectionElement>;
+
+export function TableHeader({ className, ...rest }: SectionProps) {
+  return <thead data-slot="table-header" {...rest} className={cx("fg-table-header", className)} />;
+}
+export function TableBody({ className, ...rest }: SectionProps) {
+  return <tbody data-slot="table-body" {...rest} className={cx("fg-table-body", className)} />;
+}
+export function TableFooter({ className, ...rest }: SectionProps) {
+  return <tfoot data-slot="table-footer" {...rest} className={cx("fg-table-footer", className)} />;
+}
+export function TableRow({ className, ...rest }: RowProps) {
+  return <tr data-slot="table-row" {...rest} className={cx("fg-table-row", className)} />;
+}
+export function TableHead({ className, ...rest }: ThHTMLAttributes<HTMLTableCellElement>) {
+  return <th data-slot="table-head" {...rest} className={cx("fg-table-head", className)} />;
+}
+export function TableCell({ className, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
+  return <td data-slot="table-cell" {...rest} className={cx("fg-table-cell", className)} />;
+}
+export function TableCaption({ className, ...rest }: HTMLAttributes<HTMLTableCaptionElement>) {
+  return (
+    <caption data-slot="table-caption" {...rest} className={cx("fg-table-caption", className)} />
+  );
+}
+
+function DataTable<Row>({
   columns,
   rows,
   rowKey,
   onRowClick,
   empty = "Nothing to show",
+  label,
   className,
+  ...rest
 }: TableProps<Row>) {
   return (
-    <div className={cx("fg-table-wrap", className)}>
-      <table className="fg-table">
+    <div data-slot="table-container" {...rest} className={cx("fg-table-wrap", className)}>
+      <table data-slot="table" className="fg-table" aria-label={label}>
         <thead>
           <tr>
             {columns.map((c) => (

@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// Two overlapping square outlines, their shared square in the secondary tone.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "squares-intersect",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".#######",
+    ".#.....#",
+    ".#.....#",
+    ".#..oooo###",
+    ".#..o..o..#",
+    ".#..o..o..#",
+    ".###oooo..#",
+    "....#.....#",
+    "....#.....#",
+    "....#######",
+  ],
+};
+
+export default icon;

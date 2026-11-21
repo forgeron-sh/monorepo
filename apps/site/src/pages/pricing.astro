@@ -1,0 +1,1041 @@
+---
+import { GithubIcon } from "@forgeron/icons";
+import {
+  ArtCard,
+  Button,
+  CardGrid,
+  CommandLine,
+  CompareTable,
+  Faq,
+  FigureGrid,
+  Icon,
+  LogoTile,
+  PlanCard,
+  PlanGrid,
+  SectionBand,
+  SectionHead,
+  Stepper,
+  Title,
+} from "@forgeron/ui";
+import Footer from "../components/Footer.astro";
+import PagesNav from "../components/PagesNav.astro";
+import { GITHUB, plans, SELF_HOST } from "../data/plans";
+import { FORGERON_SEAT, READ_ON, stack } from "../data/stack";
+import { AI_READ_ON, aiCost, aiExample, aiModels, aiSources, BALANCE, fmt, lineCost, meterGroups, money, scenarioCost, scenarios } from "../data/usage";
+import Site from "../layouts/Site.astro";
+
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+/** Why Forgeron Cloud: what Cloudflare's platform gives every tool, and what we add on top. */
+const reasons = [
+  {
+    iso: "host-cloud",
+    name: "Updates, applied for you",
+    text: "New versions of the platform and security patches land without you lifting a finger.",
+  },
+  {
+    iso: "isolated",
+    name: "A Worker per tool",
+    text: "Each tool runs on its own, per environment, with its own database, files and cache.",
+  },
+  {
+    iso: "bolt",
+    name: "No cold starts",
+    text: "Workers run on V8 isolates: a tool answers at once, even after a quiet night.",
+  },
+  {
+    iso: "drawer",
+    name: "Files without egress fees",
+    text: "Cloudflare charges no egress on Workers: files go out as often as your teams need.",
+  },
+  {
+    iso: "safe",
+    name: "One vault",
+    text: "Application secrets and each person's keys, sealed by the platform.",
+  },
+  {
+    iso: "dashboard",
+    name: "Every call, measured",
+    text: "Calls, time per call, errors and logs, per tool, with no setup.",
+  },
+];
+
+/**
+ * Cloudflare's network, read on 17 Nov 2026: cloudflare.com/network (cities, latency,
+ * interconnections), cloudflare.com/products/workers (cold starts),
+ * developers.cloudflare.com/workers/platform/pricing (egress, updated 13 Nov 2026).
+ */
+const network = [
+  { n: "348", label: "cities in the network" },
+  { n: "50MS", label: "from 95% of Internet users" },
+  { n: "13K+", label: "network interconnections" },
+  { n: "0", label: "cold starts, on V8 isolates" },
+];
+
+/** What each plan includes: true, false, or a word. */
+const compare: { group: string; rows: { name: string; v: (boolean | string)[] }[] }[] = [
+  {
+    group: "Your tools",
+    rows: [
+      { name: "Tools from the catalog", v: [true, true, true] },
+      { name: "Web, CLI, MCP and API", v: [true, true, true] },
+      { name: "Recipes and plugins", v: ["Soon", "Soon", "Soon"] },
+    ],
+  },
+  {
+    group: "Access",
+    rows: [
+      { name: "Company SSO and teams", v: [true, true, true] },
+      { name: "Audit log", v: [true, true, true] },
+      { name: "One vault for secrets", v: [true, true, true] },
+    ],
+  },
+  {
+    group: "Running it",
+    rows: [
+      { name: "Cloudflare's network", v: [true, true, false] },
+      { name: "Updates and patches applied for you", v: [true, false, false] },
+      { name: "Data in your own account or servers", v: [false, true, true] },
+      { name: "Priority support", v: [true, false, false] },
+    ],
+  },
+  {
+    group: "Price",
+    rows: [
+      { name: "Per seat, per month", v: ["$14.99", "$0", "$0"] },
+      { name: "Available", v: ["Now", "Now", "Soon"] },
+    ],
+  },
+];
+
+/** The three rules of Fuel, each with its scene. */
+const fuelRules = [
+  {
+    iso: "fuel-month",
+    tag: "Each month",
+    name: "Included, not carried over",
+    text: `Your plan tops up your ${BALANCE} every month. What is left of it at the end of the month does not roll over.`,
+  },
+  {
+    iso: "fuel-topup",
+    tag: "On top",
+    name: "Top-ups last a year",
+    text: "Dollars you add on top stay valid for twelve months, used after the month's own.",
+  },
+  {
+    iso: "fuel-pool",
+    tag: BALANCE,
+    name: "One balance for everything",
+    text: "AI and compute, every tool and every person draw on the same dollars. One person's heavy month is not a surcharge on their seat.",
+  },
+];
+
+const faq = [
+  {
+    q: "What is a seat?",
+    a: "A person who used at least one tool during the month, through any interface. Members who did not use a tool that month are not counted.",
+  },
+  {
+    q: "Is self-managed really free?",
+    a: "Yes. Forgeron is open source under the Apache-2.0 license. Cloudflare bills your account directly, at its own prices, for what your tools use.",
+  },
+  {
+    q: "What is the difference with Forgeron Cloud?",
+    a: "The same platform. On Forgeron Cloud we run it: updates, patches and resources are handled for you, with priority support and one bill per seat.",
+  },
+  {
+    q: "What happens to the Fuel I do not use?",
+    a: "What your plan includes each month does not carry over to the next. What you add on top stays valid for twelve months.",
+  },
+  {
+    q: "When will the own-servers mode be ready?",
+    a: "It is in the works. Follow the repository on GitHub to hear when it ships.",
+  },
+];
+---
+
+<Site
+  title="Pricing — Forgeron"
+  description="Forgeron Cloud at $14.99 per seat per month, or free and open source on your own Cloudflare account."
+  bodyClass="home"
+>
+  <PagesNav current="/pricing" />
+
+  <main class="pricing">
+    <!-- 0.1 PLANS -->
+    <section id="plans" class="fg-rail">
+      <SectionHead
+        index="/0.1"
+        title={["Per seat,", "or free."]}
+        titleAs="h1"
+        lead="Let us run Forgeron for you, or run it yourself. The same platform, the same tools."
+      />
+      <PlanGrid>
+        {
+          plans.map((p, i) => (
+            <PlanCard
+              name={p.name}
+              icon={p.icon}
+              tag={p.tag}
+              where={p.where}
+              price={p.price}
+              unit={p.unit}
+              groups={p.groups}
+              action={p.action}
+              featured={i === 0}
+            >
+              <canvas data-iso={p.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
+            </PlanCard>
+          ))
+        }
+      </PlanGrid>
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="Savings" />
+
+    <!-- 0.2 SAVINGS: pick the tools the team pays for, set the seats, compare with Forgeron Cloud. -->
+    <section id="savings" class="fg-rail">
+      <SectionHead
+        index="/0.2"
+        title={["What you", "would save."]}
+        lead="Pick the tools your team pays for today, set the seats, and compare with Forgeron Cloud."
+      />
+      <div class="sim">
+        <div class="sim-pick">
+          {
+            stack.map((g) => (
+              <div class="sim-group">
+                <span class="text-eyebrow dim">{g.name}</span>
+                <div class="sim-chips">
+                  {g.tools.map((tool) => (
+                    <button type="button" class="sim-chip" data-tool={tool.id} aria-pressed="false">
+                      <LogoTile icon={tool.icon} name={tool.name} />
+                      <span>{tool.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          }
+          <ul class="sim-rows" aria-label="Your tools">
+            {
+              stack.flatMap((g) =>
+                g.tools.map((tool) => (
+                  <li class="sim-row" data-row={tool.id} hidden>
+                    <LogoTile icon={tool.icon} name={tool.name} />
+                    <span class="sim-name">
+                      <span class="text-title-3">{tool.name}</span>
+                      <span class="text-eyebrow dim">{tool.plan}</span>
+                    </span>
+                    <Stepper label={`${tool.name} seats`} value={10} data-stepper="seats" />
+                    <span class="sim-cost text-code" data-cost />
+                  </li>
+                )),
+              )
+            }
+            <li class="sim-empty text-small muted" data-empty>Pick a tool above to add it here.</li>
+          </ul>
+        </div>
+        <aside class="sim-bill fg-ticks" aria-live="polite">
+          <div class="bill-line">
+            <span class="text-eyebrow dim">Today, per month</span>
+            <span class="bill-n" data-today>$0</span>
+          </div>
+          <div class="bill-line">
+            <span class="text-eyebrow dim">Forgeron Cloud, per month</span>
+            <span class="bill-n" data-forgeron>$0</span>
+            <div class="bill-people">
+              <span class="text-small muted">People on the team</span>
+              <Stepper label="People on the team" value={10} data-stepper="people" />
+            </div>
+          </div>
+          <div class="bill-save">
+            <span class="text-eyebrow" data-save-label>You save, per year</span>
+            <span class="bill-big" data-year>$0</span>
+            <span class="text-small muted" data-month>$0 per month</span>
+          </div>
+        </aside>
+      </div>
+      <details class="sim-sources">
+        <summary class="text-eyebrow dim">Prices and sources, read on {READ_ON}</summary>
+        <ul>
+          {
+            stack.flatMap((g) =>
+              g.tools.map((tool) => (
+                <li class="text-small">
+                  <span>{tool.name} {tool.plan}</span>
+                  <span class="muted">{tool.note}</span>
+                  <a href={tool.source} rel="noopener" target="_blank">{new URL(tool.source).host}</a>
+                </li>
+              )),
+            )
+          }
+          <li class="text-small muted">
+            Forgeron Cloud: ${FORGERON_SEAT} per seat per month. Prices in USD, before tax. Logos drawn in pixels after the brands' marks;
+            the marks belong to their owners.
+          </li>
+        </ul>
+      </details>
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.2" to="/0.3" label="Fuel" />
+
+    <!-- 0.3 FUEL: one balance in dollars, for AI and compute alike. -->
+    <section id="fuel" class="fg-rail">
+      <SectionHead
+        index="/0.3"
+        title={["Fuel,", "in dollars."]}
+        lead={`On Forgeron Cloud, everything your tools use, AI models and compute alike, burns ${BALANCE}: one balance per workspace, in US dollars, drawn as it is used.`}
+      />
+      <CardGrid as="ul" artHeight={220} className="use-rules">
+        {
+          fuelRules.map((r) => (
+            <ArtCard as="li" eyebrow={r.tag} title={r.name} text={r.text}>
+              <canvas slot="art" data-iso={r.iso} data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true" />
+            </ArtCard>
+          ))
+        }
+      </CardGrid>
+
+      <div class="use-part">
+        <header class="use-head">
+          <span class="text-eyebrow dim">/A · AI models</span>
+          <h3 class="text-title-2">Tokens, priced per model.</h3>
+          <p class="text-small muted">
+            Every call a tool makes to a model is counted in tokens: what it reads (input), what it writes (output), and what
+            the provider serves from its cache, read for a fraction of the input price. In US dollars per million tokens:
+          </p>
+        </header>
+        <div class="ai-table" role="table" aria-label="AI models, US dollars per million tokens">
+          <div class="ai-row ai-headrow text-eyebrow dim" role="row">
+            <span role="columnheader">Model</span>
+            <span role="columnheader">Input</span>
+            <span role="columnheader">Output</span>
+            <span role="columnheader">Cache read</span>
+            <span role="columnheader">Cache write</span>
+          </div>
+          {
+            aiModels.map((m) => (
+              <div class="ai-row" role="row">
+                <span role="rowheader" class="ai-model">
+                  <LogoTile icon={m.icon} />
+                  <span class="text-small">{m.model}</span>
+                  <span class="text-eyebrow dim">{m.provider}</span>
+                </span>
+                <span role="cell" class="text-code">{fmt(m.input)}</span>
+                <span role="cell" class="text-code">{fmt(m.output)}</span>
+                <span role="cell" class="text-code">{fmt(m.cacheRead)}</span>
+                <span role="cell" class="text-code">{m.cacheWrite === null ? <span class="dim">—</span> : fmt(m.cacheWrite)}</span>
+              </div>
+            ))
+          }
+        </div>
+        <div class="ai-example">
+          <p class="text-small muted"><span class="text-eyebrow accent">Example</span> {aiExample.text}</p>
+          <ul>
+            {
+              aiExample.models.map((name) => {
+                const m = aiModels.find((x) => x.model === name)!;
+                return (
+                  <li>
+                    <span class="text-small">{m.model}</span>
+                    <span class="use-n">{money(aiCost(m))}</span>
+                    <span class="text-eyebrow dim">a month</span>
+                  </li>
+                );
+              })
+            }
+          </ul>
+        </div>
+      </div>
+
+      <div class="use-part">
+        <header class="use-head">
+          <span class="text-eyebrow dim">/B · Compute</span>
+          <h3 class="text-title-2">Everything else, by the unit.</h3>
+          <p class="text-small muted">
+            Requests, CPU time, the database, files, cache, realtime, queues, mail and logs: each has a price per unit, taken
+            from the same {BALANCE} as AI. A tool that sleeps costs nothing; a busy one pays for what it does.
+          </p>
+        </header>
+        <div class="meters">
+          {
+            meterGroups.map((g) => (
+              <div class="meter-group fg-ticks">
+                <span class="meter-head text-eyebrow">
+                  <Icon icon={g.icon} size={16} />
+                  {g.resource}
+                </span>
+                <ul>
+                  {g.meters.map((m) => (
+                    <li>
+                      <span class="text-small">{m.name}</span>
+                      <span class="text-eyebrow dim">{m.unit}</span>
+                      <span class="text-code meter-n">{m.usd === 0 ? "Free" : fmt(m.usd)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+        <div class="scenarios">
+          {
+            scenarios.map((sc) => (
+              <article class="scenario fg-ticks">
+                <h4 class="text-title-3">{sc.name}</h4>
+                <p class="text-small muted">{sc.text}</p>
+                <ul>
+                  {sc.lines.map((l) => (
+                    <li class="text-small">
+                      <span>{l.label}</span>
+                      <span class="text-code">{money(lineCost(l))}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div class="scenario-total">
+                  <span class="text-eyebrow dim">A month</span>
+                  <span class="use-n">{money(scenarioCost(sc))}</span>
+                </div>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+      <details class="sim-sources">
+        <summary class="text-eyebrow dim">AI prices and sources, read on {AI_READ_ON}</summary>
+        <ul>
+          {
+            aiSources.map((src) => (
+              <li class="text-small">
+                <span>{src.provider}</span>
+                <a href={src.url} rel="noopener" target="_blank">{new URL(src.url).host}</a>
+              </li>
+            ))
+          }
+          <li class="text-small muted">
+            Prices in US dollars, before tax. Cache write: the shortest-lived cache each provider lists. {BALANCE} applies to
+            Forgeron Cloud; on a self-managed install, your own accounts bill you. Logos drawn in pixels after the brands'
+            marks; the marks belong to their owners.
+          </li>
+        </ul>
+      </details>
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.3" to="/0.4" label="Why Forgeron Cloud" />
+
+    <!-- 0.2 WHY FORGERON CLOUD -->
+    <section id="why" class="fg-rail">
+      <SectionHead
+        index="/0.4"
+        title={["Built on", "Cloudflare."]}
+        lead="What Cloudflare's platform gives every tool, and what we take off your plate."
+      />
+      <CardGrid artHeight={240} className="reasons">
+        {
+          reasons.map((r) => (
+            <ArtCard title={r.name} text={r.text}>
+              <canvas slot="art" data-iso={r.iso} data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true" />
+            </ArtCard>
+          ))
+        }
+      </CardGrid>
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.4" to="/0.5" label="Network" />
+
+    <!-- 0.3 NETWORK -->
+    <section id="network" class="fg-rail">
+      <SectionHead
+        index="/0.5"
+        title={["Close to", "every team."]}
+        lead="Every tool runs on Cloudflare's network: near your teams, with nothing to keep running."
+      />
+      <div class="net">
+        <div class="net-art"><canvas data-shader="globe" data-px="4" aria-hidden="true"></canvas></div>
+        <div class="net-facts">
+          <FigureGrid figures={network} />
+          <p class="net-source text-eyebrow dim">
+            Source: cloudflare.com/network, Workers product and pricing pages, read 17 Nov 2026.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.5" to="/0.6" label="Compare" />
+
+    <!-- 0.4 COMPARE -->
+    <section id="compare" class="fg-rail">
+      <SectionHead index="/0.6" title={["Side", "by side."]} />
+      <CompareTable label="Plans compared" columns={plans.map((p) => ({ name: p.name, icon: p.icon }))} groups={compare} />
+    </section>
+
+    <SectionBand className="fg-rail" from="/0.6" to="/0.7" label="Open source" />
+
+    <!-- 0.5 OPEN SOURCE -->
+    <section id="open-source" class="fg-rail oss">
+      <canvas data-shader="dissolve" data-px="8" aria-hidden="true"></canvas>
+      <div class="oss-inner">
+        <span class="text-eyebrow dim">/0.7 · Open source</span>
+        <Title as="h2" size="h2">All of it,<br />Apache-2.0.</Title>
+        <p class="text-small muted oss-lead">
+          The platform, the SDK, the CLI and the templates are open source. Read the code, run it on your own account, or
+          contribute.
+        </p>
+        <div class="oss-actions">
+          <Button href={GITHUB} size="lg" variant="primary"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</Button>
+          <Button href={SELF_HOST} size="lg">Read the install guide</Button>
+          <CommandLine>npx forgeron init</CommandLine>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0.6 QUESTIONS -->
+    <section id="faq" class="fg-rail">
+      <SectionHead index="/0.8" title={["Questions,", "answered."]} />
+      <Faq items={faq} className="faq-plain" />
+    </section>
+  </main>
+
+  <Footer github={GITHUB} docs={DOCS} from="/0.8" />
+</Site>
+
+<script>
+  // Mounts every canvas of the page (scenes, fields), once.
+  import "../illustrations/canvas";
+  import { FORGERON_SEAT, stack } from "../data/stack";
+
+  // Plans: every description takes the height of the tallest, so the prices start on one line.
+  const wheres = [...document.querySelectorAll<HTMLElement>(".fg-plan-where")];
+  const evenWheres = () => {
+    for (const el of wheres) el.style.minHeight = "";
+    const tallest = Math.max(0, ...wheres.map((el) => el.offsetHeight));
+    for (const el of wheres) el.style.minHeight = `${tallest}px`;
+  };
+  evenWheres();
+  window.addEventListener("resize", evenWheres);
+  void document.fonts.ready.then(evenWheres);
+
+  // Savings: the tools picked, their seats, and the team on Forgeron Cloud.
+  const sim = document.querySelector<HTMLElement>("#savings");
+  if (sim) {
+    const tools = new Map(stack.flatMap((g) => g.tools).map((t) => [t.id, t]));
+    const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
+    const field = (el: Element | null) => el?.querySelector<HTMLInputElement>("input");
+    const read = (input: HTMLInputElement | null | undefined) =>
+      Math.max(0, Math.min(9999, Math.floor(Number(input?.value) || 0)));
+    const people = field(sim.querySelector("[data-stepper=people]"));
+    // The team follows the largest tool until someone sets it by hand.
+    let peopleSet = false;
+    const set = (sel: string, text: string) => {
+      const el = sim.querySelector(sel);
+      if (el) el.textContent = text;
+    };
+    const update = () => {
+      let today = 0;
+      let largest = 0;
+      let any = false;
+      for (const row of sim.querySelectorAll<HTMLElement>("[data-row]")) {
+        if (row.hidden) continue;
+        any = true;
+        const seats = read(field(row));
+        largest = Math.max(largest, seats);
+        const cost = tools.get(row.dataset.row ?? "")?.cost(seats) ?? 0;
+        today += cost;
+        const out = row.querySelector("[data-cost]");
+        if (out) out.textContent = `${usd(cost)} / mo`;
+      }
+      const empty = sim.querySelector<HTMLElement>("[data-empty]");
+      if (empty) empty.hidden = any;
+      if (!peopleSet && people) people.value = String(largest);
+      const ours = read(people) * FORGERON_SEAT;
+      const save = today - ours;
+      set("[data-today]", usd(today));
+      set("[data-forgeron]", usd(ours));
+      set("[data-save-label]", save >= 0 ? "You save, per year" : "Forgeron costs more, per year");
+      set("[data-year]", usd(Math.abs(save) * 12));
+      set("[data-month]", `${usd(Math.abs(save))} per month`);
+      sim.querySelector(".bill-save")?.classList.toggle("loss", save < 0);
+    };
+    for (const chip of sim.querySelectorAll<HTMLButtonElement>("[data-tool]")) {
+      chip.addEventListener("click", () => {
+        const on = chip.getAttribute("aria-pressed") !== "true";
+        chip.setAttribute("aria-pressed", String(on));
+        const row = sim.querySelector<HTMLElement>(`[data-row="${chip.dataset.tool}"]`);
+        if (row) row.hidden = !on;
+        update();
+      });
+    }
+    for (const stepper of sim.querySelectorAll<HTMLElement>("[data-stepper]")) {
+      const input = field(stepper);
+      const isPeople = stepper.dataset.stepper === "people";
+      for (const btn of stepper.querySelectorAll<HTMLButtonElement>("[data-step]")) {
+        btn.addEventListener("click", () => {
+          if (!input) return;
+          input.value = String(Math.max(0, read(input) + Number(btn.dataset.step)));
+          if (isPeople) peopleSet = true;
+          update();
+        });
+      }
+      input?.addEventListener("input", () => {
+        if (isPeople) peopleSet = true;
+        update();
+      });
+    }
+    // A stack to start from, so the page opens on a real comparison.
+    for (const id of ["linear", "notion", "zendesk"])
+      sim.querySelector<HTMLButtonElement>(`[data-tool="${id}"]`)?.click();
+  }
+</script>
+
+<style>
+  /* Savings: the picker and the tools on the left, the bill on the right. */
+  .sim {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .sim-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 32px var(--gutter);
+    border-right: 1px solid var(--line);
+  }
+  .sim-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sim-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sim-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 12px 4px 4px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+    color: var(--ink-muted);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .sim-chip:hover {
+    color: var(--ink);
+    background: var(--bg-raised);
+  }
+  .sim-chip[aria-pressed="true"] {
+    color: var(--ink);
+    border-color: var(--accent);
+    background: var(--bg-raised);
+  }
+  .sim-chip[aria-pressed="true"] :global(.fg-logo-tile) {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .sim-chip:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .sim-rows {
+    margin-top: 8px;
+    border-top: 1px solid var(--line-strong);
+  }
+  .sim-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto 104px;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .sim-row[hidden],
+  .sim-empty[hidden] {
+    display: none;
+  }
+  .sim-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sim-cost {
+    text-align: right;
+    color: var(--ink-muted);
+  }
+  .sim-empty {
+    padding: 16px 0;
+  }
+  .sim-bill {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-raised);
+  }
+  .bill-line {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px var(--gutter);
+    border-bottom: 1px dashed var(--line-strong);
+  }
+  .bill-n,
+  .bill-big {
+    font-family: var(--font-pixel);
+    text-transform: uppercase;
+    line-height: 1;
+    font-synthesis: none;
+  }
+  .bill-n {
+    font-size: 30px;
+    color: var(--ink);
+  }
+  .bill-people {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .bill-save {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+    padding: 32px var(--gutter);
+    color: var(--accent);
+  }
+  .bill-big {
+    font-size: 60px;
+  }
+  .bill-save.loss {
+    color: var(--ink-muted);
+  }
+  .sim-sources {
+    padding: 16px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .sim-sources summary {
+    cursor: pointer;
+  }
+  .sim-sources ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .sim-sources li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .sim-sources a {
+    color: var(--ink-muted);
+    text-decoration: underline;
+  }
+  @media (max-width: 900px) {
+    .sim {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .sim-pick {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .bill-big {
+      font-size: 40px;
+    }
+  }
+  /* Usage: three rules, then the two pools, each a head, a table and examples. The rules are
+     cards of a `CardGrid`, with a tighter copy block than the default. */
+  :global(.fg-cards.use-rules) {
+    --fg-artcard-gap: 8px;
+    --fg-artcard-pad: 24px var(--gutter);
+  }
+  .use-part {
+    border-bottom: 1px solid var(--line);
+  }
+  .use-head {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 720px;
+    padding: 32px var(--gutter) 24px;
+  }
+  .use-n {
+    font-family: var(--font-pixel);
+    text-transform: uppercase;
+    font-size: 30px;
+    line-height: 1;
+    font-synthesis: none;
+    color: var(--ink);
+  }
+  .ai-table {
+    border-top: 1px solid var(--line);
+  }
+  .ai-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) repeat(4, minmax(0, 1fr));
+    align-items: center;
+    min-height: 48px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ai-row > * {
+    padding: 0 var(--gutter);
+  }
+  .ai-row > * + * {
+    border-left: 1px solid var(--line);
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+  .ai-headrow {
+    min-height: 36px;
+  }
+  .ai-row:not(.ai-headrow):hover {
+    background: var(--bg-raised);
+  }
+  .ai-model {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ai-example {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 32px;
+    padding: 24px var(--gutter);
+  }
+  .ai-example p {
+    max-width: 520px;
+  }
+  .ai-example ul {
+    display: flex;
+    gap: 32px;
+  }
+  .ai-example li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .meters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .meter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px var(--gutter);
+    background-color: var(--bg);
+  }
+  .meter-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .meter-group ul {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .meter-group li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+  }
+  .meter-group li .text-eyebrow {
+    grid-column: 1;
+  }
+  .meter-n {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    color: var(--ink);
+  }
+  .scenarios {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+  }
+  .scenario {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 24px var(--gutter);
+    background-color: var(--bg-raised);
+  }
+  .scenario ul {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0;
+    border-top: 1px dashed var(--line-strong);
+    border-bottom: 1px dashed var(--line-strong);
+  }
+  .scenario li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .scenario li .text-code {
+    color: var(--ink-muted);
+  }
+  .scenario-total {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+  .scenario-total .use-n {
+    color: var(--accent);
+  }
+  @media (max-width: 900px) {
+    .scenarios {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .meters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ai-row {
+      grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr));
+      font-size: 12px;
+    }
+    .ai-row > * {
+      padding: 0 8px;
+    }
+    .ai-model .text-eyebrow {
+      display: none;
+    }
+  }
+  @media (max-width: 560px) {
+    .meters {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Why Cloud: six glued cards, three a row, their copy blocks one height. */
+  :global(.fg-cards.reasons) {
+    --fg-artcard-gap: 8px;
+    --fg-artcard-min: 128px;
+    --fg-artcard-pad: 24px var(--gutter) 28px;
+  }
+
+  /* Network: the globe and the figures. */
+  .net {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .net-art {
+    position: relative;
+    min-height: 420px;
+    border-right: 1px solid var(--line);
+  }
+  .net-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .net-facts {
+    display: flex;
+    flex-direction: column;
+  }
+  .net-facts :global(.fg-figures) {
+    flex: 1;
+  }
+  .net-source {
+    padding: 16px var(--gutter);
+    border-top: 1px solid var(--line);
+  }
+
+  /* Open source: the dissolve field behind, the call on top. */
+  .oss {
+    position: relative;
+    min-height: 460px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .oss > canvas {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 40%;
+    width: 60%;
+    height: 100%;
+  }
+  .oss-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 48px var(--gutter) 56px;
+  }
+  .oss-lead {
+    max-width: 52ch;
+  }
+  .oss-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+
+  /* Questions: the accordion of the home page, with the pricing page's own two habits: the open
+     mark stays in ink, and the number gives way under 760px. */
+  :global(.fg-faq.faq-plain .fg-faq-mark) {
+    display: block;
+    width: auto;
+    height: auto;
+  }
+  :global(.fg-faq.faq-plain details[open] .fg-faq-mark) {
+    color: inherit;
+  }
+  :global(.fg-faq.faq-plain .fg-faq-mark .fg-faq-opened),
+  :global(.fg-faq.faq-plain details[open] .fg-faq-mark .fg-faq-closed) {
+    display: none;
+  }
+  :global(.fg-faq.faq-plain details[open] .fg-faq-mark .fg-faq-opened) {
+    display: block;
+  }
+
+  @media (max-width: 900px) {
+    .net {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .net-art {
+      min-height: 260px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+  @media (max-width: 760px) {
+    .oss > canvas {
+      left: 0;
+      width: 100%;
+      opacity: 0.35;
+    }
+    :global(.fg-faq.faq-plain summary) {
+      grid-template-columns: 1fr 24px;
+    }
+    :global(.fg-faq.faq-plain summary > :first-child) {
+      display: none;
+    }
+    :global(.fg-faq.faq-plain details p) {
+      padding-left: var(--gutter);
+    }
+  }
+</style>

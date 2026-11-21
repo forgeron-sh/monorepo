@@ -216,6 +216,7 @@ export default function ToolPage({
             // Whoever may not publish still has the tool's other actions: a small menu.
             <Menu
               className="ft-actions-menu"
+              align="end"
               label="Tool actions"
               trigger={<span aria-hidden="true">…</span>}
               entries={[

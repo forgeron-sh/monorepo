@@ -1,0 +1,188 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/mcp",
+  "parts": {
+    "body": {
+      "params": { "lift": { "type": "number", "default": 4 } },
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-6, -6, 0],
+            [-6, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -6, 0],
+            [-2, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [2, -6, 0],
+            [2, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [6, -6, 0],
+            [6, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [10, -6, 0],
+            [10, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [14, -6, 0],
+            [14, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [18, -6, 0],
+            [18, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, -6, 0],
+            [20, -6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, -2, 0],
+            [20, -2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 2, 0],
+            [20, 2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 6, 0],
+            [20, 6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 10, 0],
+            [20, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 14, 0],
+            [20, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 18, 0],
+            [20, 18, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        { "kind": "box", "at": [0, 0, 0], "size": [12, 12, 2], "plate": true, "vents": "+x" },
+        { "kind": "box", "at": [3.5, 4, 2], "size": [1.2, 1.2, 0.4], "look": "ghost" },
+        { "kind": "box", "at": [7.3, 4, 2], "size": [1.2, 1.2, 0.4], "look": "ghost" },
+        { "kind": "box", "at": [3.5, 4, { "p": "lift", "b": 2 }], "size": [1.2, 1.2, 2] },
+        { "kind": "box", "at": [7.3, 4, { "p": "lift", "b": 2 }], "size": [1.2, 1.2, 2] },
+        {
+          "kind": "box",
+          "at": [2, 2, { "p": "lift", "b": 4 }],
+          "size": [8, 8, 3],
+          "look": "accent",
+          "floors": 1.5
+        },
+        { "kind": "box", "at": [5, 5, { "p": "lift", "b": 7 }], "size": [2, 2, 5] }
+      ]
+    }
+  },
+  "scenes": {
+    "mcp": {
+      "title": "mcp",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "body", "use": "body" }] },
+      "timelines": {
+        "motion": {
+          "tracks": [
+            {
+              "kind": "wave",
+              "target": "body",
+              "channel": "param:lift",
+              "wave": "sin",
+              "rate": 1.3,
+              "amp": 1.2,
+              "base": 4
+            }
+          ]
+        }
+      }
+    }
+  }
+}

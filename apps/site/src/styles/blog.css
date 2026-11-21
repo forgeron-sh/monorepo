@@ -1,0 +1,562 @@
+/* The blog: its index (/blog) and its posts (/blog/<id>), in the lab language. The rail, the
+   section head and band, the tags and buttons come from @forgeron/ui; here, the blog's own
+   composition and the prose of a post. */
+
+/* ---------------------------------------------------------------- shared */
+
+.blog-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  color: var(--ink-dim);
+}
+.blog-draft {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 6px;
+  border: 1px dashed var(--warning);
+  color: var(--warning);
+  font: 400 10px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.blog-empty {
+  padding: 48px var(--gutter);
+  color: var(--ink-muted);
+}
+/* A post's art: the field under the scene, both filling the frame; a picture covers it. */
+.post-art {
+  position: relative;
+  overflow: hidden;
+}
+.post-art canvas,
+.post-art-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.post-art-img {
+  object-fit: cover;
+}
+.post-art-field {
+  opacity: 0.4;
+}
+
+/* ---------------------------------------------------------------- index */
+
+/* The lead post: the cover on the left, the words on the right. */
+.blog-lead {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  border-bottom: 1px solid var(--line);
+}
+.blog-lead-art {
+  aspect-ratio: 16 / 10;
+  border-right: 1px solid var(--line);
+}
+.blog-lead-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 40px var(--gutter);
+}
+.blog-lead-title {
+  font: 500 36px/1.1 var(--font-pixel);
+  text-transform: uppercase;
+  font-synthesis: none;
+  text-wrap: balance;
+}
+.blog-lead-desc {
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 27px;
+}
+.blog-lead-by {
+  color: var(--ink-dim);
+}
+.blog-read {
+  margin-top: 8px;
+  color: var(--ink);
+}
+.blog-lead:hover .blog-read,
+.blog-lead:focus-visible .blog-read {
+  color: var(--accent);
+}
+
+/* The filter and the feed. */
+.blog-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px var(--gutter);
+  border-bottom: 1px solid var(--line);
+}
+.blog-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.blog-filter [aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.blog-rss {
+  color: var(--ink-muted);
+}
+.blog-rss:hover {
+  color: var(--accent);
+}
+
+/* The posts, three a row, glued: the landing's cards (`fg-cards`, `fg-artcard`), each a link. */
+.blog-cards {
+  --fg-artcard-art: 240px;
+  border-bottom: 0;
+}
+.blog-card {
+  display: grid;
+}
+.blog-card[hidden],
+.blog-card-fill[hidden] {
+  display: none;
+}
+.blog-card .fg-artcard {
+  transition: background-color var(--motion-fast);
+}
+.blog-card .fg-artcard:hover {
+  background-color: var(--bg-raised);
+}
+.blog-card-title {
+  text-wrap: balance;
+}
+.blog-card .fg-artcard:hover .blog-card-title {
+  color: var(--accent);
+}
+.blog-card .blog-meta {
+  gap: 12px;
+}
+/* The empty cells of the last row: hatched, as on the landing. */
+.blog-card-fill {
+  background-color: var(--bg);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+
+@media (max-width: 900px) {
+  .blog-card-fill {
+    display: none;
+  }
+  .blog-lead {
+    grid-template-columns: 1fr;
+  }
+  .blog-lead-art {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .blog-lead-title {
+    font-size: 28px;
+  }
+}
+
+/* ---------------------------------------------------------------- post */
+
+.post-head {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 64px var(--gutter) 40px;
+  border-bottom: 1px solid var(--line);
+}
+.post-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-dim);
+}
+.post-crumbs a {
+  color: var(--ink-muted);
+}
+.post-crumbs a:hover {
+  color: var(--accent);
+}
+.post-title {
+  max-width: 22ch;
+  font: 500 56px/1.06 var(--font-pixel);
+  text-transform: uppercase;
+  font-synthesis: none;
+  text-wrap: balance;
+}
+.post-lead {
+  max-width: 60ch;
+  color: var(--ink-muted);
+  font-size: 20px;
+  line-height: 30px;
+  text-wrap: pretty;
+}
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 40px;
+  margin-top: 16px;
+}
+.post-authors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+.post-authors li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.post-authors a:hover {
+  color: var(--accent);
+}
+.post-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-raised);
+  color: var(--accent);
+  font: 500 12px/1 var(--font-mono);
+}
+.post-role {
+  display: block;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+.post-dates {
+  display: flex;
+  gap: 32px;
+  margin: 0;
+}
+.post-dates dt {
+  color: var(--ink-dim);
+}
+.post-dates dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+.post-cover {
+  margin-block: 0;
+  border-bottom: 1px solid var(--line);
+}
+/* A 2.4:1 banner at every width: the scene over the field, or a picture, its edges cropped. */
+.post-cover .post-art {
+  aspect-ratio: 12 / 5;
+}
+@media (max-width: 760px) {
+  .post-cover .post-art {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+/* The side column (contents, share) and the text. */
+.post-layout {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+.post-side {
+  border-right: 1px solid var(--line);
+  padding: 56px var(--gutter);
+}
+/* The contents and the share block travel together. */
+.post-side-inner {
+  position: sticky;
+  top: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.post-side .text-eyebrow {
+  margin-bottom: 12px;
+  color: var(--ink-dim);
+}
+.post-toc ol {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+}
+.post-toc a {
+  display: block;
+  margin-left: -1px;
+  padding: 5px 0 5px 14px;
+  border-left: 1px solid transparent;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.post-toc a:hover {
+  color: var(--ink);
+}
+.post-toc a[aria-current] {
+  border-left-color: var(--accent);
+  color: var(--ink);
+}
+.post-body {
+  padding: 56px 64px 88px;
+}
+.post-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px var(--gutter);
+  border-top: 1px solid var(--line);
+}
+.post-back {
+  color: var(--ink-muted);
+}
+.post-back:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 1100px) {
+  .post-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .post-side {
+    display: none;
+  }
+  .post-body {
+    padding: 48px var(--gutter) 72px;
+  }
+}
+@media (max-width: 760px) {
+  .post-head {
+    padding-top: 40px;
+  }
+  .post-title {
+    font-size: 34px;
+  }
+  .post-lead {
+    font-size: 17px;
+    line-height: 27px;
+  }
+}
+
+/* ---------------------------------------------------------------- prose */
+
+/* The text of a post: a 68-character measure, sections numbered like the site's coordinates. */
+.prose {
+  counter-reset: section;
+  color: #cfcfcf;
+  font-size: 17px;
+  line-height: 29px;
+}
+.prose > * {
+  max-width: 68ch;
+}
+.prose > * + * {
+  margin-top: 20px;
+}
+.prose h2,
+.prose h3 {
+  color: var(--ink);
+  scroll-margin-top: 96px;
+  text-wrap: balance;
+}
+.prose h2 {
+  counter-increment: section;
+  margin-top: 64px;
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.prose h2::before {
+  content: "/" counter(section, decimal-leading-zero);
+  display: block;
+  margin-bottom: 10px;
+  color: var(--accent);
+  font: 400 12px/18px var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.prose h3 {
+  margin-top: 40px;
+  font-size: 19px;
+  line-height: 28px;
+  font-weight: 600;
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.prose a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+.prose a:hover {
+  color: var(--accent);
+}
+.prose ul,
+.prose ol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 22px;
+}
+.prose ul > li {
+  list-style: square;
+}
+.prose ul > li::marker {
+  color: var(--accent);
+}
+.prose ol > li {
+  list-style: decimal-leading-zero;
+}
+.prose ol > li::marker {
+  color: var(--ink-dim);
+  font: 400 13px var(--font-mono);
+}
+.prose blockquote {
+  margin-inline: 0;
+  padding: 4px 0 4px 24px;
+  border-left: 2px solid var(--accent);
+  color: var(--ink);
+  font-size: 21px;
+  line-height: 32px;
+}
+.prose blockquote p + p {
+  margin-top: 12px;
+}
+.prose hr {
+  height: 24px;
+  max-width: none;
+  margin-block: 48px;
+  border: 0;
+  border-block: 1px solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+.prose :not(pre) > code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font: 400 0.84em var(--font-mono);
+}
+.prose pre {
+  max-width: none;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  overflow-x: auto;
+  font: 400 13px/21px var(--font-mono);
+  tab-size: 2;
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 22px;
+}
+.prose th,
+.prose td {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.prose th {
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Figure: a framed picture (or code, or a table) and its one-line caption. */
+.prose .post-figure {
+  margin-block: 40px;
+}
+.prose .post-figure-wide {
+  max-width: none;
+}
+.post-figure-frame {
+  border: 1px solid var(--line);
+  background-color: var(--bg-sunk);
+  padding: 1px;
+}
+.post-figure-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.post-figure-frame pre {
+  margin: 0;
+  border: 0;
+}
+.post-figure figcaption {
+  margin-top: 12px;
+  color: var(--ink-dim);
+  font: 400 12px/18px var(--font-mono);
+}
+
+/* Callout: a note or a warning, set apart from the text. */
+.post-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--ink-dim);
+  background: var(--bg-raised);
+  font-size: 15px;
+  line-height: 25px;
+}
+.post-callout-warning {
+  border-left-color: var(--accent);
+}
+.post-callout-warning .fg-tag b {
+  color: var(--accent);
+}
+.post-callout-body > * + * {
+  margin-top: 10px;
+}
+
+/* Footnotes (GFM): small, after a rule. */
+.prose .footnotes {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 22px;
+}
+.prose .footnotes h2::before {
+  content: none;
+}
+.prose [data-footnote-ref] {
+  text-decoration: none;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+/* A scene in a figure: a 16:9 frame over the dots, the canvas filling it. */
+.post-figure-scene {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+.post-figure-scene canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

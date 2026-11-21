@@ -1,0 +1,15 @@
+---
+import type { IconDefinition } from "@forgeron/icons";
+import { toSvg } from "@forgeron/icons";
+
+/** A pixel icon of @forgeron/icons, rendered at build time; decorative unless given a title. */
+interface Props {
+  icon: IconDefinition;
+  size?: number;
+  title?: string;
+}
+const { icon, size = 16, title } = Astro.props;
+const svg = toSvg(icon, { size, ...(title ? { title } : {}) }) ?? "";
+---
+
+<span class="px-icon" set:html={svg} />

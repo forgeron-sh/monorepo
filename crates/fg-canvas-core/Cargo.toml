@@ -1,0 +1,14 @@
+[package]
+name = "fg-canvas-core"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.93"
+license = "Apache-2.0"
+publish = false
+description = "The hot paths of @forgeron/canvas: document, spatial index, hit testing, culling, instance buffers (D-148)."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.130"

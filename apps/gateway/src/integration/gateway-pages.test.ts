@@ -81,9 +81,9 @@ async function expectShell(response: Response) {
   // No script, no handler, no request to anything else: the CSP allows none of it.
   expect(html).not.toMatch(/<script|<link|<img|<iframe|\son[a-z]+=|url\(|@import|https?:\/\/fonts/);
   // The design system: Forge by default, Atelier by `prefers-color-scheme`, no rounding.
-  expect(html).toContain("--bg:#1c1c1c");
+  expect(html).toContain("--bg:#0a0a0a");
   expect(html).toContain(
-    "@media (prefers-color-scheme:light){:root{color-scheme:light;--bg:#ffffff",
+    "@media (prefers-color-scheme:light){:root{color-scheme:light;--bg:#f7f7f5",
   );
   expect(html).not.toMatch(/border-radius:(?!0)/);
   return html;

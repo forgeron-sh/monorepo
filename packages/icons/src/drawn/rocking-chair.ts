@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// Rocking chair: the side-view chair of `chair-01` on a curved rocker.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "rocking-chair",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    "..#",
+    "..#",
+    "..#",
+    "..#",
+    "..#",
+    "..########",
+    "...#....#",
+    "...#....#",
+    "#..#....#..#",
+    ".##########",
+  ],
+};
+
+export default icon;

@@ -1,0 +1,37 @@
+{
+  "name": "@forgeron/icons",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.tsx",
+    "./render": "./src/render.ts",
+    "./catalog": "./src/catalog.ts"
+  },
+  "scripts": {
+    "generate": "bun scripts/generate.ts",
+    "generate:check": "bun scripts/generate.ts --check",
+    "trim": "bun scripts/trim.ts",
+    "trim:check": "bun scripts/trim.ts --check"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "rolldown": "1.2.16"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

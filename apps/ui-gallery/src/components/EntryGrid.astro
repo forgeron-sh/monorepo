@@ -1,0 +1,50 @@
+---
+import type { ComponentType } from "react";
+import { examplesOf } from "../lib/examples";
+import type { Atom } from "../types";
+import Demo from "./Demo";
+
+// A card shows the first example of its entry, statically. An overlay (a menu, a dialog) only
+// opens in a portal after hydration, so its entry draws a still picture of the open state in
+// `thumbnails/<slug>.tsx`, used here in place of the first example.
+const thumbnails = Object.fromEntries(
+  Object.entries(
+    import.meta.glob<{ default: ComponentType }>("./thumbnails/*.tsx", { eager: true }),
+  ).map(([path, mod]) => [path.replace("./thumbnails/", "").replace(/\.tsx$/, ""), mod.default]),
+);
+
+interface Props {
+  entries: ReadonlyArray<Atom>;
+  /** The section index shown on each cell, e.g. `/0.2`. */
+  index: string;
+}
+const { entries, index } = Astro.props;
+---
+
+<ul class="grid">
+  {
+    entries.map((entry, i) => (
+      <li class="card">
+        <div class="card-art dots-bg" inert>
+          <div class="card-demo">
+            {(() => {
+              const Thumbnail = thumbnails[entry.slug];
+              const first = examplesOf(entry.slug)[0];
+              if (Thumbnail) return <Thumbnail />;
+              return first ? <Demo id={first.id} /> : null;
+            })()}
+          </div>
+        </div>
+        <div class="card-copy">
+          <span class="t-mono dim">
+            {index}.{String(i + 1).padStart(2, "0")}
+          </span>
+          <a class="card-name card-link" href={`/docs/${entry.slug}`}>
+            {entry.name}
+          </a>
+          <span class="t-small">{entry.summary}</span>
+        </div>
+      </li>
+    ))
+  }
+</ul>

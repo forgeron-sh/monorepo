@@ -1,0 +1,95 @@
+---
+title: "How to write a post for the Forgeron blog"
+description: "The file, the front matter and the components of a post: everything a post can show, on one page. Kept as a draft, so it shows in development only."
+date: 2026-11-19
+category: Engineering
+authors: [forgeron]
+scene: press
+draft: true
+---
+
+A post is one `.mdx` file in `apps/site/src/content/blog/`. Its file name is its address: `writing-a-post.mdx` is published at `/blog/writing-a-post`. This page is itself a post, kept as a draft: `astro dev` shows it with a Draft tag, the build leaves it out.
+
+## The front matter
+
+Every post opens with its front matter. The schema in `src/content.config.ts` checks it at build time, so a missing field fails the build instead of shipping a broken page.
+
+```yaml
+title: "How to write a post for the Forgeron blog"
+description: "One or two sentences: the lead, the card's summary, the meta description."
+date: 2026-11-19
+updated: 2026-11-25 # optional, when the post changed after it was published
+category: Engineering # Engineering, Product, Company or Research
+authors: [forgeron] # ids from src/content/authors.json
+scene: press # an iso scene of src/illustrations/scenes.ts, drawn for the post
+cover: ./images/shot.png # optional: a picture instead of a scene, and the picture of a shared link
+coverAlt: "What the cover shows." # required with a cover
+featured: false # the newest featured post leads the index
+draft: true # shown by astro dev only
+```
+
+Each post has its own scene, drawn for what it says, in `src/illustrations/blog-scenes.ts`: it plays on the post's card, on the index and over the post's banner. A `cover` picture is resized at build time and becomes the picture of the link when the post is shared.
+
+## Text
+
+Write in Markdown. Sections are `##` headings: they are numbered, and they make the table of contents on the left. Use `###` inside a section when it needs it.
+
+**Bold**, _italic_, [links](/blog) and `inline code` work as usual, and so do footnotes.[^1]
+
+> A quote stands apart from the text, in ink, with an ember rule.
+
+1. Numbered lists are numbered in mono.
+2. Bulleted lists use ember squares.
+
+---
+
+A horizontal rule (`---`) is a hatched band, as between the site's sections.
+
+## Code
+
+Fenced code blocks are highlighted at build time, in the lab palette.
+
+```ts
+// An ember keyword, grey strings, names in ink.
+export function greet(name: string): string {
+  return `Hello, ${name}.`;
+}
+```
+
+<Figure caption="A code block inside a Figure, to give it a caption.">
+
+```sh
+bun run --cwd apps/site dev
+```
+
+</Figure>
+
+## Pictures and scenes
+
+A `Figure` plays a scene in the text, with its caption:
+
+<Figure
+  scene="manifesto"
+  caption="A scene in the text column: the monolith taken apart into light tools."
+/>
+
+For a screenshot, import the picture at the top of the file (`import shot from "./images/shot.png"`) and pass it as `src`, with an `alt` that describes it. Add `wide` for a figure that needs the whole width of the article.
+
+<Figure scene="press" caption="A wide figure." wide />
+
+## Callouts and tables
+
+<Callout>A note sets apart something the reader should not miss.</Callout>
+
+<Callout kind="warning">A warning is for what can break or cost money.</Callout>
+
+| Component | What it does                                 |
+| --------- | -------------------------------------------- |
+| `Figure`  | A picture, code or a table, with a caption   |
+| `Callout` | A note or a warning, set apart from the text |
+
+## Publishing
+
+Remove `draft: true`, commit and push. The site is static: each deploy rebuilds every post, the index and the RSS feed.
+
+[^1]: Footnotes gather at the end of the post, after a rule.

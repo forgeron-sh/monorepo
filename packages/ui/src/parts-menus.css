@@ -1,0 +1,197 @@
+/* Menus and palettes moved from the blocks into the primitives (D-157): ActionMenu, ContextMenu,
+   Modal, CommandPalette. The palette rules are shared with Command (command.tsx). */
+
+/* ---------------------------------------------------------------- ActionMenu */
+
+.fg-amenu {
+  min-width: 220px;
+  padding: 4px;
+}
+/* Built on the DropdownMenu parts, whose list scrolls past 340px: a menu is as tall as its rows. */
+.fg-amenu.fg-pop-list {
+  max-height: none;
+  overflow: visible;
+}
+.fg-amenu-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fg-amenu-sub .fg-pop-label {
+  flex: 1;
+}
+.fg-amenu-row {
+  cursor: default;
+  user-select: none;
+}
+.fg-amenu-row[data-popup-open] {
+  border-color: var(--line);
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-amenu-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}
+.fg-amenu-mark:empty {
+  display: none;
+}
+.fg-amenu-kbd .fg-kbd {
+  color: var(--ink-dim);
+}
+.fg-amenu-chev {
+  display: inline-grid;
+  color: var(--ink-dim);
+}
+.fg-amenu-danger,
+.fg-amenu-danger[data-highlighted] {
+  color: var(--danger);
+}
+.fg-amenu-sep {
+  height: 1px;
+  margin: 4px -4px;
+  background: var(--line);
+}
+.fg-amenu-heading {
+  padding: 8px 8px 4px;
+  color: var(--ink-dim);
+  font: 500 10.5px/14px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- Command and CommandPalette */
+
+.fg-palette-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-palette-glass {
+  color: var(--ink-dim);
+}
+.fg-palette-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+  outline: none;
+}
+/* The caret is the focus: the field fills the frame, a ring around it would only double it. */
+.fg-palette-input:focus-visible {
+  outline: none;
+}
+.fg-palette-input::placeholder {
+  color: var(--ink-dim);
+}
+.fg-palette-list {
+  max-height: min(340px, 60vh);
+  padding: 4px;
+  overflow: auto;
+}
+.fg-palette-group {
+  padding: 8px 8px 4px;
+  color: var(--ink-dim);
+  font: 500 10.5px/14px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-palette-row:hover:not([data-highlighted]) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-muted);
+}
+.fg-palette-empty {
+  padding: 10px;
+  color: var(--ink-dim);
+}
+
+/* ---------------------------------------------------------------- Modal */
+
+/* Appears whole: no transition on open or close. */
+.fg-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--scrim);
+}
+.fg-modal-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 12vh var(--space-2) var(--space-2);
+  overflow-y: auto;
+}
+.fg-modal {
+  position: relative;
+  box-sizing: border-box;
+  width: min(750px, 100%);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-modal-sm {
+  width: min(480px, 100%);
+}
+.fg-modal:focus {
+  outline: none;
+}
+/* The lab's corner brackets, a little bolder than the frame. */
+.fg-modal::before,
+.fg-modal::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: var(--border-width) solid var(--ink-dim);
+  background: var(--bg);
+}
+.fg-modal::before {
+  top: -4px;
+  left: -4px;
+}
+.fg-modal::after {
+  right: -4px;
+  bottom: -4px;
+}
+.fg-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+.fg-modal-head .fg-selm-chip {
+  height: 24px;
+  font: 500 12px/1 var(--font-mono);
+}
+.fg-modal-sep {
+  color: var(--ink-dim);
+}
+.fg-modal-title {
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-modal-close {
+  margin-left: auto;
+}
+.fg-modal-close:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}

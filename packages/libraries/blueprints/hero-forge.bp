@@ -1,0 +1,1063 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/hero-forge",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-40, -70, 0],
+            [-40, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-36, -70, 0],
+            [-36, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-32, -70, 0],
+            [-32, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-28, -70, 0],
+            [-28, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-24, -70, 0],
+            [-24, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-20, -70, 0],
+            [-20, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-16, -70, 0],
+            [-16, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-12, -70, 0],
+            [-12, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-8, -70, 0],
+            [-8, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, -70, 0],
+            [-4, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, -70, 0],
+            [0, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -70, 0],
+            [4, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8, -70, 0],
+            [8, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [12, -70, 0],
+            [12, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [16, -70, 0],
+            [16, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [20, -70, 0],
+            [20, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [24, -70, 0],
+            [24, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [28, -70, 0],
+            [28, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [32, -70, 0],
+            [32, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [36, -70, 0],
+            [36, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [40, -70, 0],
+            [40, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -70, 0],
+            [40, -70, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -66, 0],
+            [40, -66, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -62, 0],
+            [40, -62, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -58, 0],
+            [40, -58, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -54, 0],
+            [40, -54, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -50, 0],
+            [40, -50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -46, 0],
+            [40, -46, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -42, 0],
+            [40, -42, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -38, 0],
+            [40, -38, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -34, 0],
+            [40, -34, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -30, 0],
+            [40, -30, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -26, 0],
+            [40, -26, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -22, 0],
+            [40, -22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -18, 0],
+            [40, -18, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -14, 0],
+            [40, -14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -10, 0],
+            [40, -10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -6, 0],
+            [40, -6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, -2, 0],
+            [40, -2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 2, 0],
+            [40, 2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 6, 0],
+            [40, 6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 10, 0],
+            [40, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 14, 0],
+            [40, 14, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 18, 0],
+            [40, 18, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 22, 0],
+            [40, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 26, 0],
+            [40, 26, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 30, 0],
+            [40, 30, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 34, 0],
+            [40, 34, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 38, 0],
+            [40, 38, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 42, 0],
+            [40, 42, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 46, 0],
+            [40, 46, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-40, 50, 0],
+            [40, 50, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -49.800000000000004, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -46.400000000000006, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -43.00000000000001, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -39.60000000000001, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -36.20000000000001, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -32.80000000000001, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -29.400000000000013, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -26.000000000000014, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -22.600000000000016, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -19.200000000000017, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -15.800000000000018, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -12.400000000000018, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -9.000000000000018, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -5.600000000000017, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, -2.200000000000017, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, 1.1999999999999829, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, 4.599999999999982, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, 7.999999999999982, 0],
+          "size": [2.8, 2.8, 12],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, 11.399999999999983, 0],
+          "size": [2.8, 2.8, 9],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, 14.799999999999981, 0],
+          "size": [2.8, 2.8, 11],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, 18.19999999999998, 0],
+          "size": [2.8, 2.8, 8],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        {
+          "kind": "box",
+          "at": [-15.4, 21.59999999999998, 0],
+          "size": [2.8, 2.8, 10],
+          "tone": [0.04, 0.1, 0.22],
+          "floors": 1,
+          "layer": -1
+        },
+        { "kind": "box", "at": [3, 18.5, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [5.2, 18.5, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [3, 18.7, 2], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [5.2, 18.7, 2], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [3, 18.9, 4], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [5.2, 18.9, 4], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [-7, 22.5, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [-4.8, 22.5, 0], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        { "kind": "box", "at": [-7, 22.7, 2], "size": [2, 2, 2], "tone": [0.12, 0.25, 0.4] },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 16.5, 0.05],
+            [-6, 16.5, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, 16.5, 0.05],
+            [-6, -8.8, 0.05]
+          ],
+          "ink": "dim",
+          "dash": 2
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 11, 0.6],
+            [-1.4, -26.4, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [1.4, 11, 0.6],
+            [1.4, -26.4, 0.6]
+          ],
+          "ink": "ink"
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -26.4, 0.6],
+            [1.4, -26.4, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -25.099999999999998, 0.6],
+            [1.4, -25.099999999999998, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -23.799999999999997, 0.6],
+            [1.4, -23.799999999999997, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -22.499999999999996, 0.6],
+            [1.4, -22.499999999999996, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -21.199999999999996, 0.6],
+            [1.4, -21.199999999999996, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -19.899999999999995, 0.6],
+            [1.4, -19.899999999999995, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -18.599999999999994, 0.6],
+            [1.4, -18.599999999999994, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -17.299999999999994, 0.6],
+            [1.4, -17.299999999999994, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -15.999999999999993, 0.6],
+            [1.4, -15.999999999999993, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -14.699999999999992, 0.6],
+            [1.4, -14.699999999999992, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -13.399999999999991, 0.6],
+            [1.4, -13.399999999999991, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -12.09999999999999, 0.6],
+            [1.4, -12.09999999999999, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -10.79999999999999, 0.6],
+            [1.4, -10.79999999999999, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -9.49999999999999, 0.6],
+            [1.4, -9.49999999999999, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -8.199999999999989, 0.6],
+            [1.4, -8.199999999999989, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -6.899999999999989, 0.6],
+            [1.4, -6.899999999999989, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -5.599999999999989, 0.6],
+            [1.4, -5.599999999999989, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -4.299999999999989, 0.6],
+            [1.4, -4.299999999999989, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -2.9999999999999893, 0.6],
+            [1.4, -2.9999999999999893, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -1.6999999999999893, 0.6],
+            [1.4, -1.6999999999999893, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, -0.39999999999998925, 0.6],
+            [1.4, -0.39999999999998925, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 0.9000000000000108, 0.6],
+            [1.4, 0.9000000000000108, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 2.200000000000011, 0.6],
+            [1.4, 2.200000000000011, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 3.5000000000000107, 0.6],
+            [1.4, 3.5000000000000107, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 4.8000000000000105, 0.6],
+            [1.4, 4.8000000000000105, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 6.10000000000001, 0.6],
+            [1.4, 6.10000000000001, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 7.40000000000001, 0.6],
+            [1.4, 7.40000000000001, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 8.70000000000001, 0.6],
+            [1.4, 8.70000000000001, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-1.4, 10.00000000000001, 0.6],
+            [1.4, 10.00000000000001, 0.6]
+          ],
+          "ink": "faint",
+          "decor": true
+        },
+        { "kind": "box", "at": [-3, 13.5, 0], "size": [6, 6, 9], "floors": 3, "vents": "+x" },
+        { "kind": "label", "at": [0, 16.5, 14], "text": "RAW", "to": [0, 16.5, 9] },
+        { "kind": "box", "at": [-7, -11.8, 0], "size": [3, 6, 13], "floors": 3.25 },
+        { "kind": "box", "at": [-7, -11.8, 13], "size": [9, 6, 1.6] },
+        {
+          "kind": "line",
+          "points": [
+            [0, -26.4, 0.05],
+            [-10.5, -41, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [-13, -46.5, 0], "size": [5, 5, 3], "plate": true },
+        { "kind": "label", "at": [-10.5, -44, 7], "text": "MCP", "to": [-10.5, -44, 3] },
+        {
+          "kind": "line",
+          "points": [
+            [0, -26.4, 0.05],
+            [-3.5, -41, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [-6, -46.5, 0], "size": [5, 5, 3], "plate": true },
+        { "kind": "label", "at": [-3.5, -44, 10], "text": "API", "to": [-3.5, -44, 3] },
+        {
+          "kind": "line",
+          "points": [
+            [0, -26.4, 0.05],
+            [3.5, -41, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [1, -46.5, 0], "size": [5, 5, 3], "plate": true },
+        { "kind": "label", "at": [3.5, -44, 7], "text": "WEB", "to": [3.5, -44, 3] },
+        {
+          "kind": "line",
+          "points": [
+            [0, -26.4, 0.05],
+            [10.5, -41, 0.05]
+          ],
+          "ink": "accent"
+        },
+        { "kind": "box", "at": [8, -46.5, 0], "size": [5, 5, 3], "plate": true },
+        { "kind": "label", "at": [10.5, -44, 10], "text": "CLI", "to": [10.5, -44, 3] }
+      ]
+    }
+  },
+  "scenes": {
+    "hero-forge": {
+      "title": "hero-forge",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

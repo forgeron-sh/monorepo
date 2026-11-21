@@ -1,0 +1,75 @@
+---
+import { GithubIcon } from "@forgeron/icons";
+import { Button, Icon, SectionBand } from "@forgeron/ui";
+import type { MarkdownHeading } from "astro";
+import { getEntry, render } from "astro:content";
+import Layout from "../../components/Layout.astro";
+import { PAPERS, type Paper } from "../../data/papers";
+import { projectBySlug } from "../../data/projects";
+import { REPO } from "../../lib/links";
+
+export function getStaticPaths() {
+  return PAPERS.map((paper) => ({ params: { slug: paper.slug }, props: { paper } }));
+}
+
+interface Props {
+  paper: Paper;
+}
+const { paper: p } = Astro.props;
+const entry = await getEntry("papers", p.doc);
+if (!entry) throw new Error(`The paper ${p.id} has no file at docs/${p.doc}.md.`);
+const { Content, headings } = await render(entry);
+const toc = (headings as MarkdownHeading[]).filter((h) => h.depth === 2);
+const source = `${REPO}/blob/main/docs/${p.doc}.md`;
+const url = new URL(`/papers/${p.slug}`, Astro.site).href;
+const cite = `Forgeron Lab, “${p.title}”, ${p.id}, ${p.date.slice(0, 7)}. ${url}`;
+---
+
+<Layout title={`${p.title} — Forgeron Lab`} description={p.line} last="/0.1">
+  <header class="fg-rail lab-paper-head">
+    <div class="lab-phead-eyebrow text-eyebrow">
+      <a href="/#papers" class="lab-back">← Papers</a>
+      <span>{p.id}</span>
+      <span>[ {p.kind} ]</span>
+      <span>{p.date}</span>
+    </div>
+    <h1 class="fg-title lab-paper-h1">{p.title}</h1>
+    <p class="text-lead">{p.line}</p>
+  </header>
+
+  <SectionBand className="fg-rail" from="/0.0" to="/0.1" label="Paper" />
+  <div class="fg-rail lab-read">
+    <aside class="lab-aside" aria-label="About this paper">
+      <div class="lab-aside-block">
+        <span class="text-eyebrow dim">Projects</span>
+        {
+          p.projects.map((s) => {
+            const project = projectBySlug(s);
+            return project ? <a href={`/projects/${s}`}>{project.id} · {project.name}</a> : null;
+          })
+        }
+      </div>
+      {
+        toc.length > 0 && (
+          <nav class="lab-aside-block lab-toc" aria-label="Contents">
+            <span class="text-eyebrow dim">Contents</span>
+            {toc.map((h) => (
+              <a href={`#${h.slug}`}>{h.text}</a>
+            ))}
+          </nav>
+        )
+      }
+      <div class="lab-aside-block">
+        <span class="text-eyebrow dim">Cite</span>
+        <p class="lab-cite">{cite}</p>
+      </div>
+      <Button href={source} size="sm">
+        <Icon icon={GithubIcon} size={16} variant="mono" />
+        Source on GitHub
+      </Button>
+    </aside>
+    <article class="lab-prose">
+      <Content />
+    </article>
+  </div>
+</Layout>

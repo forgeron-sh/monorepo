@@ -1,0 +1,352 @@
+/* The attachments family: file cards, audio and video, embeds, the pending upload card and the
+   one-field address form. Same language as the page: 1 px lines, sharp corners, tokens only, mono
+   capitals for badges, no blur and no fades. */
+
+/* ---------------------------------------------------------------- File card (editor and view) */
+
+.fg-rt-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-raised);
+  color: var(--ink);
+  border-radius: var(--radius-none);
+}
+.fg-rt-file.ProseMirror-selectednode {
+  outline: var(--focus-width) solid var(--accent);
+  outline-offset: 0;
+}
+.fg-rt-file-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--ink-dim);
+}
+.fg-rt-file-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.fg-rt-file-meta {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+.fg-rt-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 14px/20px var(--font-sans);
+}
+.fg-rt-file-size {
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono, monospace);
+  text-transform: uppercase;
+}
+.fg-rt-file-size:empty {
+  display: none;
+}
+.fg-rt a.fg-rt-file-download {
+  display: inline-flex;
+  text-decoration: none;
+  flex: none;
+  padding: 6px;
+  border: var(--border-width) solid var(--line);
+  color: var(--ink);
+  background: transparent;
+}
+.fg-rt a.fg-rt-file-download:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-sunk);
+}
+.fg-rt-file-download:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-rt-file-download svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* The static view: the whole card is the link, and a text badge stands for the icon. */
+.fg-rt-view .fg-rt-file {
+  padding: 0;
+}
+.fg-rt .fg-rt-file-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  color: inherit;
+  text-decoration: none;
+}
+a.fg-rt-file-link:hover {
+  background: var(--bg-sunk);
+}
+a.fg-rt-file-link:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-offset) * -1);
+}
+.fg-rt-file-badge {
+  flex: none;
+  min-width: 36px;
+  padding: 2px 4px;
+  border: var(--border-width) solid var(--line);
+  color: var(--ink-dim);
+  font: 500 10px/14px var(--font-mono, monospace);
+  text-align: center;
+  text-transform: uppercase;
+}
+.fg-rt-file-link .fg-rt-file-name {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Audio and video */
+
+.fg-rt-media {
+  margin: 0;
+}
+.fg-rt-media audio {
+  display: block;
+  width: 100%;
+}
+.fg-rt-media video {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-sunk);
+}
+.fg-rt-media figcaption {
+  margin-top: 4px;
+  color: var(--ink-muted);
+  font: 400 12px/18px var(--font-sans);
+}
+.fg-rt-media.ProseMirror-selectednode {
+  outline: var(--focus-width) solid var(--accent);
+  outline-offset: 2px;
+}
+.fg-rt-media-note {
+  color: var(--ink-muted);
+  font: 400 12px/18px var(--font-mono, monospace);
+}
+
+/* ---------------------------------------------------------------- Embed (bookmark card) */
+
+.fg-rt-embed {
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-raised);
+  border-radius: var(--radius-none);
+}
+.fg-rt-embed.ProseMirror-selectednode {
+  outline: var(--focus-width) solid var(--accent);
+}
+.fg-rt .fg-rt-embed-link {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+a.fg-rt-embed-link:hover {
+  background: var(--bg-sunk);
+}
+a.fg-rt-embed-link:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-offset) * -1);
+}
+.fg-rt-embed-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+}
+.fg-rt-embed-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 14px/20px var(--font-sans);
+}
+.fg-rt-embed-title svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--ink-dim);
+}
+.fg-rt-embed-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--ink-dim);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-rt-embed-host {
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono, monospace);
+  text-transform: uppercase;
+}
+.fg-rt-embed-image {
+  flex: none;
+  width: 160px;
+  max-width: 35%;
+  object-fit: cover;
+  border: 0;
+  border-left: var(--border-width) solid var(--line);
+  order: 2;
+}
+
+/* ---------------------------------------------------------------- Address form (empty block) */
+
+.fg-rt-address {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: var(--border-width) dashed var(--line);
+}
+.fg-rt-address-input {
+  flex: 1;
+  min-width: 160px;
+  height: 32px;
+  padding: 0 8px;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+}
+.fg-rt-address-input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-rt-address-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.fg-rt-address-submit,
+.fg-rt-pending-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+  font: 500 11px/16px var(--font-mono, monospace);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-rt-address-submit:hover,
+.fg-rt-pending-action:hover {
+  background: var(--bg-sunk);
+}
+.fg-rt-address-submit:focus-visible,
+.fg-rt-pending-action:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-rt-address-error {
+  flex-basis: 100%;
+  color: var(--danger);
+  font: 400 12px/18px var(--font-sans);
+}
+.fg-rt-address-error[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- Pending upload (editor only) */
+
+.fg-rt-pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: var(--border-width) dashed var(--line-strong);
+  background: var(--bg-raised);
+  color: var(--ink);
+  border-radius: var(--radius-none);
+  user-select: none;
+}
+.fg-rt-pending[data-status="error"] {
+  border-style: solid;
+  border-color: var(--danger);
+}
+.fg-rt-pending .fg-rt-file-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.fg-rt-pending-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.fg-rt-pending-status {
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono, monospace);
+  text-transform: uppercase;
+}
+.fg-rt-pending[data-status="error"] .fg-rt-pending-status {
+  color: var(--danger);
+}
+.fg-rt-progress {
+  height: 4px;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-sunk);
+}
+.fg-rt-progress[hidden] {
+  display: none;
+}
+.fg-rt-progress-bar {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+.fg-rt-pending-actions {
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+}
+.fg-rt-pending-action[hidden] {
+  display: none;
+}
+.fg-rt-pending-action svg {
+  width: 12px;
+  height: 12px;
+}
+.fg-rt-pending-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .fg-rt-embed-link {
+    flex-direction: column;
+  }
+  .fg-rt-embed-image {
+    order: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 160px;
+    border-left: 0;
+    border-bottom: var(--border-width) solid var(--line);
+  }
+  .fg-rt-pending {
+    flex-wrap: wrap;
+  }
+}

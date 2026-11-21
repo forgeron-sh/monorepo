@@ -302,6 +302,7 @@ export function PublishControl({
         </Button>
         <Menu
           className="ft-split-menu ft-split-primary"
+          align="end"
           label="More sharing actions"
           trigger={<Chevron />}
           entries={[

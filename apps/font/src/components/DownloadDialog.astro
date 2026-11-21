@@ -1,0 +1,70 @@
+---
+import { ArrowDown01Icon, Shield01Icon, WarningIcon } from "@forgeron/icons";
+import { formatBytes, shortHash } from "../lib/files";
+import type { Specimen } from "../lib/specimen";
+import PxIcon from "./PxIcon.astro";
+
+interface Props {
+  specimen: Specimen;
+}
+const { specimen: s } = Astro.props;
+const internal = s.weights[0]!.internalName.replace(/ Regular$/, "");
+const files = [...s.files, s.licenceFile];
+---
+
+<dialog id="downloads" class="modal" data-modal aria-labelledby="dl-title">
+  <header class="modal-head">
+    <h2 id="dl-title" class="t-mono">Download · v{s.version}</h2>
+    <button type="button" class="btn btn-sm" data-modal-close aria-label="Close">Esc ×</button>
+  </header>
+
+  <div class="modal-body">
+    <div class="dl-archive ticks">
+      <div class="dl-main">
+        <span class="tag"><b>Everything</b></span>
+        <p class="f-title as-is dl-name">{s.archive.name}</p>
+        <span class="t-mono dim">3 OTF + {s.licenceFile.name} · {formatBytes(s.archive.bytes)}</span>
+      </div>
+      <a class="btn btn-primary" href={s.archive.href} download><PxIcon icon={ArrowDown01Icon} size={14} />Download</a>
+    </div>
+
+    <ul class="dl-files">
+      {
+        files.map((f) => (
+          <li class="dl-file">
+            <span class="t-mono as-is dl-file-name">{f.name}</span>
+            <span class="t-mono dim">{formatBytes(f.bytes)}</span>
+            <code class="t-mono dl-hash" title={`SHA-256 ${f.sha256}`}>{shortHash(f.sha256)}</code>
+            <button type="button" class="btn btn-sm" data-copy-hash={f.sha256} aria-label={`Copy the SHA-256 of ${f.name}`}>
+              Copy SHA
+            </button>
+            <a class="btn btn-sm" href={f.href} download aria-label={`Download ${f.name}`}>
+              <PxIcon icon={ArrowDown01Icon} size={14} />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <ul class="modal-notes t-small">
+      <li><PxIcon icon={ArrowDown01Icon} /> OTF only, no WOFF2 yet</li>
+      <li><PxIcon icon={WarningIcon} /> Name inside the files: “{internal}” until the next build</li>
+      <li><PxIcon icon={Shield01Icon} /> Check: <code class="t-code">shasum -a 256 &lt;file&gt;</code></li>
+    </ul>
+    <p class="t-mono dim modal-status" data-hash-status role="status"></p>
+  </div>
+</dialog>
+
+<script>
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-copy-hash]")) {
+    b.addEventListener("click", async () => {
+      const status = document.querySelector<HTMLElement>("[data-hash-status]");
+      try {
+        await navigator.clipboard.writeText(b.dataset.copyHash ?? "");
+        if (status) status.textContent = "SHA-256 copied";
+      } catch {
+        if (status) status.textContent = "Copy is not available here";
+      }
+    });
+  }
+</script>

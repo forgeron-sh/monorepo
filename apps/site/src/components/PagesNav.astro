@@ -1,0 +1,29 @@
+---
+import { SiteNav } from "@forgeron/ui";
+import { GITHUB } from "../data/plans";
+import { getStories } from "../lib/stories";
+
+interface Props {
+  /** The page the visitor is on, marked as current: `/pricing`, `/blog`, `/customers`, `/changelog`. */
+  current?: string;
+}
+const { current } = Astro.props;
+
+/**
+ * The one navigation of the site, the same on every page: one link per page, never a section anchor.
+ * The logo leads home. Customers shows once a story is published (in `astro dev`, once a draft exists).
+ */
+const hasStories = (await getStories()).length > 0;
+---
+
+<SiteNav
+  github={GITHUB}
+  start="/#start"
+  current={current}
+  links={[
+    { href: "/pricing", label: "Pricing" },
+    ...(hasStories ? [{ href: "/customers", label: "Customers" }] : []),
+    { href: "/blog", label: "Blog" },
+    { href: "/changelog", label: "Changelog" },
+  ]}
+/>

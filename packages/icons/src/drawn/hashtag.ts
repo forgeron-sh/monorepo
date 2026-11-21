@@ -1,0 +1,24 @@
+import type { PixelIcon } from "../types";
+
+// Hash sign: two bars each way.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "hashtag",
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    "",
+    "....#..#",
+    "....#..#",
+    "..########",
+    "....#..#",
+    "....#..#",
+    "..########",
+    "....#..#",
+    "....#..#",
+  ],
+};
+
+export default icon;

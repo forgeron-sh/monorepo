@@ -1,0 +1,326 @@
+/* The advanced content plugins: code colours, formulas, footnotes. Colours are tokens only; each
+   code colour is a custom property an app can set on `.fg-rt` to retheme the code. */
+
+/* ---------------------------------------------------------------- Code highlighting */
+
+.fg-rt {
+  --fg-rt-tok-keyword: var(--accent);
+  --fg-rt-tok-string: var(--success);
+  --fg-rt-tok-number: var(--warning);
+  --fg-rt-tok-literal: var(--warning);
+  --fg-rt-tok-comment: var(--ink-dim);
+  --fg-rt-tok-function: var(--ink);
+  --fg-rt-tok-type: var(--warning);
+  --fg-rt-tok-variable: var(--ink);
+  --fg-rt-tok-attr: var(--ink-muted);
+  --fg-rt-tok-tag: var(--accent);
+  --fg-rt-tok-operator: var(--ink-muted);
+  --fg-rt-tok-punctuation: var(--ink-muted);
+  --fg-rt-tok-meta: var(--ink-muted);
+  --fg-rt-tok-addition: var(--success);
+  --fg-rt-tok-deletion: var(--danger);
+}
+.fg-rt .fg-rt-tok-keyword {
+  color: var(--fg-rt-tok-keyword);
+}
+.fg-rt .fg-rt-tok-string {
+  color: var(--fg-rt-tok-string);
+}
+.fg-rt .fg-rt-tok-number {
+  color: var(--fg-rt-tok-number);
+}
+.fg-rt .fg-rt-tok-literal {
+  color: var(--fg-rt-tok-literal);
+}
+.fg-rt .fg-rt-tok-comment {
+  color: var(--fg-rt-tok-comment);
+  font-style: italic;
+}
+.fg-rt .fg-rt-tok-function {
+  color: var(--fg-rt-tok-function);
+  font-weight: 600;
+}
+.fg-rt .fg-rt-tok-type {
+  color: var(--fg-rt-tok-type);
+}
+.fg-rt .fg-rt-tok-variable {
+  color: var(--fg-rt-tok-variable);
+}
+.fg-rt .fg-rt-tok-attr {
+  color: var(--fg-rt-tok-attr);
+}
+.fg-rt .fg-rt-tok-tag {
+  color: var(--fg-rt-tok-tag);
+}
+.fg-rt .fg-rt-tok-operator {
+  color: var(--fg-rt-tok-operator);
+}
+.fg-rt .fg-rt-tok-punctuation {
+  color: var(--fg-rt-tok-punctuation);
+}
+.fg-rt .fg-rt-tok-meta {
+  color: var(--fg-rt-tok-meta);
+}
+.fg-rt .fg-rt-tok-addition {
+  color: var(--fg-rt-tok-addition);
+}
+.fg-rt .fg-rt-tok-deletion {
+  color: var(--fg-rt-tok-deletion);
+}
+
+/* The language selector sits on the block, in a zero-height row before it, so the layout does not
+   move when it appears. The slot takes the gap the block would have had above it. */
+.fg-rt-content > .fg-rt-lang-slot:not(:first-child) {
+  margin-top: 8px;
+}
+.fg-rt-lang-slot {
+  position: relative;
+  z-index: 1;
+  height: 0;
+}
+.fg-rt-lang-slot + pre {
+  margin-top: 0;
+}
+.fg-rt-lang {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  height: 22px;
+  padding: 0 6px;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-none);
+  background: var(--bg-raised);
+  color: var(--ink-muted);
+  font: 400 11px/20px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-rt-lang:hover,
+.fg-rt-lang:focus-visible {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.fg-rt-lang:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-rt-lang-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------- Formulas */
+
+.fg-rt-math {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  white-space: normal;
+}
+.fg-rt-math-block {
+  display: block;
+  padding: 8px 0;
+  overflow-x: auto;
+  text-align: center;
+}
+.fg-rt-math .katex-display {
+  margin: 0;
+}
+.fg-rt-math code {
+  padding: 0 4px;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-sunk);
+  font: 400 0.9em/1.4 var(--font-mono);
+  white-space: pre-wrap;
+}
+.fg-rt-content .fg-rt-math {
+  cursor: pointer;
+}
+.fg-rt-content .fg-rt-math:hover > .fg-rt-math-out,
+.fg-rt-content .fg-rt-math.ProseMirror-selectednode > .fg-rt-math-out {
+  background: var(--bg-raised);
+}
+.fg-rt-content .fg-rt-math.ProseMirror-selectednode > .fg-rt-math-out {
+  outline: 2px solid var(--accent);
+}
+.fg-rt-math-out {
+  display: inline-block;
+  min-width: 1em;
+  padding: 0 2px;
+}
+.fg-rt-math-block > .fg-rt-math-out {
+  display: block;
+}
+.fg-rt-math-empty::before {
+  content: "Empty formula";
+  color: var(--ink-dim);
+  font: 400 12px/20px var(--font-mono);
+  text-transform: uppercase;
+}
+.fg-rt-math-error,
+.fg-rt-math-error code {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.fg-rt-math-out.fg-rt-math-error {
+  border: var(--border-width) solid var(--danger);
+  font: 400 0.9em/1.4 var(--font-mono);
+}
+
+/* The inline editor: LaTeX, a live preview, the error of KaTeX. */
+.fg-rt-math-edit {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 320px;
+  max-width: 80vw;
+  padding: 8px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  text-align: left;
+  cursor: default;
+}
+.fg-rt-math-block > .fg-rt-math-edit {
+  right: 0;
+  width: auto;
+  max-width: none;
+}
+.fg-rt-math-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  color: var(--ink);
+  font: 400 13px/20px var(--font-mono);
+  resize: vertical;
+}
+.fg-rt-math-input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 0;
+}
+.fg-rt-math-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.fg-rt-math-preview {
+  min-height: 28px;
+  padding: 4px 6px;
+  overflow-x: auto;
+  border: var(--border-width) dashed var(--line);
+  text-align: center;
+}
+.fg-rt-math-note {
+  color: var(--danger);
+  font: 400 12px/16px var(--font-mono);
+}
+.fg-rt-math-hint {
+  color: var(--ink-dim);
+  font: 400 11px/14px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- Footnotes */
+
+/* The numbers are counters over the markers, in document order: nothing is stored. */
+.fg-rt-content {
+  counter-reset: fg-rt-fn;
+}
+.fg-rt-footnote {
+  position: relative;
+}
+.fg-rt-fn-mark {
+  padding: 0 1px;
+  color: var(--accent);
+  font: 600 0.75em/1 var(--font-mono);
+  vertical-align: super;
+  cursor: pointer;
+  user-select: none;
+}
+.fg-rt-fn-mark::before {
+  content: counter(fg-rt-fn);
+  counter-increment: fg-rt-fn;
+}
+.fg-rt-fn-body {
+  display: none;
+}
+.fg-rt-fn-open > .fg-rt-fn-body {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: 0;
+  display: block;
+  box-sizing: border-box;
+  width: 280px;
+  max-width: 80vw;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+  white-space: pre-wrap;
+}
+.fg-rt-fn-open > .fg-rt-fn-mark {
+  outline: 2px solid var(--accent);
+}
+
+/* The list at the foot: the editor draws it from the markers, the static view from the notes. */
+.fg-rt-footnotes {
+  margin-top: 24px;
+  padding-top: 8px;
+  border-top: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-rt .fg-rt-footnotes ol {
+  margin: 0;
+  padding-left: 20px;
+}
+.fg-rt-fn-item {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fg-rt-fn-item:hover {
+  color: var(--ink);
+}
+.fg-rt-fn-item:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-rt-fn-empty {
+  color: var(--ink-dim);
+}
+.fg-rt-fn-ref {
+  font: 600 0.75em/1 var(--font-mono);
+}
+.fg-rt-fn-ref a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.fg-rt-fn-back {
+  color: var(--accent);
+  text-decoration: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-rt-lang,
+  .fg-rt-fn-item {
+    transition: none;
+  }
+}

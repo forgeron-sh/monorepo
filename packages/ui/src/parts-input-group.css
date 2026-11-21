@@ -1,0 +1,119 @@
+/* InputGroup: the frame draws the border and the focus; the control inside is bare. */
+.fg-input-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink-dim);
+  transition: border-color var(--motion-fast);
+}
+.fg-input-group:hover {
+  border-color: var(--ink-dim);
+}
+.fg-input-group:focus-within {
+  border-color: var(--ink-muted);
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-input-group:has([aria-invalid="true"]) {
+  border-color: var(--danger);
+}
+.fg-input-group:has(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--bg-raised);
+  cursor: not-allowed;
+}
+.fg-input-group:has(> [data-align="block-start"], > [data-align="block-end"]) {
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  height: auto;
+  padding: 0;
+  gap: 0;
+}
+.fg-input-group-control {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+  outline: none;
+}
+.fg-input-group-control::placeholder {
+  color: var(--ink-dim);
+}
+.fg-input-group-control::-webkit-search-cancel-button {
+  display: none;
+}
+.fg-input-group-control:disabled {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+}
+.fg-input-group-textarea {
+  min-height: 64px;
+  padding: var(--space-2) var(--space-3);
+  resize: none;
+}
+.fg-input-group-addon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-dim);
+  cursor: text;
+}
+.fg-input-group-addon[data-align="inline-start"] {
+  order: -1;
+}
+.fg-input-group-addon[data-align="inline-end"] {
+  order: 3;
+}
+.fg-input-group-addon[data-align="block-start"],
+.fg-input-group-addon[data-align="block-end"] {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+}
+.fg-input-group-addon[data-align="block-start"] {
+  order: -1;
+  justify-content: flex-start;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-input-group-addon[data-align="block-end"] {
+  order: 3;
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-input-group-addon button {
+  cursor: pointer;
+}
+.fg-input-group-text {
+  color: var(--ink-muted);
+  font: 400 12px/16px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-btn.fg-input-group-btn {
+  height: 22px;
+  padding: 0 var(--space-2);
+  font-size: 12px;
+}
+.fg-btn.fg-input-group-btn[data-size="sm"] {
+  height: 28px;
+}
+.fg-btn.fg-input-group-btn[data-size="icon-xs"] {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+.fg-btn.fg-input-group-btn[data-size="icon-sm"] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}

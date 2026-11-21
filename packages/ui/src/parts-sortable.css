@@ -1,0 +1,75 @@
+/* The Sortable primitive (sortable.tsx): the list, an item, the handle, the drop line. The blocks
+   that reorder keep their own rows and add their own marks. */
+
+.fg-sortable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-sortable[data-orientation="horizontal"] {
+  flex-direction: row;
+}
+.fg-sortable-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-sortable-item:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-sortable-item[data-dragging] {
+  opacity: 0.4;
+}
+.fg-sortable-item[data-over="inside"] {
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg));
+  border-color: var(--accent);
+}
+.fg-sortable-handle {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 20px;
+  color: var(--ink-dim);
+  cursor: grab;
+  touch-action: none;
+}
+.fg-sortable-handle:active {
+  cursor: grabbing;
+}
+.fg-sortable-indicator {
+  position: absolute;
+  pointer-events: none;
+  background: var(--accent);
+}
+.fg-sortable-indicator[data-position="before"] {
+  inset: -3px 0 auto 0;
+  height: 2px;
+}
+.fg-sortable-indicator[data-position="after"] {
+  inset: auto 0 -3px 0;
+  height: 2px;
+}
+.fg-sortable[data-orientation="horizontal"] .fg-sortable-indicator[data-position="before"] {
+  inset: 0 auto 0 -3px;
+  width: 2px;
+  height: auto;
+}
+.fg-sortable[data-orientation="horizontal"] .fg-sortable-indicator[data-position="after"] {
+  inset: 0 -3px 0 auto;
+  width: 2px;
+  height: auto;
+}
+.fg-sortable-indicator[data-position="inside"] {
+  display: none;
+}

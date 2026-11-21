@@ -1,0 +1,184 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/web",
+  "parts": {
+    "body": {
+      "params": { "pop": { "type": "number", "default": 0.6 } },
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-4, -4, 0],
+            [-4, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, -4, 0],
+            [0, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -4, 0],
+            [4, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8, -4, 0],
+            [8, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [12, -4, 0],
+            [12, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [16, -4, 0],
+            [16, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [20, -4, 0],
+            [20, 22, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, -4, 0],
+            [22, -4, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 0, 0],
+            [22, 0, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 4, 0],
+            [22, 4, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 8, 0],
+            [22, 8, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 12, 0],
+            [22, 12, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 16, 0],
+            [22, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 20, 0],
+            [22, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        { "kind": "box", "at": [0, 0, 0], "size": [16, 1, 12], "tone": [0.1, 0.06, 0.3] },
+        { "kind": "box", "at": [0, 1, 10.5], "size": [16, 0.4, 1.5], "look": "accent" },
+        { "kind": "box", "at": [1, 1, 1], "size": [6, 0.6, 8] },
+        { "kind": "box", "at": [8, 1, 6], "size": [7, "@pop", 3] },
+        { "kind": "box", "at": [8, 1, 1], "size": [7, 0.6, 4] },
+        { "kind": "dot", "at": [1, 1.2, 11.2], "ink": "ink", "size": 2 },
+        { "kind": "dot", "at": [2.2, 1.2, 11.2], "ink": "ink", "size": 2 },
+        { "kind": "dot", "at": [3.4, 1.2, 11.2], "ink": "ink", "size": 2 }
+      ]
+    }
+  },
+  "scenes": {
+    "web": {
+      "title": "web",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "body", "use": "body" }] },
+      "timelines": {
+        "motion": {
+          "tracks": [
+            {
+              "kind": "wave",
+              "target": "body",
+              "channel": "param:pop",
+              "wave": "sin",
+              "rate": 1.5,
+              "amp": 0.8,
+              "base": 0.6,
+              "clip": true
+            }
+          ]
+        }
+      }
+    }
+  }
+}

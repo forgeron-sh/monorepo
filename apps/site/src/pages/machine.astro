@@ -1,0 +1,45 @@
+---
+import Site from "../layouts/Site.astro";
+---
+
+<Site title="The machine · Forgeron" description="A very complex machine that does nothing.">
+  <main class="wild">
+    <figure class="screen">
+      <canvas data-iso="machine" data-scale="2" data-unit="any" data-labels="off" data-fill="0.94" aria-hidden="true"></canvas>
+      <figcaption class="sr-only">
+        An isometric pixel machine with marbles, an engine, gears, pendulums, arms and conveyors, all moving, doing nothing.
+      </figcaption>
+    </figure>
+  </main>
+</Site>
+
+<script>
+  import "../illustrations/canvas";
+</script>
+
+<style>
+  :global(body) {
+    background: #000;
+  }
+  .wild {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+  .screen {
+    position: relative;
+    margin: 0;
+    width: min(1200px, calc(100vw - 32px), calc((100dvh - 32px) * 1.6));
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-sunk);
+  }
+  .screen canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+</style>

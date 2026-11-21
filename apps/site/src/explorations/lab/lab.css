@@ -1,0 +1,805 @@
+/* Forgeron lab — design system v0.1: black, grain, ordered dither, pixel type, technical sections. */
+
+:root {
+  color-scheme: dark;
+  --bg: #0a0a0a;
+  --bg-raised: #111111;
+  --bg-sunk: #050505;
+  --line: #1c1c1c;
+  --line-strong: #2e2e2e;
+  --ink: #ededed;
+  --ink-muted: #8f8f8f;
+  --ink-dim: #5e5e5e;
+  --accent: #ff4f1f;
+  --accent-ink: #0a0a0a;
+  --ok: #3ddc84;
+  --warn: #ffb020;
+
+  --font-bit: "Silkscreen", "Geist Mono", ui-monospace, monospace;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s6: 24px;
+  --s8: 32px;
+  --s12: 48px;
+  --s16: 64px;
+  --s24: 96px;
+  --max: 1280px;
+  --gutter: 24px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  background: var(--bg);
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/24px var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+/* Film grain over everything. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.rail {
+  max-width: var(--max);
+  margin: 0 auto;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  position: relative;
+}
+.pad {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+.hr {
+  border-top: 1px solid var(--line);
+}
+.grid12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+.muted {
+  color: var(--ink-muted);
+}
+.dim {
+  color: var(--ink-dim);
+}
+.accent {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- type */
+
+/* Titles in the 5×7 bitmap face (PixelTitle): square pixels, 1em = 7 pixels. */
+.px-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  margin: 0;
+  line-height: 1;
+}
+.px-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.57em;
+}
+.px-word svg {
+  height: 1em;
+  width: auto;
+  display: block;
+}
+.t-hero {
+  font-size: clamp(36px, 7vw, 98px);
+}
+.t-h2 {
+  font-size: clamp(26px, 3.6vw, 49px);
+}
+.t-h3 {
+  font-size: clamp(18px, 2.2vw, 28px);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.t-bit {
+  font-family: var(--font-bit);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.t-code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 21px;
+}
+.t-title {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 17px;
+  line-height: 24px;
+  letter-spacing: -0.01em;
+}
+.t-lead {
+  font-size: 17px;
+  line-height: 27px;
+  color: var(--ink-muted);
+  max-width: 46ch;
+}
+.t-small {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------- brand */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+.logo .mark {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.logo .word {
+  height: 12px;
+  display: block;
+}
+.logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------------------------------------------------------------- frame & ticks */
+
+/* Crosshair brackets on the four corners. */
+.ticks {
+  --tick: var(--ink-dim);
+  --tl: 7px;
+  background:
+    linear-gradient(var(--tick), var(--tick)) top left / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top left / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top right / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top right / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom left / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom left / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / 1px var(--tl) no-repeat;
+}
+.box {
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.dots-bg {
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1.2px);
+  background-size: 16px 16px;
+}
+
+/* ---------------------------------------------------------------- section head  /0.1 */
+
+.sec-head {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: end;
+  gap: var(--s6);
+  padding: var(--s16) var(--gutter) var(--s8);
+  border-bottom: 1px solid var(--line);
+}
+.sec-index {
+  color: var(--accent);
+}
+.sec-index svg {
+  height: 28px;
+  width: auto;
+  display: block;
+}
+.sec-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.sec-meta {
+  text-align: right;
+  color: var(--ink-dim);
+}
+@media (max-width: 760px) {
+  .sec-head {
+    grid-template-columns: 1fr;
+    gap: var(--s4);
+    padding-top: var(--s12);
+  }
+  .sec-meta {
+    text-align: left;
+  }
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.btn:hover {
+  border-color: var(--ink);
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn-primary:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.btn-ink {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+.btn .sq {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.tag::before {
+  content: "[";
+  color: var(--ink-dim);
+}
+.tag::after {
+  content: "]";
+  color: var(--ink-dim);
+}
+.tag b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.chip.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.led {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--ink-dim);
+}
+.led.ok {
+  background: var(--ok);
+}
+.led.warn {
+  background: var(--warn);
+}
+.led.hot {
+  background: var(--accent);
+}
+
+.cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-sunk);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.cmd .p {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- spec table */
+
+.spec {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  border-top: 1px solid var(--line);
+}
+.spec > * {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.spec dt {
+  padding-right: var(--s8);
+  color: var(--ink-dim);
+}
+.spec dd {
+  margin: 0;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------- bento */
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: 160px;
+  gap: 1px;
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.cell {
+  position: relative;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: background 0.2s;
+}
+.cell:hover {
+  background: var(--bg-raised);
+}
+.cell .art {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.cell .art > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cell .copy {
+  padding: var(--s6);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cell .corner {
+  position: absolute;
+  top: var(--s4);
+  left: var(--s6);
+  z-index: 1;
+}
+.cell .corner-r {
+  position: absolute;
+  top: var(--s4);
+  right: var(--s6);
+  z-index: 1;
+}
+.c2 {
+  grid-column: span 2;
+}
+.c3 {
+  grid-column: span 3;
+}
+.c4 {
+  grid-column: span 4;
+}
+.c6 {
+  grid-column: span 6;
+}
+.r2 {
+  grid-row: span 2;
+}
+.r3 {
+  grid-row: span 3;
+}
+@media (max-width: 900px) {
+  .bento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .c2,
+  .c3,
+  .c4,
+  .c6 {
+    grid-column: span 2;
+  }
+}
+
+/* ---------------------------------------------------------------- nav */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.nav .rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s6);
+  height: 60px;
+  padding: 0 var(--gutter);
+}
+.nav-links {
+  display: flex;
+  gap: var(--s6);
+}
+.nav-links a {
+  color: var(--ink-muted);
+}
+.nav-links a:hover {
+  color: var(--ink);
+}
+.nav-actions {
+  display: flex;
+  gap: var(--s2);
+}
+@media (max-width: 860px) {
+  .nav-links {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .nav-actions .btn:not(.btn-primary) {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- code card */
+
+.code {
+  border: 1px solid var(--line);
+  background: var(--bg-sunk);
+}
+.code-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.code pre {
+  margin: 0;
+  padding: 16px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--ink-muted);
+}
+.code .k {
+  color: var(--ink);
+}
+.code .s {
+  color: var(--accent);
+}
+.code .c {
+  color: var(--ink-dim);
+}
+
+/* ---------------------------------------------------------------- footer */
+
+.foot-word {
+  color: var(--ink);
+  padding: var(--s12) var(--gutter) var(--s6);
+}
+.foot-word svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ================================================================ v0.2 — Forge Sans, icons, roomier rhythm */
+
+@font-face {
+  font-family: "Forge Sans";
+  src: url("/fonts/ForgeSans-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Forge Sans";
+  src: url("/fonts/ForgeSans-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Forge Sans";
+  src: url("/fonts/ForgeSans-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-display: swap;
+}
+:root {
+  --font-forge: "Forge Sans", "Geist Mono", ui-monospace, monospace;
+  --signal: var(--accent);
+}
+
+/* Forge Sans titles: 1 pixel = 0.1em, so sizes step by 10 px to keep every pixel whole. */
+/* Titles: capitals, medium weight (1.5-pixel stems, 1-pixel horizontals). */
+.f-title {
+  font-family: var(--font-forge);
+  font-weight: 500;
+  text-transform: uppercase;
+  line-height: 1.1;
+  letter-spacing: 0;
+  margin: 0;
+  font-synthesis: none;
+}
+.f-hero {
+  font-size: 100px;
+}
+.f-h2 {
+  font-size: 60px;
+}
+.f-h3 {
+  font-size: 30px;
+}
+.f-text {
+  font-family: var(--font-forge);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.3;
+}
+@media (max-width: 1100px) {
+  .f-hero {
+    font-size: 80px;
+  }
+  .f-h2 {
+    font-size: 50px;
+  }
+}
+@media (max-width: 760px) {
+  .f-hero {
+    font-size: 50px;
+  }
+  .f-h2 {
+    font-size: 40px;
+  }
+  .f-h3 {
+    font-size: 20px;
+  }
+}
+@media (max-width: 400px) {
+  .f-hero {
+    font-size: 40px;
+  }
+  .f-h2 {
+    font-size: 30px;
+  }
+}
+
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  color: var(--ink);
+}
+.icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Hatched spacer between sections, with its coordinates. */
+.spacer {
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+.spacer span {
+  background: var(--bg);
+  padding: 2px 8px;
+}
+
+/* Roomier rhythm for landing C. */
+.v2 {
+  --gutter: 32px;
+}
+.v2 .sec-head {
+  padding-top: 112px;
+  padding-bottom: 48px;
+  grid-template-columns: 140px 1fr auto;
+}
+.v2 .sec-head .sec-title {
+  gap: 20px;
+}
+.v2 .sec-lead {
+  max-width: 52ch;
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 27px;
+}
+.v2 .bento {
+  grid-auto-rows: 184px;
+}
+.v2 .cell .copy {
+  padding: 28px 32px 32px;
+}
+.v2 .cell .corner {
+  top: 20px;
+  left: 32px;
+}
+.v2 .cell .corner-r {
+  top: 20px;
+  right: 32px;
+}
+@media (max-width: 760px) {
+  .v2 {
+    --gutter: 20px;
+  }
+  .v2 .sec-head {
+    padding-top: 72px;
+    padding-bottom: 32px;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Feature rows (verb sections): copy, art, then three small features. */
+.feat {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  border-bottom: 1px solid var(--line);
+}
+.feat-copy {
+  padding: 56px var(--gutter);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-right: 1px solid var(--line);
+}
+.feat-art {
+  position: relative;
+  min-height: 420px;
+}
+.feat-art > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.feat-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+.feat-list li {
+  padding: 32px var(--gutter) 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid var(--line);
+}
+.feat-list li:last-child {
+  border-right: 0;
+}
+.link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  display: inline-flex;
+  gap: 8px;
+}
+.link:hover {
+  color: var(--accent);
+}
+@media (max-width: 900px) {
+  .feat {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .feat-copy {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .feat-art {
+    min-height: 320px;
+  }
+  .feat-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .feat-list li {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

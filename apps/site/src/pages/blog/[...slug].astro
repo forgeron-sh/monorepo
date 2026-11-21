@@ -1,0 +1,202 @@
+---
+import { SectionBand } from "@forgeron/ui";
+import { getImage } from "astro:assets";
+import { render } from "astro:content";
+import PagesNav from "../../components/PagesNav.astro";
+import Callout from "../../components/blog/Callout.astro";
+import Figure from "../../components/blog/Figure.astro";
+import PostArt from "../../components/blog/PostArt.astro";
+import PostCard from "../../components/blog/PostCard.astro";
+import Footer from "../../components/Footer.astro";
+import { GITHUB } from "../../data/plans";
+import Site from "../../layouts/Site.astro";
+import { authorsOf, getPosts, initials, isoDate, longDate, type Post, related } from "../../lib/blog";
+import "../../styles/blog.css";
+
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post, posts } }));
+}
+
+interface Props {
+  post: Post;
+  posts: Post[];
+}
+const { post, posts } = Astro.props;
+const { data } = post;
+const { Content, headings } = await render(post);
+const authors = await authorsOf(post);
+const next = related(post, posts);
+/** The table of contents: the post's sections (`##`). */
+const toc = headings.filter((h) => h.depth === 2 && h.slug !== "footnote-label");
+const og = data.cover ? (await getImage({ src: data.cover, width: 1200, format: "jpg" })).src : undefined;
+const category = data.category.toLowerCase();
+---
+
+<Site title={`${data.title} — Forgeron`} description={data.description} bodyClass="home" image={og} type="article">
+  <Fragment slot="head">
+    <meta property="article:published_time" content={data.date.toISOString()} />
+    {data.updated ? <meta property="article:modified_time" content={data.updated.toISOString()} /> : null}
+    <meta property="article:section" content={data.category} />
+    <link rel="alternate" type="application/rss+xml" title="Forgeron blog" href="/blog/rss.xml" />
+  </Fragment>
+  <PagesNav current="/blog" />
+
+  <main class="post">
+    <article>
+      <header class="fg-rail post-head">
+        <nav class="post-crumbs text-eyebrow" aria-label="Breadcrumb">
+          <a href="/blog">Blog</a>
+          <span aria-hidden="true">/</span>
+          <a href={`/blog?category=${category}#posts`}>{data.category}</a>
+          {data.draft ? <span class="blog-draft">Draft</span> : null}
+        </nav>
+        <h1 class="post-title">{data.title}</h1>
+        <p class="post-lead">{data.description}</p>
+        <div class="post-meta">
+          <ul class="post-authors">
+            {
+              authors.map((a) => (
+                <li>
+                  <span class="post-avatar" aria-hidden="true">
+                    {initials(a.data.name)}
+                  </span>
+                  <span>
+                    {a.data.url ? <a href={a.data.url}>{a.data.name}</a> : a.data.name}
+                    <span class="post-role">{a.data.role}</span>
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+          <dl class="post-dates text-eyebrow">
+            <div>
+              <dt>Published</dt>
+              <dd><time datetime={isoDate(data.date)}>{longDate(data.date)}</time></dd>
+            </div>
+            {
+              data.updated ? (
+                <div>
+                  <dt>Updated</dt>
+                  <dd>
+                    <time datetime={isoDate(data.updated)}>{longDate(data.updated)}</time>
+                  </dd>
+                </div>
+              ) : null
+            }
+          </dl>
+        </div>
+      </header>
+
+      {
+        data.scene || data.cover ? (
+          <figure class="fg-rail post-cover">
+            <PostArt
+              scene={data.scene}
+              image={data.cover}
+              alt={data.coverAlt}
+              field
+              fill={0.72}
+              sizes="(max-width: 1320px) 100vw, 1320px"
+              eager
+            />
+          </figure>
+        ) : null
+      }
+
+      <div class="fg-rail post-layout">
+        <aside class="post-side">
+          <div class="post-side-inner">
+          {
+            toc.length > 1 ? (
+              <nav class="post-toc" aria-label="On this page">
+                <p class="text-eyebrow">On this page</p>
+                <ol>
+                  {toc.map((h) => (
+                    <li>
+                      <a href={`#${h.slug}`}>{h.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            ) : null
+          }
+          <div class="post-share">
+            <p class="text-eyebrow">Share</p>
+            <button type="button" class="fg-btn fg-btn-sm" data-copy-link>Copy link</button>
+          </div>
+          </div>
+        </aside>
+        <div class="post-body prose">
+          <Content components={{ Figure, Callout }} />
+        </div>
+      </div>
+
+      <footer class="fg-rail post-foot">
+        <a class="post-back text-eyebrow" href="/blog">← All posts</a>
+        <span class="text-eyebrow dim">{longDate(data.updated ?? data.date)}</span>
+      </footer>
+    </article>
+
+    {
+      next.length > 0 ? (
+        <>
+          <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="Keep reading" />
+          <section class="fg-rail post-next" aria-label="Keep reading">
+            <ul class="fg-cards blog-cards">
+              {next.map((p) => (
+                <PostCard post={p} summary={false} />
+              ))}
+              {Array.from({ length: (3 - (next.length % 3)) % 3 }, () => (
+                <li class="blog-card-fill" aria-hidden="true" />
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : null
+    }
+  </main>
+
+  <Footer github={GITHUB} docs={DOCS} from={next.length > 0 ? "/0.2" : "/0.1"} />
+</Site>
+
+<script>
+  // The scenes and the fields of the page.
+  import "../../illustrations/canvas";
+
+  // Copy the post's address; the button says so for two seconds.
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy-link]")) {
+    const label = button.textContent;
+    button.addEventListener("click", () => {
+      void navigator.clipboard.writeText(location.href.split("#")[0] ?? location.href).then(
+        () => {
+          button.textContent = "Copied";
+          setTimeout(() => (button.textContent = label), 2000);
+        },
+        () => {
+          button.textContent = "Copy failed";
+        },
+      );
+    });
+  }
+
+  // The table of contents follows the reading: the section under the top third of the screen is marked.
+  const links = new Map(
+    [...document.querySelectorAll<HTMLAnchorElement>(".post-toc a")].map((a) => [a.hash.slice(1), a]),
+  );
+  const sections = [...links.keys()]
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => el !== null);
+  if (sections.length > 0) {
+    const mark = () => {
+      const line = window.innerHeight / 3;
+      let current = sections[0];
+      for (const s of sections) if (s.getBoundingClientRect().top <= line) current = s;
+      for (const [id, a] of links) a.toggleAttribute("aria-current", id === current?.id);
+    };
+    mark();
+    window.addEventListener("scroll", mark, { passive: true });
+  }
+</script>

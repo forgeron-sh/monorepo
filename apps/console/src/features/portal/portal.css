@@ -68,7 +68,7 @@ button.fp-link {
 }
 .fp-card-title {
   margin: 0;
-  font: 600 22px/30px var(--font-display);
+  font: 600 22px/30px var(--font-sans);
   letter-spacing: -0.01em;
 }
 .fp-card-summary {

@@ -1,0 +1,28 @@
+---
+import { isoDate, type Post, shortDate } from "../../lib/blog";
+import PostArt from "./PostArt.astro";
+
+interface Props {
+  post: Post;
+  /** Shows the post's summary under its title. */
+  summary?: boolean;
+}
+const { post, summary = true } = Astro.props;
+const { data } = post;
+---
+
+<!-- A post in a `fg-cards` grid: the landing's glued card (art over dots, then the words), as one link. -->
+<li class="blog-card" data-category={data.category.toLowerCase()}>
+  <a class="fg-artcard fg-ticks" href={`/blog/${post.id}`}>
+    <PostArt class="fg-artcard-art" scene={data.scene} image={data.cover} fill={0.74} sizes="(max-width: 900px) 100vw, 420px" />
+    <div class="fg-artcard-copy">
+      <span class="blog-meta text-eyebrow">
+        <span class="fg-artcard-eyebrow">{data.category}</span>
+        <time datetime={isoDate(data.date)}>{shortDate(data.date)}</time>
+        {data.draft ? <span class="blog-draft">Draft</span> : null}
+      </span>
+      <h3 class="text-title-3 blog-card-title">{data.title}</h3>
+      {summary ? <p class="text-small fg-artcard-text">{data.description}</p> : null}
+    </div>
+  </a>
+</li>

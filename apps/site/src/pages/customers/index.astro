@@ -1,0 +1,119 @@
+---
+import { PixelFigure, SectionBand, SectionHead } from "@forgeron/ui";
+import PostArt from "../../components/blog/PostArt.astro";
+import Footer from "../../components/Footer.astro";
+import PagesNav from "../../components/PagesNav.astro";
+import StoryCard from "../../components/stories/StoryCard.astro";
+import { INDUSTRIES } from "../../content.config";
+import { GITHUB } from "../../data/plans";
+import Site from "../../layouts/Site.astro";
+import { getStories, leadStory } from "../../lib/stories";
+import "../../styles/blog.css";
+import "../../styles/stories.css";
+
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+const stories = await getStories();
+const top = leadStory(stories);
+const industries = INDUSTRIES.filter((i) => stories.some((s) => s.data.industry === i));
+const slug = (c: string) => c.toLowerCase().replace(/\s+/g, "-");
+const fillers = (3 - (stories.length % 3)) % 3;
+---
+
+<Site
+  title="Customers — Forgeron"
+  description="How companies forge their internal tools with Forgeron, in their own words."
+  bodyClass="home"
+>
+  <PagesNav current="/customers" />
+
+  <main class="blog">
+    <section class="fg-rail">
+      <SectionHead
+        index="/0.1"
+        title={["Forged", "in the field."]}
+        titleAs="h1"
+        lead="How companies build and run their internal tools with Forgeron, in their own words."
+      />
+
+      {
+        top ? (
+          <a class="story-lead" href={`/customers/${top.id}`}>
+            <PostArt class="story-lead-art" scene={top.data.scene} field fill={0.78} />
+            <div class="story-lead-text">
+              <div class="blog-meta text-eyebrow">
+                <span class="fg-tag">
+                  <b>{top.data.industry}</b>
+                </span>
+                <span>{top.data.company}</span>
+                {top.data.draft ? <span class="blog-draft">Draft</span> : null}
+              </div>
+              <blockquote class="story-lead-quote">“{top.data.quote.text}”</blockquote>
+              <p class="story-lead-by">
+                <b>{top.data.quote.name}</b>
+                <span>{top.data.quote.role}, {top.data.company}</span>
+              </p>
+              <span class="blog-read text-eyebrow" aria-hidden="true">
+                Read the story →
+              </span>
+            </div>
+            {top.data.results.length > 0 ? (
+              <ul class="fg-figures story-results" style={`--story-results: ${top.data.results.length}`}>
+                {top.data.results.map((r) => (
+                  <li class="fg-ticks">
+                    <PixelFigure text={r.value} size="md" />
+                    <span class="text-eyebrow fg-figures-label">{r.label}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </a>
+        ) : (
+          <p class="blog-empty">The first stories are being written with our first customers.</p>
+        )
+      }
+    </section>
+
+    {
+      stories.length > 0 ? (
+        <>
+          <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="All stories" />
+          <section id="stories" class="fg-rail blog-all">
+            <div class="blog-bar">
+              <div class="blog-filter" role="group" aria-label="Filter by industry">
+                <button type="button" class="fg-btn fg-btn-sm" data-filter="all" aria-pressed="true">
+                  All
+                </button>
+                {industries.map((i) => (
+                  <button type="button" class="fg-btn fg-btn-sm" data-filter={slug(i)} aria-pressed="false">
+                    {i}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ul class="fg-cards blog-cards story-cards">
+              {stories.map((s) => (
+                <StoryCard story={s} />
+              ))}
+              {[0, 1].map((i) => (
+                <li class="blog-card-fill" data-fill aria-hidden="true" hidden={i >= fillers} />
+              ))}
+            </ul>
+            <p class="blog-empty" data-empty hidden>
+              No story in this industry yet.
+            </p>
+          </section>
+        </>
+      ) : null
+    }
+  </main>
+
+  <Footer github={GITHUB} docs={DOCS} from={stories.length > 0 ? "/0.2" : "/0.1"} />
+</Site>
+
+<script>
+  import "../../illustrations/canvas";
+  import { mountFilter } from "../../lib/filter";
+
+  mountFilter("#stories", "industry");
+</script>

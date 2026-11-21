@@ -1,0 +1,323 @@
+/* Blocks of the "time" group: time grid, availability, slots, recurrence, zones, durations.
+   Values come from tokens/tokens.css. Prefixes: fg-tg, fg-av, fg-slot, fg-rec. The grid of hours,
+   the list of slots and the bar of Today and the arrows are primitives: parts-event-grid.css,
+   parts-slot-list.css, parts-period-nav.css. */
+
+/* ---------------------------------------------------------------- time grid */
+.fg-tg {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+/* ---------------------------------------------------------------- availability */
+.fg-av {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.fg-av-caption {
+  margin: 0;
+  color: var(--ink-dim);
+  font: 500 10.5px/16px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-av-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 360px;
+}
+.fg-av-week,
+.fg-av-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: var(--border-width) solid var(--line-strong);
+  list-style: none;
+}
+.fg-av-day,
+.fg-av-exception {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-2) var(--space-3);
+}
+.fg-av-exception {
+  grid-template-columns: 70px 110px minmax(0, 1fr) auto;
+  align-items: center;
+}
+.fg-av-day + .fg-av-day,
+.fg-av-exception + .fg-av-exception {
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-av-dayhead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+}
+.fg-av-total,
+.fg-av-kind,
+.fg-av-date {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-av-date {
+  color: var(--ink);
+}
+.fg-av-closed {
+  margin: 0;
+  padding-top: 6px;
+  color: var(--ink-dim);
+}
+.fg-av-daybody {
+  min-width: 0;
+}
+.fg-av-spans {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.fg-av-span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.fg-av-to {
+  color: var(--ink-dim);
+}
+.fg-av-error {
+  flex-basis: 100%;
+  color: var(--danger);
+  font-size: 12px;
+}
+.fg-av-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.fg-av-exceptions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fg-av-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* ---------------------------------------------------------------- slot picker */
+.fg-slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.fg-slot-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.fg-slot-duration,
+.fg-slot-offset {
+  color: var(--ink-dim);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-slot-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+}
+.fg-slot-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.fg-slot-calendar .fg-slot-body {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.fg-slot-strip-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fg-slot-strip {
+  display: grid;
+  flex: 1;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border: var(--border-width) solid var(--line-strong);
+}
+.fg-slot-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.fg-slot-day + .fg-slot-day {
+  border-left: var(--border-width) solid var(--line);
+}
+.fg-slot-day:hover {
+  background: var(--bg-raised);
+}
+.fg-slot-day[data-empty] {
+  color: var(--ink-dim);
+}
+.fg-slot-day:disabled {
+  background-image: var(
+    --fg-hatch,
+    repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px)
+  );
+  cursor: not-allowed;
+}
+.fg-slot-day-on {
+  background: var(--ink);
+  color: var(--bg);
+}
+.fg-slot-day-on:hover {
+  background: var(--ink);
+}
+.fg-slot-dow,
+.fg-slot-count {
+  font: 500 10px/14px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-slot-count {
+  opacity: 0.7;
+}
+.fg-slot-num {
+  font: 500 16px/20px var(--font-mono);
+}
+.fg-slot-day:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-slot-times {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fg-slot-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.fg-slot-none,
+.fg-slot-summary {
+  margin: 0;
+  color: var(--ink-muted);
+}
+/* ---------------------------------------------------------------- recurrence */
+.fg-rec {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  color: var(--ink-muted);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-rec-row,
+.fg-rec-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fg-rec-num {
+  width: 84px;
+}
+.fg-rec-days {
+  display: inline-flex;
+  border: var(--border-width) solid var(--line-strong);
+}
+.fg-rec-days .fg-rec-day {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.fg-rec-day + .fg-rec-day {
+  border-left: var(--border-width) solid var(--line-strong);
+}
+.fg-rec-days .fg-rec-day:not([data-pressed]) {
+  background: var(--bg);
+}
+.fg-rec-day:focus-visible {
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-rec-summary {
+  margin: 0;
+  color: var(--ink);
+}
+.fg-rec-summary > span {
+  color: var(--ink-dim);
+}
+.fg-rec-next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0 0 12px;
+  border-left: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+  font: 400 11.5px/16px var(--font-mono);
+  list-style: none;
+}
+/* ---------------------------------------------------------------- zone and duration */
+@media (max-width: 640px) {
+  .fg-av-day,
+  .fg-av-exception {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .fg-av-daybody {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-slot * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+.fg-slot-list {
+  width: 100%;
+  max-width: 420px;
+}

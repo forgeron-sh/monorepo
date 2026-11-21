@@ -1,0 +1,20 @@
+# `apps/lab`: lab.forgeron.sh, the index of the lab's projects and papers.
+id: "lab-site"
+language: typescript
+
+tasks:
+  dev:
+    command: astro dev
+    preset: server
+  build:
+    command: astro build
+    # The papers are read from the repository's docs at build time.
+    inputs: ["src/**/*", "public/**/*", "astro.config.ts", "package.json", "/docs/**/*.md"]
+    outputs: ["dist"]
+
+  # `tsc` does not read `.astro` files: `astro check` type-checks them along with the TypeScript, after
+  # generating the content collections' types (`astro-check` alone does not: a fresh CI checkout
+  # failed). A script, not a command: moon adds `--noEmit` to a typecheck command's arguments.
+  typecheck:
+    script: astro check
+    inputs: ["src/**/*", "public/**/*", "tsconfig.json", "astro.config.ts", "package.json"]

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/control/resources",
+  "scenes": {
+    "resources": {
+      "title": "The resources",
+      "description": "A tool wired to nine resources, one lit at a time.",
+      "depth": "painter",
+      "root": {
+        "instances": []
+      },
+      "camera": {
+        "view": 0,
+        "fit": {
+          "fill": 0.94,
+          "unit": "any"
+        }
+      },
+      "vars": {
+        "active": {
+          "type": "int",
+          "default": -1,
+          "cycle": {
+            "every": 2,
+            "count": 9
+          }
+        }
+      }
+    }
+  }
+}

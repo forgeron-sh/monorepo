@@ -1,0 +1,142 @@
+/* The Tree primitive (tree.tsx): the list, a row, the chevron. The blocks that draw a tree add their own marks. */
+
+.fg-tree,
+.fg-tree-group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-tree {
+  font: 400 13px/18px var(--font-sans);
+  color: var(--ink);
+}
+.fg-tree-item {
+  outline: none;
+}
+.fg-tree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding-right: var(--space-2);
+  padding-left: calc((var(--fg-tree-level, 1) - 1) * var(--fg-tree-indent, 16px) + 4px);
+  border: 1px solid transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.fg-tree-row:hover {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-tree-item:focus-visible > .fg-tree-row {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-tree-current {
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg));
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-tree-current .fg-tree-icon {
+  color: var(--accent);
+}
+.fg-tree-off {
+  color: var(--ink-dim);
+  cursor: not-allowed;
+}
+.fg-tree-off:hover {
+  background: transparent;
+  color: var(--ink-dim);
+}
+.fg-tree-twisty {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-dim);
+}
+.fg-tree-twisty-open .fg-icon {
+  transform: rotate(90deg);
+}
+.fg-tree-icon {
+  flex: none;
+}
+.fg-tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The props-driven Tree: drag and drop, rename, search marks, counts, loading. */
+.fg-tree-area {
+  display: contents;
+}
+.fg-tree-dragging {
+  opacity: 0.45;
+}
+.fg-tree-row.fg-tree-drop-inside {
+  border: 1px dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg));
+  color: var(--ink);
+}
+.fg-tree-drop-before::after,
+.fg-tree-drop-after::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.fg-tree-drop-before::after {
+  top: -1px;
+}
+.fg-tree-drop-after::after {
+  bottom: -1px;
+}
+.fg-tree-mark {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--ink);
+}
+.fg-tree-lock {
+  color: var(--ink-dim);
+}
+.fg-tree-count {
+  flex: none;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-tree-badge {
+  flex: none;
+}
+.fg-tree-rename {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+.fg-tree-loading {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  color: var(--ink-dim);
+  font-size: 12px;
+}
+.fg-tree-empty {
+  padding: var(--space-3);
+  color: var(--ink-dim);
+  font-size: 13px;
+}
