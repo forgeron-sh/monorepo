@@ -1,5 +1,144 @@
 # Changelog
 
+## [0.9.0](https://github.com/forgeron-sh/monorepo/compare/v0.8.4...v0.9.0) (2026-11-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ui:** @forgeron/ui no longer exports the shader components and mounts, nor the names it re-exported from @forgeron/shaders.
+* **ui-gallery:** ui.forgeron.sh no longer has /shaders, /editors, /pages and /marketing, and the marketing blocks are no longer served under /r/.
+* **ui:** @forgeron/ui no longer exports the finance and Data hub blocks, EndpointList, DeliveryLog, TokenManager, NotificationPreferences and their helpers.
+
+### Features
+
+* **blueprint-canvas:** view any blueprint scene on the canvas, in four views ([f46ad25](https://github.com/forgeron-sh/monorepo/commit/f46ad25371285a9dce86bb3300d75373e964af99))
+* **blueprint:** add blueprint.forgeron.sh, the format's site ([5152974](https://github.com/forgeron-sh/monorepo/commit/51529742c89406a37ca43e450f40aafe8ddf8166))
+* **blueprint:** add the .bp.json format, its reader and the site's library ([7733e35](https://github.com/forgeron-sh/monorepo/commit/7733e3521f5d883df37628549746ad8e4cc3dbbc))
+* **blueprint:** isometric pixel scenes with a material buffer and composable filters ([6a77069](https://github.com/forgeron-sh/monorepo/commit/6a77069d3285209042f03009c5b3729b2fd49258))
+* **blueprint:** name the format .bp and compile it to SceneBin at build ([3f63fec](https://github.com/forgeron-sh/monorepo/commit/3f63fecc9f56860c5df4230432ff246051c39f8b))
+* **blueprint:** plain text labels and an alert colour family ([b6f67b0](https://github.com/forgeron-sh/monorepo/commit/b6f67b0de4be16d1c9698c939882572ac18383d5))
+* **blueprint:** play timelines, state machines and rigs from the Rust core ([abe9fc2](https://github.com/forgeron-sh/monorepo/commit/abe9fc228255a4374f8abb264ed142c0b1f129bd))
+* **blueprint:** render scenes from a Rust core, identical on still frames ([078b815](https://github.com/forgeron-sh/monorepo/commit/078b81559af767aab648bdb38d008c3197b61928))
+* **canvas:** add @forgeron/canvas, the engine of the editors (D-148) ([7c3b1f8](https://github.com/forgeron-sh/monorepo/commit/7c3b1f8e7657c29d7007581bc83c05aff32a649f))
+* **editors:** add @forgeron/flow and @forgeron/draw on the canvas ([98d358e](https://github.com/forgeron-sh/monorepo/commit/98d358e18080a67ed51e504ad663e0199f3cac08))
+* **font:** specimen and download site for the Forgeron Sans typeface ([11289b8](https://github.com/forgeron-sh/monorepo/commit/11289b8928c90af6a486a78c78a03234776e1102))
+* forgeron.sh site, icons, editors' performance, and @forgeron/ui on shadcn parts ([a83f9c6](https://github.com/forgeron-sh/monorepo/commit/a83f9c6f920ee460f8c212ab8796d4ad6582fdfc))
+* **icons:** bring back 69 rejected icons and redraw the hand and location pin families ([8278046](https://github.com/forgeron-sh/monorepo/commit/82780462d569342c28a047fb93f6b42a4e919931))
+* **icons:** draw 12 brand marks and 3 bitcoin icons ([489c2fb](https://github.com/forgeron-sh/monorepo/commit/489c2fb109ba6c0fb911a5c44b7ae2748f5b1bae))
+* **icons:** draw 157 more pixel icons and 22 filled variants, reuse drawings for 70 more ([ba4e837](https://github.com/forgeron-sh/monorepo/commit/ba4e837ae12d0c81ac0c2ae9c276655d3c36a34c))
+* **icons:** draw 163 more icons: objects, landmarks, scripts and Islamic symbols ([50ed221](https://github.com/forgeron-sh/monorepo/commit/50ed221af29ce1aa3f55ac09d940e82f9429165e))
+* **icons:** draw 190 numbered variants and reuse drawings for 559 more ([3a56cd6](https://github.com/forgeron-sh/monorepo/commit/3a56cd6ab7c15a46fe59ade54f2f3d26eb617037))
+* **icons:** draw 210 more pixel icons and 40 filled variants ([e7ac6dd](https://github.com/forgeron-sh/monorepo/commit/e7ac6dd73115f9949c195215fdfc23db50430239))
+* **icons:** draw 240 more pixel icons and 43 filled variants ([3e47dae](https://github.com/forgeron-sh/monorepo/commit/3e47daec699730bd7f194a051cdfc922cb6f97df))
+* **icons:** draw 312 more pixel icons and 50 filled variants ([49a7075](https://github.com/forgeron-sh/monorepo/commit/49a7075305872d788bade4da4138d1c3b1f201f7))
+* **icons:** draw 373 more pixel icons and 50 filled variants, reuse drawings for 302 more ([a27db1b](https://github.com/forgeron-sh/monorepo/commit/a27db1b46614262084d0bd4784037ad879d9c801))
+* **icons:** draw 470 more pixel icons, filled variants and ten brand marks ([20e4309](https://github.com/forgeron-sh/monorepo/commit/20e4309525e9daa5cc3dac8945494031a96b0033))
+* **icons:** draw 52 cryptocurrency icons and 177 brand and app marks ([374e80b](https://github.com/forgeron-sh/monorepo/commit/374e80b226d66c23c5f93b85ed95817ed048795b))
+* **icons:** draw 598 more pixel icons and 67 filled variants ([2efb2ae](https://github.com/forgeron-sh/monorepo/commit/2efb2aeca51d7c279fae6b33e2c5f4fbc1362038))
+* **icons:** draw 757 more pixel icons and 80 filled variants ([9c7fce5](https://github.com/forgeron-sh/monorepo/commit/9c7fce56377078cf9862e24eb39b325ee83e01b7))
+* **icons:** draw the missing hands and give every hand variant its own drawing ([4cfa107](https://github.com/forgeron-sh/monorepo/commit/4cfa1072da821774bef9cbb3a1047879440fa82d))
+* **icons:** pixel github mark on the 16 grid, redrawn from simple-icons ([a63c209](https://github.com/forgeron-sh/monorepo/commit/a63c2090a1d161c00db1403cc247899618133e73))
+* **icons:** pixel icon catalog mirroring the Hugeicons names, with its gallery ([c5f0732](https://github.com/forgeron-sh/monorepo/commit/c5f073220c39c9aca06e70f0ac8b897641fb262e))
+* **icons:** reuse existing drawings for 669 names that mean the same thing ([b07d2d5](https://github.com/forgeron-sh/monorepo/commit/b07d2d5f50bfed59695c7c8443937e62da607386))
+* **lab:** add lab.forgeron.sh, the index of the lab's projects and papers ([50b1a07](https://github.com/forgeron-sh/monorepo/commit/50b1a07aff7db60e5c6454c73be6e206c55428b9))
+* **libraries:** add realistic demo boards for draw and flow ([283d5e6](https://github.com/forgeron-sh/monorepo/commit/283d5e6494debc03e7d0fbafca13e367c76548fe))
+* **libraries:** convert the blog's five scenes into the Blueprint library ([5507133](https://github.com/forgeron-sh/monorepo/commit/5507133379c593222ddf8808dbf9588bd6412049))
+* **quill:** add Quill, a writing framework for agents (lab L-10) ([5aac2c3](https://github.com/forgeron-sh/monorepo/commit/5aac2c365fff727888a6d5dc18c65ba4f638a774))
+* **richtext:** add @forgeron/richtext, the page editor on Tiptap with Yjs built in ([9af34b3](https://github.com/forgeron-sh/monorepo/commit/9af34b3ffe7f82997e3ee364dab40ecf8d7e67ac))
+* **richtext:** add the plugin catalog and richtext.forgeron.sh ([4d437f4](https://github.com/forgeron-sh/monorepo/commit/4d437f447ed5e9d80671876b419d5dd6fe232da0))
+* **richtext:** make every feature a plugin on a minimal core ([5f37512](https://github.com/forgeron-sh/monorepo/commit/5f37512078c93aebd64509d71dd7bb262e59a3f1))
+* **shaders:** add seven passes and bundle only the side a page runs ([d285470](https://github.com/forgeron-sh/monorepo/commit/d285470940fa19e32ae80bf093c96e3072bafac6))
+* **shaders:** build the gallery's Shaders section from the registry ([579d3a2](https://github.com/forgeron-sh/monorepo/commit/579d3a22a16ba11b0b1b245b99d49f091f8d4965))
+* **shaders:** gather the effects in @forgeron/shaders, a pipeline of passes ([5affbde](https://github.com/forgeron-sh/monorepo/commit/5affbdedecbc74a057258a797ae309cf9506d4ac))
+* **site:** a hearth footer, the wordmark as iron just out of the forge ([153f443](https://github.com/forgeron-sh/monorepo/commit/153f4435cb0fbe66160be01b72ccb443eebe7b5c))
+* **site:** a pick, shape and ship landing with a pricing page and a savings simulator ([5ee941e](https://github.com/forgeron-sh/monorepo/commit/5ee941ef802e11ab7a0536a727f96c0d7e36a739))
+* **site:** add the blog, customer stories and changelog ([06befec](https://github.com/forgeron-sh/monorepo/commit/06befec12dc4418bec729069e5bb12346773dfcd))
+* **site:** build the landing pages from @forgeron/ui marketing blocks ([f5f80af](https://github.com/forgeron-sh/monorepo/commit/f5f80afe582f620f04f179079c320307b23c24a8))
+* **site:** draft the Rust or TypeScript deep dive, with its scene ([79b5d38](https://github.com/forgeron-sh/monorepo/commit/79b5d389f8d075e0dbc3b188d800ab1d5a241bb2))
+* **site:** draw the iso scenes with the Rust engine ([8b0b66a](https://github.com/forgeron-sh/monorepo/commit/8b0b66a3ede6fe4341e640181ff45bd7840357f1))
+* **site:** flames as swaying tongues, and a burn frame that catches gently ([68d1f3f](https://github.com/forgeron-sh/monorepo/commit/68d1f3fd07877226dbbda5082ee50a781ee8cb71))
+* **site:** flat dithered hero scenes to compare in the hero switch ([c8b0eb2](https://github.com/forgeron-sh/monorepo/commit/c8b0eb2b51a883d4b8869bbcd355d521200a1006))
+* **site:** github mark next to the github links of the home page ([97b9b21](https://github.com/forgeron-sh/monorepo/commit/97b9b21736d980f8a685e74beb5d32ffbac9c77a))
+* **site:** keep only the line scene in the home hero, without a selector ([342a1de](https://github.com/forgeron-sh/monorepo/commit/342a1de05e33a355fe007a99d77b2fdc51963167))
+* **site:** one-hue dithered flames and mushroom cloud, full of holes like the rest ([fc07d6b](https://github.com/forgeron-sh/monorepo/commit/fc07d6b7c29154777913829f83a1a856518c185f))
+* **site:** open the home page on a burning village, the anatomy of an ERP's fall ([6e2f1f3](https://github.com/forgeron-sh/monorepo/commit/6e2f1f3c6dc38a02600aaa590e33e3f006a23da3))
+* **site:** pixel-art flames with the burn's texture, and a mushroom cloud of round puffs ([e710843](https://github.com/forgeron-sh/monorepo/commit/e710843641e77dabe88156815cd164478e91ac29))
+* **site:** play the ERP village from a blueprint file ([19ed486](https://github.com/forgeron-sh/monorepo/commit/19ed486b14dd0e66eaed84601b25e281379a3e53))
+* **site:** publish the Rust or TypeScript deep dive ([d814904](https://github.com/forgeron-sh/monorepo/commit/d81490443853f04d1316ebfb05ca85769dcdaf98))
+* **site:** smaller iso scenes on the home page, pipeline stops named in the drawing ([c7d7b8b](https://github.com/forgeron-sh/monorepo/commit/c7d7b8b04cc61427103f0c6fd78f01725ca13781))
+* **site:** tell the home page as Pick, Shape, Ship and rework pricing ([c622625](https://github.com/forgeron-sh/monorepo/commit/c622625613bb6f7dbd1ae3e269f2e59698a7ec98))
+* **site:** the savings simulator shows the tools' pixel brand marks ([5bce8b0](https://github.com/forgeron-sh/monorepo/commit/5bce8b02116667c7ead43de898326eaf54b20719))
+* **ui-gallery:** add a Marketing section of six block groups, out of Identity ([a435daf](https://github.com/forgeron-sh/monorepo/commit/a435daf79debcff55a9a36543657f7de5770d281))
+* **ui-gallery:** add the gallery of @forgeron/ui at ui.forgeron.sh ([716c938](https://github.com/forgeron-sh/monorepo/commit/716c938d13e3b66762aa80fa3f86d4f2ce2d144a))
+* **ui-gallery:** gather the marketing blocks on one Identity landing page ([057ce7d](https://github.com/forgeron-sh/monorepo/commit/057ce7d80d071b7adfa71206294eb4eaac9c935f))
+* **ui-gallery:** lead with the composed form and move between pages without a reload ([8adbd3a](https://github.com/forgeron-sh/monorepo/commit/8adbd3accf26301ab885925456db0d571a708dd9))
+* **ui:** add shared primitives for states, trees, feeds and collections ([81ba8e1](https://github.com/forgeron-sh/monorepo/commit/81ba8e16dc85a2c224470fb8b55add65810fba28))
+* **ui:** add the admin blocks: permissions, tokens, secrets, webhooks, trash ([50c48d5](https://github.com/forgeron-sh/monorepo/commit/50c48d5382e52d58e164edc21365ec0f8244ebf6))
+* **ui:** add the approval and signature blocks ([3ae8aa7](https://github.com/forgeron-sh/monorepo/commit/3ae8aa7fbe1847cb828c621543cfff201171922f))
+* **ui:** add the automation blocks: steps, conditions, schedules, runs ([1167dc3](https://github.com/forgeron-sh/monorepo/commit/1167dc3a0b33461337c9f599aaff543946944b65))
+* **ui:** add the conversation blocks: messages, composer, threads, recipients ([9da69a6](https://github.com/forgeron-sh/monorepo/commit/9da69a687b5990a61577dec23b3d97ea8ae67e1e))
+* **ui:** add the dashboard blocks: pixel charts, widget grid, metric picker ([d3dad39](https://github.com/forgeron-sh/monorepo/commit/d3dad3911e2e12e9eec0dc51742190e83fb3bdcd))
+* **ui:** add the Data hub blocks: record grid, forms, schema, import ([fa6b21c](https://github.com/forgeron-sh/monorepo/commit/fa6b21cc6586ab3454a9e841a764bddacbc7c777))
+* **ui:** add the Drive blocks: file browser, folder tree, uploads, sharing ([87d2af8](https://github.com/forgeron-sh/monorepo/commit/87d2af811e63f0e7e2040ff7f7558694462b2d36))
+* **ui:** add the editor chrome blocks: toolbar, minimap, layers, tour ([de714d1](https://github.com/forgeron-sh/monorepo/commit/de714d130b53936a137047b292435a08d9888e2b))
+* **ui:** add the field primitives: combobox, slider, time, money, split pane and more ([d993320](https://github.com/forgeron-sh/monorepo/commit/d9933201acb06fd0ff006bc7097af18d4c2341e6))
+* **ui:** add the finance blocks: line items, totals, receipts, payments, paper ([f4a0893](https://github.com/forgeron-sh/monorepo/commit/f4a089385ccb21cf25255cb8e2eaa105022f26cc))
+* **ui:** add the forms blocks: builder, renderer, response summary ([9fbde9d](https://github.com/forgeron-sh/monorepo/commit/9fbde9d57ab72ad12b884e4bdabc44fa6eb49b89))
+* **ui:** add the icon picker block, searchable, with a lazy catalog ([bd28852](https://github.com/forgeron-sh/monorepo/commit/bd2885233f8e0665d55fb0222d13409c3fd5294a))
+* **ui:** add the structure blocks: tree, outline, org chart, diff, comments ([9c632a6](https://github.com/forgeron-sh/monorepo/commit/9c632a610198139db2df135d0e45cf4b768be009))
+* **ui:** add the time blocks: time grid, availability, slots, recurrence ([290d340](https://github.com/forgeron-sh/monorepo/commit/290d3408d0e6c19f1e43f41b12f1ed7d32f9a793))
+* **ui:** adopt the lab design language as the design system, and make landing-e the home page ([0c2a986](https://github.com/forgeron-sh/monorepo/commit/0c2a986628a4c7a802add38f887878b9695265a6))
+* **ui:** compose menus, dates, data grid, shell, inputs and data views from parts ([d7acac3](https://github.com/forgeron-sh/monorepo/commit/d7acac34217029e3762c4d94cd63e0dc2b1bb6bc))
+* **ui:** describe a record's fields once, for lists, boards and views ([cf4efc5](https://github.com/forgeron-sh/monorepo/commit/cf4efc58d213899cc4c30f0829cf8381e41846a4))
+* **ui:** gather the charts in one category ([0a9f740](https://github.com/forgeron-sh/monorepo/commit/0a9f740df7eb2379ddba8fe4d29c6f1e8a2b19c9))
+* **ui:** give every primitive and block shadcn's parts, built on the primitives ([5c4fb22](https://github.com/forgeron-sh/monorepo/commit/5c4fb22f56aa1f614c4f253ee730f51eb7ae206b))
+* **ui:** give the atoms className, rest and a data-slot, and parts to Page, Notice, EmptyState ([3cd51c0](https://github.com/forgeron-sh/monorepo/commit/3cd51c00ccc24b82cdbef2d7564de026a50e7354))
+* **ui:** give the primitives the shadcn shape and serve them as a registry ([449a27e](https://github.com/forgeron-sh/monorepo/commit/449a27e06d4fc523c849ba2421a7291166f29f36))
+* **ui:** grow @forgeron/ui into a component library with blocks, hooks and shaders ([f616820](https://github.com/forgeron-sh/monorepo/commit/f61682043ea76243a90d30633823192643139981))
+
+
+### Bug Fixes
+
+* **blueprint:** place label plates inside the raster and off the drawing ([2498e8f](https://github.com/forgeron-sh/monorepo/commit/2498e8f9f0e1f53eb0631b1d92b0d4877698da1d))
+* **ci:** type-check the Astro apps with astro check, which generates the content types ([4bcf698](https://github.com/forgeron-sh/monorepo/commit/4bcf6989b18ff8517dec0ec608c171ac177478a1))
+* **console:** align the tool menus to the end and read the portalled menus in tests ([b8ff9de](https://github.com/forgeron-sh/monorepo/commit/b8ff9deaf98c3c7a79c0cfb5a37bc692f030ef97))
+* **editors:** fit large boards, keep flow groups apart, show handled failures ([a6e524e](https://github.com/forgeron-sh/monorepo/commit/a6e524e6c43fa604dbda5c705d42495eb1504f9d))
+* **icons:** redraw dollar-circle and euro-circle in the full-grid ring ([f829170](https://github.com/forgeron-sh/monorepo/commit/f82917078561c171a7e4f9f731c182247d7473b5))
+* **site:** drop stray counters and captions, glue the home cards with corner brackets ([ff45584](https://github.com/forgeron-sh/monorepo/commit/ff45584ffc5dc84fbec52f49d689f8aee70066c6))
+* **site:** drop the door counters, bento captions and footer tagline ([875d632](https://github.com/forgeron-sh/monorepo/commit/875d6322ac30aa0f707413630f5ed05fa75afc7d))
+* **site:** never leave an iso canvas blank when the engine cannot start ([849cefd](https://github.com/forgeron-sh/monorepo/commit/849cefd9a953be74a68ed19731749bc9ae321455))
+* **site:** pixel plus and minus marks for the faq toggle ([9549290](https://github.com/forgeron-sh/monorepo/commit/9549290a2ec516682d3f16834467af864c6cee79))
+* **site:** state both licences, Apache-2.0 and AGPL-3.0 ([fd23d58](https://github.com/forgeron-sh/monorepo/commit/fd23d58fef5f38e3bb92d86fec868ca9d64decc6))
+* **site:** stop the hero frame from widening the page below 870 px ([baea9da](https://github.com/forgeron-sh/monorepo/commit/baea9dab5ca37241fa0cd7f28ca95ff8ea95aa67))
+* **site:** the ember focus ring on every link and faq toggle of the site ([64ae87b](https://github.com/forgeron-sh/monorepo/commit/64ae87b023d1459601a11dd05e017218cdc34ebc))
+
+
+### Performance Improvements
+
+* **blueprint:** play the site's scenes in a worker, loaded on approach ([0986112](https://github.com/forgeron-sh/monorepo/commit/0986112d83737b6ed39d94c52509e2afd07a659d))
+* **blueprint:** rasterise with WASM SIMD in a smaller module ([cae41fc](https://github.com/forgeron-sh/monorepo/commit/cae41fc53b7a35d21c51c981ffcaaf855ff04c6d))
+* **canvas:** answer the engine's queries from a spatial index ([338e3d6](https://github.com/forgeron-sh/monorepo/commit/338e3d6b07233ec64a6872071da59d8b3fe275ff))
+* **canvas:** draw far-zoom items on the GPU ([babfe9b](https://github.com/forgeron-sh/monorepo/commit/babfe9b035a2d1d4a6c0131dac1845c3f66cb0dc))
+* **canvas:** make a drag cost only what it moves ([9f09537](https://github.com/forgeron-sh/monorepo/commit/9f095370dbb345bf4c1300977f3827df62b87dcf))
+* **canvas:** measure the engine in TypeScript against Rust/WebAssembly ([ce2d71f](https://github.com/forgeron-sh/monorepo/commit/ce2d71fd64b34a051653e4708a5f4dea8b9cba3d))
+* **canvas:** pack per item, draw flow on the GPU, list items for AT ([f090550](https://github.com/forgeron-sh/monorepo/commit/f090550be9977ed3f38e18cc4045b80110c46aca))
+* **canvas:** stop the editors restyling and re-rendering on every pan ([a5bc614](https://github.com/forgeron-sh/monorepo/commit/a5bc6148b73d09fd861efb11dd8e967e09117879))
+* **draw:** draw every kind on the GPU at every zoom ([b0d603b](https://github.com/forgeron-sh/monorepo/commit/b0d603b5cc9988bb6f7a7d3f6bc2e70ac142e14c))
+* **draw:** draw words on the GPU from a glyph atlas ([b30cfbc](https://github.com/forgeron-sh/monorepo/commit/b30cfbcd489476c21b67cf299e63e6c897287438))
+* **icon-gallery:** load the catalog in versioned, cached batches ([8d442a7](https://github.com/forgeron-sh/monorepo/commit/8d442a7e09a4e8e4db97aac6c775b09d349542ab))
+* **shaders:** ship baked shaders and load the site's lower effects on approach ([de9c93d](https://github.com/forgeron-sh/monorepo/commit/de9c93da160e92ab88a7cb6179903d0e7bddc91d))
+
+
+### Miscellaneous Chores
+
+* **ui-gallery:** show only ui: drop the shaders, editors, pages and marketing tabs ([8813f0a](https://github.com/forgeron-sh/monorepo/commit/8813f0a83b8bd2f5f57dda426868214cdbc98135))
+
+
+### Code Refactoring
+
+* **ui:** remove the finance, Data hub and platform admin blocks from ui ([2815b9e](https://github.com/forgeron-sh/monorepo/commit/2815b9efadb94528fe2450612b9dbd3fad00abd3))
+* **ui:** remove the shader wrappers from ui ([692f8b0](https://github.com/forgeron-sh/monorepo/commit/692f8b07d2b8f7bccc0fb30230afd943e98fbea5))
+
 ## [0.8.4](https://github.com/forgeron-sh/monorepo/compare/v0.8.3...v0.8.4) (2026-11-13)
 
 
