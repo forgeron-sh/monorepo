@@ -9,7 +9,9 @@ tasks:
     inputs: ["src/**/*", "public/**/*", "astro.config.ts", "package.json"]
     outputs: ["dist"]
 
-  # `tsc` does not read `.astro` files: `astro-check` (from @astrojs/check) type-checks them along with the TypeScript.
+  # `tsc` does not read `.astro` files: `astro check` type-checks them along with the TypeScript, after
+  # generating the content collections' types (`astro-check` alone does not: a fresh CI checkout
+  # failed). A script, not a command: moon adds `--noEmit` to a typecheck command's arguments.
   typecheck:
-    command: astro-check
+    script: astro check
     inputs: ["src/**/*", "public/**/*", "tsconfig.json", "astro.config.ts", "package.json"]
