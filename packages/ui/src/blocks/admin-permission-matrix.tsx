@@ -13,11 +13,13 @@ import {
   ArrowRight01Icon,
 } from "@forgeron/icons";
 import type { KeyboardEvent } from "react";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { Avatar } from "../avatar";
 import { cx } from "../cx";
+import { useCollection } from "../hooks/use-collection";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table";
 import {
   bulkTarget,
   columnCells,
@@ -66,6 +68,8 @@ export interface PermissionMatrixProps {
   stateNames?: Partial<Record<PermissionState, string>>;
   className?: string;
 }
+
+const cellId = (row: number, col: number) => `${row}:${col}`;
 
 const ICONS = { allow: Tick02Icon, deny: Cancel01Icon, inherit: MinusSignIcon } as const;
 
@@ -117,15 +121,26 @@ export function PermissionMatrix({
   const [grid, setGrid] = useControllableState<PermissionValue>({ value, defaultValue, onChange });
   const names = { ...PERMISSION_NAMES, ...stateNames };
   const id = useId();
-  const table = useRef<HTMLTableElement>(null);
-  const [pos, setPos] = useState({ row: 1, col: 1 });
   const [open, setOpen] = useState(summaryOpen);
   const [said, setSaid] = useState("");
   const size = { rows: subjects.length + 1, cols: columns.length + 1 };
-  const at = {
-    row: Math.min(pos.row, Math.max(size.rows - 1, 0)),
-    col: Math.min(pos.col, Math.max(size.cols - 1, 0)),
-  };
+  // Every header and cell but the corner is an item of the collection: it keeps the one tab stop
+  // and moves the focus, while `gridMove` says where an arrow, Home or a Page key goes.
+  const [focused, setFocused] = useState<string | null>(cellId(1, 1));
+  const cells = Array.from({ length: size.rows * size.cols }, (_, i) => ({
+    row: Math.floor(i / size.cols),
+    col: i % size.cols,
+  })).filter((c) => c.row > 0 || c.col > 0);
+  const collection = useCollection({
+    items: cells,
+    getId: (c) => cellId(c.row, c.col),
+    selectionMode: "none",
+    orientation: "grid",
+    columns: size.cols,
+    focused,
+    onFocusedChange: setFocused,
+  });
+  const item = (row: number, col: number) => collection.getItemProps(cellId(row, col));
   const changes = saved ? permissionDiff(saved, grid, subjects, columns) : [];
   const changed = new Set(changes.map((c) => `${c.subjectId}\u0000${c.columnId}`));
   const subjectName = (sid: string) => subjects.find((s) => s.id === sid)?.name ?? sid;
@@ -133,11 +148,6 @@ export function PermissionMatrix({
   const colName = (cid: string) => {
     const c = column(cid);
     return c ? (c.group ? `${c.group} ${c.label}` : c.label) : cid;
-  };
-
-  const focusCell = (row: number, col: number) => {
-    setPos({ row, col });
-    table.current?.querySelector<HTMLElement>(`[data-r="${row}"][data-c="${col}"]`)?.focus();
   };
 
   const setCell = (sid: string, cid: string, state: PermissionState) => {
@@ -167,7 +177,7 @@ export function PermissionMatrix({
     }
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLTableElement>) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-r]");
     if (!target || event.altKey || event.metaKey) return;
     const row = Number(target.dataset.r);
@@ -176,7 +186,7 @@ export function PermissionMatrix({
     if (move) {
       event.preventDefault();
       if (move.row === 0 && move.col === 0) return;
-      focusCell(move.row, move.col);
+      collection.focus(cellId(move.row, move.col));
       return;
     }
     if (event.key === "Enter" || event.key === " ") {
@@ -222,7 +232,7 @@ export function PermissionMatrix({
       </div>
       <div className="fg-adm-pm-scroll" style={{ maxHeight }}>
         <table
-          ref={table}
+          {...collection.getContainerProps({ onKeyDown })}
           role="grid"
           aria-label={label}
           aria-readonly={readOnly || undefined}
@@ -230,25 +240,23 @@ export function PermissionMatrix({
           aria-colcount={size.cols}
           aria-describedby={`${id}-keys`}
           className="fg-adm-pm-table"
-          onKeyDown={onKeyDown}
         >
-          <thead>
-            <tr>
-              <th className="fg-adm-pm-corner" scope="col">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="fg-adm-pm-corner" scope="col">
                 {subjectLabel}
-              </th>
+              </TableHead>
               {columns.map((c, i) => {
                 const shared = sharedState(grid, columnCells(c.id, subjects));
                 return (
-                  <th
+                  <TableHead
                     key={c.id}
                     scope="col"
                     data-r={0}
                     data-c={i + 1}
-                    tabIndex={at.row === 0 && at.col === i + 1 ? 0 : -1}
                     aria-label={`${colName(c.id)}, column${readOnly ? "" : ", Enter sets all"}`}
                     className="fg-adm-pm-colhead"
-                    onFocus={() => setPos({ row: 0, col: i + 1 })}
+                    {...item(0, i + 1)}
                     onClick={() => activate(0, i + 1)}
                   >
                     {c.group ? <span className="fg-adm-pm-group">{c.group}</span> : null}
@@ -256,24 +264,23 @@ export function PermissionMatrix({
                       {c.label}
                       <Mark state={shared} />
                     </span>
-                  </th>
+                  </TableHead>
                 );
               })}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {subjects.map((s, r) => {
               const shared = sharedState(grid, rowCells(s.id, columns));
               return (
-                <tr key={s.id}>
-                  <th
+                <TableRow key={s.id}>
+                  <TableHead
                     scope="row"
                     data-r={r + 1}
                     data-c={0}
-                    tabIndex={at.row === r + 1 && at.col === 0 ? 0 : -1}
                     aria-label={`${s.name}${s.kind ? `, ${s.kind}` : ""}${readOnly ? "" : ", Enter sets all"}`}
                     className="fg-adm-pm-rowhead"
-                    onFocus={() => setPos({ row: r + 1, col: 0 })}
+                    {...item(r + 1, 0)}
                     onClick={() => activate(r + 1, 0)}
                   >
                     <span className="fg-adm-pm-rowinner">
@@ -284,20 +291,19 @@ export function PermissionMatrix({
                       </span>
                       <Mark state={shared} />
                     </span>
-                  </th>
+                  </TableHead>
                   {columns.map((c, i) => {
                     const state = permissionAt(grid, s.id, c.id);
                     const ghost = state === "inherit" ? inherited?.(s.id, c.id) : undefined;
                     const isChanged = changed.has(`${s.id}\u0000${c.id}`);
                     return (
-                      <td
+                      <TableCell
                         key={c.id}
                         role="gridcell"
                         data-r={r + 1}
                         data-c={i + 1}
                         data-state={state}
                         data-changed={isChanged || undefined}
-                        tabIndex={at.row === r + 1 && at.col === i + 1 ? 0 : -1}
                         aria-readonly={readOnly || undefined}
                         aria-label={`${s.name}, ${colName(c.id)}: ${names[state]}${
                           ghost ? ` (${names[ghost].toLowerCase()})` : ""
@@ -307,17 +313,17 @@ export function PermissionMatrix({
                           isChanged && "fg-adm-pm-changed",
                           readOnly && "fg-adm-pm-ro",
                         )}
-                        onFocus={() => setPos({ row: r + 1, col: i + 1 })}
+                        {...item(r + 1, i + 1)}
                         onClick={() => activate(r + 1, i + 1)}
                       >
                         <Mark state={state} ghost={ghost} />
-                      </td>
+                      </TableCell>
                     );
                   })}
-                </tr>
+                </TableRow>
               );
             })}
-          </tbody>
+          </TableBody>
         </table>
       </div>
       <p id={`${id}-keys`} className="fg-adm-pm-keys">

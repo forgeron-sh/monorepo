@@ -2,7 +2,7 @@
 // a record once (`defineFields`), then get a list, a board, filters, display options and property
 // pickers from them. `issueFields` and `projectFields` are the two presets.
 
-export { defineFields, RECORD_NONE } from "./records-model";
+export { defineFields, RECORD_BOOLEAN_CHOICES, RECORD_NONE } from "./records-model";
 export type {
   RecordChoiceSet,
   RecordFieldChoice,

@@ -27,13 +27,11 @@
   color: var(--ink);
 }
 .fg-outline-head-button:focus-visible,
-.fg-outline-twisty:focus-visible,
 .fg-outline-link:focus-visible {
   outline: var(--focus-width) solid var(--focus);
   outline-offset: 1px;
 }
-.fg-outline-fold-open .fg-icon,
-.fg-outline-twisty-open .fg-icon {
+.fg-outline-fold-open .fg-icon {
   transform: rotate(90deg);
 }
 .fg-outline-list {
@@ -41,34 +39,39 @@
   padding: 0;
   list-style: none;
 }
-.fg-outline-row {
-  display: flex;
+/* The rows come from the Tree primitive (parts-tree.css); these turn them into the outline's. */
+.fg-outline {
+  --fg-tree-indent: var(--fg-outline-indent, 12px);
+}
+.fg-outline .fg-outline-row {
   align-items: flex-start;
   gap: 2px;
+  height: auto;
   min-height: 24px;
+  padding: 0;
+  padding-left: calc((var(--fg-tree-level, 1) - 1) * var(--fg-tree-indent));
+  border: 0;
   border-left: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font-weight: inherit;
+  cursor: default;
 }
-.fg-outline-active {
+.fg-outline .fg-outline-row:hover {
+  background: none;
+  color: inherit;
+}
+.fg-outline .fg-outline-active {
   border-left: 2px solid var(--accent);
   color: var(--ink);
 }
-.fg-outline-within {
+.fg-outline .fg-outline-within {
   border-left: 2px solid var(--line-strong);
 }
-.fg-outline-twisty {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
+.fg-outline .fg-tree-twisty {
   width: 16px;
   height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ink-dim);
   cursor: pointer;
-}
-span.fg-outline-twisty {
-  cursor: default;
 }
 .fg-outline-link {
   flex: 1;

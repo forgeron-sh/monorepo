@@ -1,3 +1,4 @@
+/* oxlint-disable react/refs -- the sortable's getters are read while drawing the rows, as in the other blocks that use it */
 // The lines of an invoice, a quote, an order or an expense report as a sheet: description,
 // quantity, unit price, tax, discount, the line total worked out, and section rows with their
 // subtotal. Every cell is a real input; the keys are a spreadsheet's. Read-only it is the table
@@ -12,10 +13,10 @@ import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { formatMoney, minorDigits, parseNumber } from "../numbers";
+import { SortableStatus, useSortable } from "../sortable";
 import {
   isBlankLine,
   lineAmounts,
-  moveLine,
   newLine,
   sectionSubtotals,
   toMinor,
@@ -151,6 +152,16 @@ export function LineItemsEditor({
   className,
 }: LineItemsEditorProps) {
   const [lines, setLines] = useControllableState<LineItem[]>({ value, defaultValue, onChange });
+  // Reordering (Alt + arrows, the move buttons, the live region) is the Sortable's.
+  const sortable = useSortable<LineItem>({
+    items: lines,
+    getId: (l) => l.id,
+    onReorder: (next) => setLines(next),
+    getLabel: (l) => l.description || l.id,
+    focusSelector: "input[data-line]",
+    drag: false,
+    disabled: readOnly || disabled,
+  });
   const root = useRef<HTMLDivElement>(null);
   const pending = useRef<{ id: string; col: Col } | null>(null);
   const hintId = useId();
@@ -200,6 +211,16 @@ export function LineItemsEditor({
     return true;
   };
 
+  // Alt + Up or Down is the Sortable's: it moves the line, the focus goes to its description, and
+  // this brings it back to the cell the keys were typed in.
+  const rememberCell = (event: KeyboardEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (!event.altKey || !(target instanceof HTMLInputElement) || !target.dataset.line) return;
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      pending.current = { id: target.dataset.line, col: target.dataset.col as Col };
+    }
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLTableSectionElement>) => {
     const target = event.target as HTMLElement;
     if (!(target instanceof HTMLInputElement) || !target.dataset.line) return;
@@ -209,11 +230,7 @@ export function LineItemsEditor({
     if (at < 0) return;
     const mod = event.metaKey || event.ctrlKey;
     const key = event.key;
-    if (event.altKey && (key === "ArrowUp" || key === "ArrowDown")) {
-      event.preventDefault();
-      setLines(moveLine(lines, at, key === "ArrowUp" ? -1 : 1));
-      pending.current = { id, col };
-    } else if (mod && event.shiftKey && (key === "Backspace" || key === "Delete")) {
+    if (mod && event.shiftKey && (key === "Backspace" || key === "Delete")) {
       event.preventDefault();
       removeAt(at, col);
     } else if (mod && key === "Enter") {
@@ -293,7 +310,7 @@ export function LineItemsEditor({
               ) : null}
             </tr>
           </thead>
-          <tbody onKeyDown={editable ? onKeyDown : undefined}>
+          <tbody ref={sortable.listRef} onKeyDown={editable ? onKeyDown : undefined}>
             {lines.length === 0 ? (
               <tr>
                 <td className="fg-fin-empty" colSpan={span}>
@@ -302,6 +319,8 @@ export function LineItemsEditor({
               </tr>
             ) : null}
             {lines.map((line, at) => {
+              const rowProps = (id: string) =>
+                editable ? sortable.getItemProps(id, { onKeyDown: rememberCell }) : {};
               const actions = editable ? (
                 <td className="fg-fin-act">
                   <span className="fg-fin-acts">
@@ -311,7 +330,7 @@ export function LineItemsEditor({
                       size="sm"
                       disabled={at === 0}
                       onClick={() => {
-                        setLines(moveLine(lines, at, -1));
+                        sortable.moveTo(line.id, at - 1, { focus: false });
                       }}
                     />
                     <IconButton
@@ -320,7 +339,7 @@ export function LineItemsEditor({
                       size="sm"
                       disabled={at === lines.length - 1}
                       onClick={() => {
-                        setLines(moveLine(lines, at, 1));
+                        sortable.moveTo(line.id, at + 1, { focus: false });
                       }}
                     />
                     <IconButton
@@ -334,7 +353,7 @@ export function LineItemsEditor({
               ) : null;
               if (line.kind === "section") {
                 return (
-                  <tr key={line.id} className="fg-fin-section">
+                  <tr key={line.id} {...rowProps(line.id)} className="fg-fin-section">
                     <td className="fg-fin-n" />
                     <td colSpan={visible.length}>
                       {editable ? (
@@ -362,7 +381,7 @@ export function LineItemsEditor({
               const amounts = lineAmounts(line);
               const n = at + 1;
               return (
-                <tr key={line.id}>
+                <tr key={line.id} {...rowProps(line.id)}>
                   <td className="fg-fin-n">{number}</td>
                   <td className="fg-fin-desc">
                     {editable ? (
@@ -505,6 +524,7 @@ export function LineItemsEditor({
       </div>
       {editable ? (
         <>
+          <SortableStatus text={sortable.status} />
           <p id={hintId} className="fg-sr">
             Arrow keys move between cells. Enter goes to the next line and adds one at the end. Alt
             with Up or Down moves the line. Control or Command with Enter inserts a line below; with

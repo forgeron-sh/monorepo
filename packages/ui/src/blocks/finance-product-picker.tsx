@@ -1,10 +1,15 @@
 // The product of a line picked by typing: a button that opens a search over the catalogue. Built
-// on the Combobox of Base UI the way the relation picker of the data hub is.
+// on the Combobox parts the way the relation picker of the data hub is.
 
-import { Combobox } from "@base-ui/react/combobox";
-import { Tick02Icon, PackageAdd01Icon } from "@forgeron/icons";
+import { PackageAdd01Icon } from "@forgeron/icons";
 import { useMemo, useState } from "react";
-import { Icon } from "../icon";
+import {
+  Combobox,
+  ComboboxChipsInput,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+} from "../combobox";
 import { IconButton } from "../identity";
 import { Popover } from "../popover";
 import { formatMoney } from "../numbers";
@@ -79,16 +84,16 @@ export function ProductPicker({
         />
       }
     >
-      <Combobox.Root<string>
+      <Combobox
         inline
         open
         autoHighlight
         items={products.map((p) => p.id)}
         filteredItems={shown}
-        itemToStringLabel={(id) => byId.get(id)?.label ?? id}
+        itemToStringLabel={(id: string) => byId.get(id)?.label ?? id}
         inputValue={query}
         value={value ?? null}
-        onValueChange={(id) => {
+        onValueChange={(id: string | null) => {
           const product = id ? byId.get(id) : undefined;
           if (product) {
             onPick(product);
@@ -97,39 +102,39 @@ export function ProductPicker({
             onClosed?.();
           }
         }}
-        onInputValueChange={(next, details) => {
+        onInputValueChange={(next: string, details: { isItemPress?: boolean }) => {
           if (!details.isItemPress) setQuery(next);
         }}
       >
         <div className="fg-fpop-head">
-          <Combobox.Input
+          <ComboboxChipsInput
             ref={(el: HTMLInputElement | null) => el?.focus({ preventScroll: true })}
             className="fg-fpop-input"
             placeholder="Search products…"
             aria-label="Search products"
           />
         </div>
-        <Combobox.Empty className="fg-fpop-empty">No product</Combobox.Empty>
-        <Combobox.List className="fg-pop-list">
+        <ComboboxEmpty className="fg-fpop-empty">No product</ComboboxEmpty>
+        <ComboboxList>
           {(id: string) => {
             const product = byId.get(id);
             if (!product) return null;
             return (
-              <Combobox.Item key={id} value={id} className="fg-pop-row">
-                <span className="fg-pop-label">{product.label}</span>
-                <span className="fg-pop-hint">
-                  {product.unitPrice !== undefined
+              <ComboboxItem
+                key={id}
+                value={id}
+                hint={
+                  product.unitPrice !== undefined
                     ? formatMoney(product.unitPrice, currency, locale)
-                    : (product.hint ?? "")}
-                </span>
-                <Combobox.ItemIndicator className="fg-pop-tick">
-                  <Icon icon={Tick02Icon} size={12} variant="mono" />
-                </Combobox.ItemIndicator>
-              </Combobox.Item>
+                    : (product.hint ?? "")
+                }
+              >
+                {product.label}
+              </ComboboxItem>
             );
           }}
-        </Combobox.List>
-      </Combobox.Root>
+        </ComboboxList>
+      </Combobox>
     </Popover>
   );
 }

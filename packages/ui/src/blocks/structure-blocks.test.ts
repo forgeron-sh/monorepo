@@ -256,11 +256,26 @@ describe("Outline", () => {
     const onSelect = vi.fn<(...args: any[]) => void>();
     const onActiveChange = vi.fn<(...args: any[]) => void>();
     const el = await mount(h(Outline, { headings, onSelect, onActiveChange }));
-    await click(q(el, "button[aria-label='Collapse Intro']"));
+    await click(q(el, "li[aria-expanded] .fg-tree-twisty"));
     expect(items(el, "a.fg-outline-link").map((a) => a.textContent)).toEqual(["Intro", "The end"]);
-    expect(q(el, "button[aria-expanded]").getAttribute("aria-expanded")).toBe("false");
+    expect(q(el, "li[aria-expanded]").getAttribute("aria-expanded")).toBe("false");
     await click(items(el, "a.fg-outline-link")[1]!);
     expect(onSelect).toHaveBeenCalledWith("end", expect.anything());
+    expect(onActiveChange).toHaveBeenCalledWith("end");
+  });
+
+  it("walks with the keyboard: arrows, Left to fold, Enter to go", async () => {
+    const onActiveChange = vi.fn<(...args: any[]) => void>();
+    const el = await mount(h(Outline, { headings, onActiveChange }));
+    const rows = () => items(el, "li[role='treeitem']");
+    expect(q(el, "ul").getAttribute("role")).toBe("tree");
+    await act(async () => rows()[0]!.focus());
+    await key(rows()[0]!, "ArrowLeft");
+    expect(rows()[0]!.getAttribute("aria-expanded")).toBe("false");
+    expect(rows()).toHaveLength(2);
+    await key(rows()[0]!, "ArrowDown");
+    expect(document.activeElement).toBe(rows()[1]);
+    await key(rows()[1]!, "Enter");
     expect(onActiveChange).toHaveBeenCalledWith("end");
   });
 

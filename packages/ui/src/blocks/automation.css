@@ -322,7 +322,7 @@ button.fg-step-main {
   outline: var(--focus-width) solid var(--focus);
   outline-offset: calc(-1 * var(--focus-width));
 }
-.fg-spick-input {
+.fg-spick-search .fg-spick-input {
   flex: 1;
   min-width: 0;
   height: 36px;
@@ -333,7 +333,7 @@ button.fg-step-main {
   font: inherit;
   outline: none;
 }
-.fg-spick-input::placeholder {
+.fg-spick-search .fg-spick-input::placeholder {
   color: var(--ink-dim);
 }
 .fg-spick-cats {
@@ -367,14 +367,14 @@ button.fg-step-main {
   outline: var(--focus-width) solid var(--focus);
   outline-offset: var(--focus-offset);
 }
-.fg-spick-list {
+.fg-spick .fg-spick-list {
   flex: 1;
   min-height: 0;
   max-height: 380px;
   overflow: auto;
-  padding-bottom: 4px;
+  padding: 0 0 4px;
 }
-.fg-spick-group {
+.fg-spick .fg-spick-group {
   display: flex;
   align-items: center;
   height: 24px;
@@ -392,17 +392,20 @@ button.fg-step-main {
   padding: 0 6px;
   background: var(--bg);
 }
-.fg-spick-row {
+.fg-spick .fg-spick-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: auto;
+  height: auto;
   min-height: 44px;
   margin: 0 4px;
   padding: 4px 8px;
   border: var(--border-width) solid transparent;
+  color: var(--ink);
   cursor: pointer;
 }
-.fg-spick-row[aria-selected="true"] {
+.fg-spick .fg-spick-row[data-highlighted] {
   border-color: var(--line);
   background: var(--bg-raised);
 }
@@ -430,9 +433,12 @@ button.fg-step-main {
   color: var(--ink-muted);
   font: 400 10.5px/16px var(--font-mono);
 }
-.fg-spick-empty {
+.fg-spick .fg-spick-empty:not(:empty) {
   padding: 16px 12px;
   color: var(--ink-dim);
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .fg-spick-foot {
   display: flex;

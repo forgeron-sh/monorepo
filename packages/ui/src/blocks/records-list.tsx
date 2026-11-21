@@ -23,6 +23,9 @@ import {
   type Surface,
 } from "./records-surface";
 
+/** The kinds whose cell is a list of chips: nothing is drawn when they are empty. */
+const HIDE_WHEN_EMPTY: ReadonlySet<string> = new Set(["labels", "people", "relation", "file"]);
+
 export interface RecordListProps<R extends RecordItem> extends RecordSurfaceProps<R> {
   /** The groups in order: `recordGroups(fields, records, "status")`, or `useRecordView().groups`. */
   groups: ReadonlyArray<RecordGroup<R>>;
@@ -171,7 +174,7 @@ export function RecordRow<R extends RecordItem>({
   const field = (name: string) => {
     const def = fields.def(name);
     const empty = fields.isEmpty(record, name);
-    if ((def.kind === "labels" || def.kind === "people") && empty) return null;
+    if (HIDE_WHEN_EMPTY.has(def.kind) && empty) return null;
     const mark =
       def.kind === "date" && empty && edit && hasPicker(def.kind) ? (
         <span className="fg-ilist-due fg-issue-ghost">
@@ -203,9 +206,7 @@ export function RecordRow<R extends RecordItem>({
         <RowMore {...menu(record)} {...menuOpen} />
       </span>
       {shown
-        .filter(
-          (k) => ["labels", "people"].includes(fields.def(k).kind) && fields.isEmpty(record, k),
-        )
+        .filter((k) => HIDE_WHEN_EMPTY.has(fields.def(k).kind) && fields.isEmpty(record, k))
         .map((k) => (
           <RecordFieldSlot key={k} surface={surface} record={record} name={k} unset>
             {null}

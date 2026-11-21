@@ -3,11 +3,16 @@
 // it is read off `defineFields` (records-model.ts); nothing here knows an issue or an invoice.
 
 import {
+  Attachment01Icon,
   BarChartIcon,
+  BracesIcon,
   Calendar03Icon,
+  CheckmarkSquare02Icon,
   HashtagIcon,
+  Link01Icon,
   Loading03Icon,
   Tag01Icon,
+  Tick02Icon,
   UserIcon,
   type IconDefinition,
 } from "@forgeron/icons";
@@ -17,6 +22,7 @@ import { cx } from "../cx";
 import { formatShort, parseIso } from "../dates";
 import type { DisplayChoice } from "./filtering-display-menu";
 import type { FilterField } from "./filtering-model";
+import { Icon } from "../icon";
 import { Led } from "../led";
 import { DatePicker, SelectMenu, type DatePreset, type SelectMenuOption } from "../overlays";
 import { LabelPicker, PersonPicker, type LabelOption, type Person } from "../pickers";
@@ -84,6 +90,10 @@ const KIND_ICON: Readonly<Record<RecordFieldKind, IconDefinition>> = {
   quarter: Calendar03Icon,
   text: HashtagIcon,
   number: HashtagIcon,
+  boolean: CheckmarkSquare02Icon,
+  relation: Link01Icon,
+  file: Attachment01Icon,
+  json: BracesIcon,
 };
 
 /** The glyph of a choice: its own, else a person's avatar, a label's swatch, a tone's LED. */
@@ -224,7 +234,8 @@ export function withGlyphs<R>(
 
 /* ---------------------------------------------------------------- marks of a record's values */
 
-type View = "row" | "card";
+/** `cell` is the cell of a grid: one line, chips of the choices, no place of its own. */
+type View = "row" | "card" | "cell";
 
 export interface RecordFieldMarkProps<R> {
   fields: RecordFields<R>;
@@ -248,6 +259,8 @@ export function RecordFieldMark<R>({
   const value = fields.values(record, name)?.[0] ?? null;
   const row = view === "row";
   const slot = def.place?.card ?? "chips";
+  if (view === "cell")
+    return <RecordCellMark fields={fields} name={name} record={record} context={context} />;
   switch (def.kind) {
     case "status":
     case "enum":
@@ -324,6 +337,13 @@ export function RecordFieldMark<R>({
         </span>
       );
     }
+    case "boolean":
+      return <BooleanMark value={fields.values(record, name)?.[0] ?? null} />;
+    case "relation":
+    case "file":
+      return <ChipsMark fields={fields} name={name} record={record} context={context} />;
+    case "json":
+      return <span className={row ? "fg-ilist-id" : "fg-iboard-id"}>{value ?? ""}</span>;
     case "text":
     case "number": {
       const cls = def.mono
@@ -335,6 +355,86 @@ export function RecordFieldMark<R>({
           : "fg-iboard-text";
       return <span className={cls}>{value ?? ""}</span>;
     }
+  }
+}
+
+/** A yes or no as a box: ticked for yes, empty for no and for unset. */
+function BooleanMark({ value }: { value: string | null }) {
+  const on = value === "true";
+  return (
+    <span className={cx("fg-check-box fg-rec-bool", on && "fg-rec-bool-on")}>
+      {on ? <Icon icon={Tick02Icon} size={12} variant="mono" /> : null}
+      <span className="fg-sr">{on ? "Yes" : "No"}</span>
+    </span>
+  );
+}
+
+/** The records of a relation (named by the choices) or the files of a field, as chips. */
+function ChipsMark<R>({
+  fields,
+  name,
+  record,
+  context,
+}: {
+  fields: RecordFields<R>;
+  name: string;
+  record: R;
+  context: RecordContext;
+}) {
+  const file = fields.def(name).kind === "file";
+  return (
+    <span className="fg-rec-chips">
+      {(fields.values(record, name) ?? []).map((v) => (
+        <span key={v} className={file ? "fg-rec-chip fg-rec-file" : "fg-rec-chip fg-rec-rel"}>
+          {file ? <Icon icon={Attachment01Icon} size={12} variant="mono" /> : null}
+          {file ? v : (fields.choice(name, v, context)?.label ?? v)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** What a grid cell holds: the box, chips of the choices, or the value as one line of text. */
+function RecordCellMark<R>({
+  fields,
+  name,
+  record,
+  context,
+}: {
+  fields: RecordFields<R>;
+  name: string;
+  record: R;
+  context: RecordContext;
+}) {
+  const def = fields.def(name);
+  switch (def.kind) {
+    case "boolean":
+      return <BooleanMark value={fields.values(record, name)?.[0] ?? null} />;
+    case "relation":
+    case "file":
+      return <ChipsMark fields={fields} name={name} record={record} context={context} />;
+    case "status":
+    case "enum":
+    case "quarter":
+    case "labels":
+      return (
+        <span className="fg-rec-chips">
+          {(fields.values(record, name) ?? []).map((v) => {
+            const c = fields.choice(name, v, context);
+            return (
+              <span key={v} className="fg-rec-chip">
+                <span
+                  className="fg-swatch-mark"
+                  style={{ background: c?.color ?? "var(--ink-dim)" }}
+                />
+                {c?.label ?? v}
+              </span>
+            );
+          })}
+        </span>
+      );
+    default:
+      return <span className="fg-rec-text">{fields.text(record, name, context)}</span>;
   }
 }
 

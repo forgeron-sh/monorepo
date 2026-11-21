@@ -455,6 +455,23 @@ describe("RecurrenceEditor", () => {
     await act(async () => mo.click());
     expect(onChange.mock.calls.at(-1)![0].weekdays).toEqual([0, 2]);
   });
+
+  it("keeps one weekday on and presses the chips with the toggle group", async () => {
+    const onChange = vi.fn<(...args: any[]) => void>();
+    const el = await mount(
+      h(RecurrenceEditor, {
+        start: "2026-11-18",
+        defaultValue: { frequency: "weekly", interval: 1, end: { kind: "never" } },
+        onChange,
+      }),
+    );
+    const we = el.querySelector<HTMLElement>('[aria-label="Wednesday"]')!;
+    expect(we.getAttribute("aria-pressed")).toBe("true");
+    expect(el.querySelector(".fg-rec-days")?.getAttribute("aria-label")).toBe("On these days");
+    await act(async () => we.click());
+    expect(onChange).not.toHaveBeenCalled();
+    expect(we.getAttribute("aria-pressed")).toBe("true");
+  });
 });
 
 describe("fields", () => {

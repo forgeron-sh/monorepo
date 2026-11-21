@@ -6,12 +6,19 @@
 .fg-fpop {
   width: 260px;
 }
+/* On the popover parts: the frame has no padding of its own, the list and the input run edge to edge. */
+.fg-fpop.fg-popover {
+  width: 260px;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+}
 .fg-fpop-head {
   display: flex;
   align-items: center;
   border-bottom: var(--border-width) solid var(--line);
 }
-.fg-fpop-input {
+.fg-fpop-head .fg-fpop-input {
   flex: 1;
   min-width: 0;
   height: 36px;
@@ -23,16 +30,19 @@
   font: 400 13px/18px var(--font-sans);
   outline: none;
 }
-.fg-fpop-input::placeholder {
+.fg-fpop-head .fg-fpop-input::placeholder {
   color: var(--ink-dim);
 }
-.fg-fpop-input:focus-visible {
+.fg-fpop-head .fg-fpop-input:focus-visible {
   outline: var(--focus-width) solid var(--focus);
   outline-offset: calc(-1 * var(--focus-width));
 }
-.fg-fpop-empty:not(:empty) {
+.fg-fpop .fg-fpop-empty:not(:empty) {
   padding: 10px 12px;
   color: var(--ink-dim);
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .fg-fpop .fg-pop-list:empty {
   display: none;

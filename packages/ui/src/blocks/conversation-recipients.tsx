@@ -1,13 +1,23 @@
 // The To, Cc and Bcc of a mail, or the people of any message to several: addresses as tags (Enter,
 // comma, semicolon or a paste of many ends them), suggestions from your contacts as you type, a
 // group that expands into its members, an address that is not valid marked in the danger tone and
-// said. It wears the look of TagInput (the chips are the same); it has its own input because the
-// list of suggestions needs the text typed.
+// said. The chips, the text box and the list of suggestions are the Combobox parts (several
+// choices, the list filtered here); the block adds the typing of free addresses and the paste.
 
-import { Cancel01Icon, UserGroup03Icon } from "@forgeron/icons";
+import { UserGroup03Icon } from "@forgeron/icons";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useId, useMemo, useRef, useState } from "react";
 import { Avatar } from "../avatar";
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxInputGroup,
+  ComboboxItem,
+  ComboboxList,
+} from "../combobox";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
@@ -57,7 +67,7 @@ export function RecipientInput({
   const [tags, setTags] = useControllableState<string[]>({ value, defaultValue, onChange });
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState(false);
-  const [index, setIndex] = useState(0);
+  const highlighted = useRef<ConversationContact | undefined>(undefined);
   const [said, setSaid] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const [pasted, setPasted] = useState<Record<string, string>>({});
@@ -81,7 +91,6 @@ export function RecipientInput({
       .slice(0, 6);
   }, [contacts, query, tags]);
   const shown = open && suggestions.length > 0;
-  const active = Math.min(index, Math.max(suggestions.length - 1, 0));
   const room = (n: number) =>
     max === undefined
       ? n
@@ -112,32 +121,21 @@ export function RecipientInput({
     remember(parsed);
     if (parsed.length > 0) add(parsed.map((p) => p.value));
     setDraft("");
-    setOpen(false);
   };
   const choose = (contact: ConversationContact) => {
     const emails = conversationContactEmails(contact);
     add(emails, contact.members ? `${contact.name}: ${emails.length} recipients added.` : "");
     setDraft("");
-    setOpen(false);
-    input.current?.focus();
-  };
-  const remove = (address: string) => {
-    setTags(tags.filter((t) => t !== address));
-    input.current?.focus();
   };
 
+  // Arrows, Enter on a suggestion and Backspace on the chips are the combobox's; this is the rest.
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     const k = event.key;
-    if (shown && (k === "ArrowDown" || k === "ArrowUp")) {
+    if (k === "Tab" && shown && highlighted.current) {
       event.preventDefault();
-      setIndex((active + (k === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length);
-    } else if (k === "ArrowDown" && query !== "") {
-      setOpen(true);
-    } else if (k === "Enter" || k === "Tab") {
-      if (shown) {
-        event.preventDefault();
-        choose(suggestions[active]!);
-      } else if (draft.trim()) {
+      choose(highlighted.current);
+    } else if ((k === "Enter" || k === "Tab") && !shown) {
+      if (draft.trim()) {
         event.preventDefault();
         commit();
       }
@@ -146,11 +144,6 @@ export function RecipientInput({
         event.preventDefault();
         commit();
       }
-    } else if (k === "Escape" && shown) {
-      event.preventDefault();
-      setOpen(false);
-    } else if (k === "Backspace" && draft === "" && tags.length > 0) {
-      setTags(tags.slice(0, -1));
     }
   };
   const onPaste = (event: ClipboardEvent<HTMLInputElement>) => {
@@ -167,106 +160,94 @@ export function RecipientInput({
     setDraft("");
   };
 
+  const focusInput = (event: { target: unknown; currentTarget: unknown }) => {
+    if (event.target === event.currentTarget) input.current?.focus();
+  };
   return (
     <div className={cx("fg-conv-rcpt", disabled && "fg-combo-disabled", className)}>
       <span className="fg-conv-rcpt-label" id={`${id}-label`}>
         {label}
       </span>
-      <div
-        className="fg-combo fg-tagin fg-conv-rcpt-box"
-        onClick={(event) => {
-          if (event.target === event.currentTarget) input.current?.focus();
+      <Combobox
+        multiple
+        autoHighlight
+        filter={null}
+        items={suggestions}
+        value={tags}
+        disabled={disabled}
+        itemToStringLabel={(contact: ConversationContact | string) =>
+          typeof contact === "string" ? contact : contact.name
+        }
+        onValueChange={(next: Array<ConversationContact | string>) => {
+          const picked = next.find((v): v is ConversationContact => typeof v !== "string");
+          if (picked) choose(picked);
+          else setTags(next as string[]);
+        }}
+        inputValue={draft}
+        onInputValueChange={(next: string) => setDraft(next)}
+        onOpenChange={(next: boolean) => setOpen(next)}
+        onItemHighlighted={(contact: ConversationContact | undefined) => {
+          highlighted.current = contact;
         }}
       >
-        <ul className="fg-combo-chips" aria-label={`${label}, added`}>
-          {tags.map((tag) => {
-            const bad = !validate(tag);
-            const name = nameOf(tag);
-            return (
-              <li
-                key={tag}
-                className={cx("fg-combo-chip", bad && "fg-combo-chip-bad")}
-                title={bad ? "Not a valid address" : name ? tag : undefined}
-              >
-                <span>{name ?? tag}</span>
-                {bad ? <span className="fg-sr">, not a valid address</span> : null}
-                <button
-                  type="button"
-                  className="fg-combo-chip-x"
-                  aria-label={`Remove ${name ?? tag}`}
-                  disabled={disabled}
-                  onClick={() => remove(tag)}
+        <ComboboxInputGroup disabled={disabled} className="fg-conv-rcpt-box" onClick={focusInput}>
+          <ComboboxChips aria-label={`${label}, added`} onClick={focusInput}>
+            {tags.map((tag) => {
+              const bad = !validate(tag);
+              const name = nameOf(tag);
+              return (
+                <ComboboxChip
+                  key={tag}
+                  className={bad ? "fg-combo-chip-bad" : undefined}
+                  title={bad ? "Not a valid address" : name ? tag : undefined}
+                  removeLabel={`Remove ${name ?? tag}`}
                 >
-                  <Icon icon={Cancel01Icon} size={12} variant="mono" />
-                </button>
-              </li>
-            );
-          })}
-          <li className="fg-tagin-item">
-            <input
+                  <span>{name ?? tag}</span>
+                  {bad ? <span className="fg-sr">, not a valid address</span> : null}
+                </ComboboxChip>
+              );
+            })}
+            <ComboboxChipsInput
               ref={input}
-              className="fg-combo-input"
-              role="combobox"
-              aria-autocomplete="list"
-              aria-expanded={shown}
-              aria-controls={`${id}-list`}
               aria-labelledby={`${id}-label`}
-              {...(shown ? { "aria-activedescendant": `${id}-opt-${active}` } : {})}
               placeholder={tags.length > 0 ? "" : placeholder}
-              value={draft}
               disabled={disabled || (max !== undefined && tags.length >= max)}
-              onChange={(event) => {
-                setDraft(event.target.value);
-                setOpen(true);
-                setIndex(0);
-              }}
               onKeyDown={onKeyDown}
               onPaste={onPaste}
               onBlur={() => {
-                setOpen(false);
                 if (draft.trim()) commit();
               }}
             />
-          </li>
-        </ul>
-        {shown ? (
-          <ul
-            id={`${id}-list`}
-            role="listbox"
-            aria-label={`${label}, suggestions`}
-            className="fg-conv-rcpt-list"
-            onMouseDown={(event) => event.preventDefault()}
-          >
-            {suggestions.map((contact, i) => (
-              <li
+          </ComboboxChips>
+        </ComboboxInputGroup>
+        <ComboboxContent>
+          <ComboboxList aria-label={`${label}, suggestions`}>
+            {(contact: ConversationContact) => (
+              <ComboboxItem
                 key={contact.id}
-                id={`${id}-opt-${i}`}
-                role="option"
-                aria-selected={i === active}
-                className="fg-conv-mention-opt"
-                onMouseMove={() => setIndex(i)}
-                onClick={() => choose(contact)}
+                value={contact}
+                indicator={false}
+                glyph={
+                  contact.members ? (
+                    <span className="fg-conv-mention-mark" aria-hidden="true">
+                      <Icon icon={UserGroup03Icon} size={12} variant="mono" />
+                    </span>
+                  ) : (
+                    <Avatar
+                      name={contact.name}
+                      size={20}
+                      {...(contact.avatar ? { src: contact.avatar } : {})}
+                    />
+                  )
+                }
+                hint={contact.members ? `${contact.members.length} people` : contact.email}
               >
-                {contact.members ? (
-                  <span className="fg-conv-mention-mark" aria-hidden="true">
-                    <Icon icon={UserGroup03Icon} size={12} variant="mono" />
-                  </span>
-                ) : (
-                  <Avatar
-                    name={contact.name}
-                    size={20}
-                    {...(contact.avatar ? { src: contact.avatar } : {})}
-                  />
-                )}
-                <span className="fg-conv-mention-label">{contact.name}</span>
-                <span className="fg-conv-mention-hint">
-                  {contact.members ? `${contact.members.length} people` : contact.email}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+                {contact.name}
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
       <span className="fg-sr" role="status" aria-live="polite">
         {said}
       </span>

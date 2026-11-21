@@ -321,6 +321,14 @@ describe("LineItemsEditor", () => {
     expect(cell(root, seen.mock.calls.at(-1)![0][2]!.id, "description")).toBeTruthy();
   });
 
+  it("moves a line with the buttons and says it", async () => {
+    const seen = vi.fn<(l: LineItem[]) => void>();
+    const root = await mount(h(Harness, { onChange: seen }));
+    await click(root.querySelector('[aria-label="Move line 1 down"]')!);
+    expect(seen.mock.calls.at(-1)![0].map((l) => l.id)).toEqual(["b", "a"]);
+    expect(root.querySelector('[role="status"]')!.textContent).toContain("position 2 of 2");
+  });
+
   it("removes with the buttons and the keys, and is only text when read only", async () => {
     const seen = vi.fn<(l: LineItem[]) => void>();
     const root = await mount(h(Harness, { onChange: seen }));

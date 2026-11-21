@@ -601,30 +601,20 @@
   display: inline-flex;
   border: var(--border-width) solid var(--line-strong);
 }
-.fg-rec-day {
+.fg-rec-days .fg-rec-day {
   width: 34px;
   height: 30px;
-  border: 0;
-  border-radius: var(--radius-none);
-  background: var(--bg);
-  color: var(--ink-muted);
-  font: 400 11px/1 var(--font-mono);
+  padding: 0;
+  font-size: 11px;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
 }
 .fg-rec-day + .fg-rec-day {
   border-left: var(--border-width) solid var(--line-strong);
 }
-.fg-rec-day[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--bg);
-}
-.fg-rec-day:disabled {
-  cursor: not-allowed;
+.fg-rec-days .fg-rec-day:not([data-pressed]) {
+  background: var(--bg);
 }
 .fg-rec-day:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
   outline-offset: calc(var(--focus-width) * -1);
 }
 .fg-rec-summary {

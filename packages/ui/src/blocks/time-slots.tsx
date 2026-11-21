@@ -82,9 +82,9 @@ export interface SlotPickerProps {
   className?: string;
 }
 
-/** The slot list of a day for a zone, from explicit slots or from hours. */
-function useDaySlots(
-  date: string,
+/** The slots of a day in a zone, from explicit slots or computed from hours (a day either side). */
+function slotsForDay(
+  day: string,
   props: Pick<SlotPickerProps, "slots" | "availability" | "busy">,
   host: string,
   zone: string,
@@ -93,17 +93,15 @@ function useDaySlots(
   now: string | undefined,
 ): SlotItem[] {
   const { slots, availability, busy } = props;
-  return useMemo(() => {
-    const source: TimeSlot[] =
-      slots !== undefined
-        ? [...slots]
-        : availability
-          ? [-1, 0, 1].flatMap((d) =>
-              daySlots(addDays(date, d), availability, busy ?? [], duration, interval),
-            )
-          : [];
-    return slotsOnDay(date, source, host, zone, now);
-  }, [slots, availability, busy, date, host, zone, duration, interval, now]);
+  const source: TimeSlot[] =
+    slots !== undefined
+      ? [...slots]
+      : availability
+        ? [-1, 0, 1].flatMap((d) =>
+            daySlots(addDays(day, d), availability, busy ?? [], duration, interval),
+          )
+        : [];
+  return slotsOnDay(day, source, host, zone, now);
 }
 
 /**
@@ -157,28 +155,23 @@ export function SlotPicker(props: SlotPickerProps) {
   });
   const step = interval ?? duration;
 
-  const list = useDaySlots(date, props, host, zone, duration, step, now);
+  const list = useMemo(
+    () => slotsForDay(date, { slots, availability, busy }, host, zone, duration, step, now),
+    [slots, availability, busy, date, host, zone, duration, step, now],
+  );
   // The strip starts at the first day of the week of `date`, three days back at most.
   const start = addDays(date, -Math.min(weekday(date), 3));
   const stripDays = Array.from({ length: Math.max(1, days) }, (_, i) => addDays(start, i));
 
   const countFor = (day: string) => {
     if (max !== undefined && day > max) return -1;
-    const free = (day === date ? list : slotsFor(day)).filter((s) => s.available).length;
+    const free = (
+      day === date
+        ? list
+        : slotsForDay(day, { slots, availability, busy }, host, zone, duration, step, now)
+    ).filter((s) => s.available).length;
     return free;
   };
-  const slotsFor = (day: string): SlotItem[] => {
-    const source: TimeSlot[] =
-      slots !== undefined
-        ? [...slots]
-        : availability
-          ? [-1, 0, 1].flatMap((d) =>
-              daySlots(addDays(day, d), availability, busy ?? [], duration, step),
-            )
-          : [];
-    return slotsOnDay(day, source, host, zone, now);
-  };
-
   const offset = formatOffset(timezoneOffset(zone, zonedToUtc(date, "12:00", zone)));
   const shown = showUnavailable ? list : list.filter((s) => s.available);
   const pick = (s: SlotItem) => {

@@ -1,10 +1,21 @@
 // The list to add a step from, after the "Add a block" panel of the Flows prototype: a search, a
 // row of categories, and the triggers or actions grouped under a closed band, each with its pixel
-// icon, its app and one line. The search keeps the focus; arrows move, Enter adds.
+// icon, its app and one line. The search keeps the focus; arrows move, Enter adds. The search and
+// the list are the Combobox parts, open inline and filtered here (by the words and the category).
 
 import type { IconDefinition } from "@forgeron/icons";
 import { Search01Icon } from "@forgeron/icons";
-import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import {
+  Combobox,
+  ComboboxChipsInput,
+  ComboboxCollection,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxItem,
+  ComboboxLabel,
+  ComboboxList,
+} from "../combobox";
 import { cx } from "../cx";
 import { Icon } from "../icon";
 
@@ -65,10 +76,8 @@ export function StepPicker({
   empty = "No step matches",
   className,
 }: StepPickerProps) {
-  const id = useId();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
-  const [active, setActive] = useState(0);
 
   const order = useMemo(() => {
     if (groups) return groups;
@@ -83,7 +92,8 @@ export function StepPicker({
     return order
       .filter((g) => category === "all" || g.id === category)
       .map((g) => ({
-        group: g,
+        value: g.id,
+        label: g.label,
         items: options.filter(
           (o) =>
             o.group === g.id &&
@@ -98,30 +108,7 @@ export function StepPicker({
       .filter((g) => g.items.length > 0);
   }, [order, options, query, category]);
 
-  const flat = shown.flatMap((g) => g.items);
-  const current = Math.min(active, Math.max(flat.length - 1, 0));
-  const optionId = (i: number) => `${id}-o${i}`;
   const showCategories = (categories ?? true) && order.length > 1;
-
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    const last = flat.length - 1;
-    const moves: Record<string, number> = {
-      ArrowDown: Math.min(current + 1, last),
-      ArrowUp: Math.max(current - 1, 0),
-      PageDown: Math.min(current + 6, last),
-      PageUp: Math.max(current - 6, 0),
-    };
-    if (event.key in moves) {
-      event.preventDefault();
-      setActive(moves[event.key]!);
-      document.getElementById(optionId(moves[event.key]!))?.scrollIntoView?.({ block: "nearest" });
-    } else if (event.key === "Enter") {
-      const option = flat[current];
-      if (!option) return;
-      event.preventDefault();
-      onPick(option.id);
-    }
-  };
 
   return (
     <div className={cx("fg-spick", className)}>
@@ -131,83 +118,86 @@ export function StepPicker({
           {context ? <div className="fg-spick-context">{context}</div> : null}
         </div>
       ) : null}
-      <label className="fg-spick-search">
-        <Icon icon={Search01Icon} size={12} variant="mono" />
-        <input
-          // oxlint-disable-next-line jsx-a11y/no-autofocus -- the picker opens to be typed into
-          autoFocus={autoFocus}
-          className="fg-spick-input"
-          role="combobox"
-          aria-expanded="true"
-          aria-controls={`${id}-list`}
-          aria-autocomplete="list"
-          aria-activedescendant={flat.length ? optionId(current) : undefined}
-          aria-label={placeholder}
-          placeholder={placeholder}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActive(0);
-          }}
-          onKeyDown={onKeyDown}
-        />
-      </label>
-      {showCategories ? (
-        <div className="fg-spick-cats" role="group" aria-label="Category">
-          {[{ id: "all", label: "All" }, ...order].map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              className="fg-spick-cat"
-              aria-pressed={category === g.id}
-              onClick={() => {
-                setCategory(g.id);
-                setActive(0);
-              }}
-            >
-              {g.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <div className="fg-spick-list" id={`${id}-list`} role="listbox" aria-label="Steps">
-        {shown.length === 0 ? <div className="fg-spick-empty">{empty}</div> : null}
-        {shown.map(({ group, items }) => (
-          <div key={group.id} role="group" aria-labelledby={`${id}-g-${group.id}`}>
-            <div className="fg-spick-group" id={`${id}-g-${group.id}`}>
-              <span>{group.label}</span>
-            </div>
-            {items.map((o) => {
-              const i = flat.indexOf(o);
-              return (
-                <div
-                  key={o.id}
-                  id={optionId(i)}
-                  role="option"
-                  aria-selected={i === current}
-                  className="fg-spick-row"
-                  onPointerDown={(e) => e.preventDefault()}
-                  onPointerMove={() => i !== current && setActive(i)}
-                  onClick={() => onPick(o.id)}
-                >
-                  <span className="fg-step-tile">
-                    <Icon icon={o.icon} size={12} />
-                  </span>
-                  <span className="fg-spick-text">
-                    <span className="fg-spick-label">{o.label}</span>
-                    {o.app || o.description ? (
-                      <span className="fg-spick-desc">
-                        {[o.app, o.description].filter(Boolean).join(" · ")}
-                      </span>
-                    ) : null}
-                  </span>
-                  {o.tag ? <span className="fg-spick-tag">{o.tag}</span> : null}
-                </div>
-              );
-            })}
+      <Combobox
+        inline
+        open
+        // Base UI accepts "always" (the first row lit as the list opens); its types say boolean.
+        {...({ autoHighlight: "always" } as object)}
+        loopFocus={false}
+        filter={null}
+        items={shown}
+        value={null}
+        itemToStringLabel={(o: StepOption) => o.label}
+        isItemEqualToValue={(a: StepOption, b: StepOption) => a.id === b.id}
+        onValueChange={(option: StepOption | null) => {
+          if (option) onPick(option.id);
+        }}
+        inputValue={query}
+        onInputValueChange={(next: string, details: { isItemPress?: boolean }) => {
+          if (!details.isItemPress) setQuery(next);
+        }}
+      >
+        <label className="fg-spick-search">
+          <Icon icon={Search01Icon} size={12} variant="mono" />
+          <ComboboxChipsInput
+            // oxlint-disable-next-line jsx-a11y/no-autofocus -- the picker opens to be typed into
+            autoFocus={autoFocus}
+            className="fg-spick-input"
+            aria-label={placeholder}
+            placeholder={placeholder}
+          />
+        </label>
+        {showCategories ? (
+          <div className="fg-spick-cats" role="group" aria-label="Category">
+            {[{ id: "all", label: "All" }, ...order].map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className="fg-spick-cat"
+                aria-pressed={category === g.id}
+                onClick={() => setCategory(g.id)}
+              >
+                {g.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
+        ) : null}
+        <ComboboxEmpty className="fg-spick-empty">{empty}</ComboboxEmpty>
+        <ComboboxList className="fg-spick-list" aria-label="Steps">
+          {(group: (typeof shown)[number]) => (
+            <ComboboxGroup key={group.value} items={group.items}>
+              <ComboboxLabel className="fg-spick-group">
+                <span>{group.label}</span>
+              </ComboboxLabel>
+              <ComboboxCollection>
+                {(o: StepOption) => (
+                  <ComboboxItem
+                    key={o.id}
+                    value={o}
+                    indicator={false}
+                    className="fg-spick-row"
+                    glyph={
+                      <span className="fg-step-tile">
+                        <Icon icon={o.icon} size={12} />
+                      </span>
+                    }
+                    trailing={o.tag ? <span className="fg-spick-tag">{o.tag}</span> : null}
+                  >
+                    <span className="fg-spick-text">
+                      <span className="fg-spick-label">{o.label}</span>
+                      {o.app || o.description ? (
+                        <span className="fg-spick-desc">
+                          {[o.app, o.description].filter(Boolean).join(" · ")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </ComboboxItem>
+                )}
+              </ComboboxCollection>
+            </ComboboxGroup>
+          )}
+        </ComboboxList>
+      </Combobox>
       {footer ? <div className="fg-spick-foot">{footer}</div> : null}
     </div>
   );

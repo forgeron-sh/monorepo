@@ -3,29 +3,24 @@
 // cancels, Tab and Enter commit and move on, Delete clears. Selects and relations open their
 // picker in the cell; a checkbox toggles with Space.
 
-import {
-  Attachment01Icon,
-  Key01Icon,
-  Maximize01Icon,
-  MoreHorizontalIcon,
-  PlusSignIcon,
-  Tick02Icon,
-} from "@forgeron/icons";
+import { Key01Icon, Maximize01Icon, MoreHorizontalIcon, PlusSignIcon } from "@forgeron/icons";
 import type { KeyboardEvent, ReactNode } from "react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cx } from "../cx";
+import { useCollection } from "../hooks/use-collection";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { SelectMenu } from "../overlays";
 import { LabelPicker } from "../pickers";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table";
 import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 import { FieldTypeGlyph } from "./datahub-field-type";
 import { RelationPicker } from "./datahub-relation-picker";
+import { RecordFieldMark } from "./records-fields";
 import {
   editText,
-  formatValue,
-  isEmptyValue,
+  fieldsFromSchema,
   listOf,
   parseValue,
   type CellValue,
@@ -34,6 +29,7 @@ import {
   type FieldType,
   type RelationSources,
 } from "./datahub-model";
+import type { RecordFields } from "./records-model";
 
 export interface GridCellRef {
   record: string;
@@ -118,6 +114,8 @@ const TYPED: ReadonlySet<FieldType> = new Set([
   "json",
 ]);
 
+const NO_CONTEXT = {};
+
 interface Editing {
   record: string;
   field: string;
@@ -125,75 +123,31 @@ interface Editing {
   error: string | null;
 }
 
-/** The value of a cell, read: text, a box, chips of choices or records, file names. */
+/** The value of a cell, read: the mark of its kind (records-fields), or NULL when unset. */
 function CellView({
+  fields,
   field,
-  value,
-  relations,
+  record,
   showNull,
 }: {
+  fields: RecordFields<DataRecord>;
   field: DataField;
-  value: CellValue;
-  relations: RelationSources | undefined;
+  record: DataRecord;
   showNull: boolean;
 }) {
-  if (isEmptyValue(value) && field.type !== "boolean")
-    return showNull && value === null ? <span className="fg-cell-null">NULL</span> : null;
-  switch (field.type) {
-    case "boolean":
-      return (
-        <span className={cx("fg-check-box fg-dh-bool", value === true && "fg-dh-bool-on")}>
-          {value === true ? <Icon icon={Tick02Icon} size={12} variant="mono" /> : null}
-          <span className="fg-sr">{value === true ? "Yes" : "No"}</span>
-        </span>
-      );
-    case "select":
-    case "multiSelect": {
-      const byValue = new Map(field.choices?.map((c) => [c.value, c]));
-      return (
-        <span className="fg-dh-chips">
-          {listOf(value).map((v) => {
-            const c = byValue.get(v);
-            return (
-              <span key={v} className="fg-dh-choicechip">
-                <span
-                  className="fg-swatch-mark"
-                  style={{ background: c?.color ?? "var(--ink-dim)" }}
-                />
-                {c?.label ?? v}
-              </span>
-            );
-          })}
-        </span>
-      );
-    }
-    case "relation": {
-      const targets = relations?.[field.relation?.table ?? ""];
-      const byId = new Map(targets?.map((t) => [t.id, t.label]));
-      return (
-        <span className="fg-dh-chips">
-          {listOf(value).map((id) => (
-            <span key={id} className="fg-dh-relchip">
-              {byId.get(id) ?? id}
-            </span>
-          ))}
-        </span>
-      );
-    }
-    case "file":
-      return (
-        <span className="fg-dh-chips">
-          {listOf(value).map((name) => (
-            <span key={name} className="fg-dh-filechip">
-              <Icon icon={Attachment01Icon} size={12} variant="mono" />
-              {name}
-            </span>
-          ))}
-        </span>
-      );
-    default:
-      return <span className="fg-dh-text">{formatValue(field, value, relations)}</span>;
-  }
+  if (fields.isEmpty(record, field.id) && field.type !== "boolean")
+    return showNull && (record.values[field.id] ?? null) === null ? (
+      <span className="fg-cell-null">NULL</span>
+    ) : null;
+  return (
+    <RecordFieldMark
+      fields={fields}
+      name={field.id}
+      record={record}
+      context={NO_CONTEXT}
+      view="cell"
+    />
+  );
 }
 
 /**
@@ -240,11 +194,18 @@ export function RecordGrid({
         }
       : undefined,
   });
-  const [selected, setSelected] = useControllableState<ReadonlyArray<string>>({
-    value: selection,
-    defaultValue: defaultSelection,
-    onChange: onSelectionChange ? (ids) => onSelectionChange([...ids]) : undefined,
+  // The records model of the table: what a cell reads and says, and the order of its values.
+  const model = useMemo(() => fieldsFromSchema(fields, relations), [fields, relations]);
+  // The checkboxes and Shift+Space are the selection; the clicks on cells are not.
+  const rows = useCollection({
+    items: records,
+    getId: (r) => r.id,
+    selectionMode: selectable ? "multiple" : "none",
+    ...(selection ? { selected: selection } : {}),
+    defaultSelected: defaultSelection,
+    ...(onSelectionChange ? { onSelectedChange: onSelectionChange } : {}),
   });
+  const selected = rows.selected;
   const [editing, setEditing] = useState<Editing | null>(null);
   const [edited, setEdited] = useState<ReadonlySet<string>>(() => new Set());
   const [said, setSaid] = useState("");
@@ -335,12 +296,7 @@ export function RecordGrid({
     write(record.id, field, null);
   };
 
-  const toggleRow = (recordId: string) =>
-    setSelected(
-      selected.includes(recordId)
-        ? selected.filter((s) => s !== recordId)
-        : [...selected, recordId],
-    );
+  const toggleRow = (recordId: string) => rows.toggle(recordId);
 
   const onGridKey = (event: KeyboardEvent<HTMLTableElement>) => {
     if (editing || records.length === 0) return;
@@ -372,9 +328,7 @@ export function RecordGrid({
     else if (k === " " && field.type === "boolean") start(record, field);
     else if (k === "Delete" || k === "Backspace") clear(record, field);
     else if (mod && k.toLowerCase() === "c") {
-      void navigator.clipboard?.writeText(
-        formatValue(field, record.values[field.id] ?? null, relations),
-      );
+      void navigator.clipboard?.writeText(model.text(record, field.id));
       setSaid("Copied");
     } else if (k.length === 1 && !mod && !event.altKey && TYPED.has(field.type))
       start(record, field, k);
@@ -538,10 +492,10 @@ export function RecordGrid({
           ))}
           {onAddField ? <col style={{ width: 40 }} /> : null}
         </colgroup>
-        <thead>
-          <tr aria-rowindex={1}>
+        <TableHeader>
+          <TableRow aria-rowindex={1}>
             {gutter ? (
-              <th className="fg-dh-gutter" scope="col">
+              <TableHead className="fg-dh-gutter" scope="col">
                 {selectable ? (
                   <input
                     type="checkbox"
@@ -553,12 +507,12 @@ export function RecordGrid({
                         input.indeterminate =
                           !allSelected && records.some((r) => selected.includes(r.id));
                     }}
-                    onChange={() => setSelected(allSelected ? [] : records.map((r) => r.id))}
+                    onChange={() => (allSelected ? rows.clear() : rows.selectAll())}
                   />
                 ) : (
                   <span className="fg-sr">Row</span>
                 )}
-              </th>
+              </TableHead>
             ) : null}
             {fields.map((field, c) => {
               const sorted = sort?.field === field.id ? sort.direction : null;
@@ -579,7 +533,7 @@ export function RecordGrid({
                 </>
               );
               return (
-                <th
+                <TableHead
                   key={field.id}
                   scope="col"
                   aria-colindex={c + 1}
@@ -618,40 +572,40 @@ export function RecordGrid({
                       />
                     ) : null}
                   </div>
-                </th>
+                </TableHead>
               );
             })}
             {onAddField ? (
-              <th className="fg-dh-addcol" scope="col">
+              <TableHead className="fg-dh-addcol" scope="col">
                 <IconButton
                   icon={PlusSignIcon}
                   size="sm"
                   label="Add a field"
                   onClick={onAddField}
                 />
-              </th>
+              </TableHead>
             ) : null}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {records.length === 0 ? (
-            <tr>
-              <td className="fg-dh-grid-empty" colSpan={Math.max(columns, 1)}>
+            <TableRow>
+              <TableCell className="fg-dh-grid-empty" colSpan={Math.max(columns, 1)}>
                 {empty}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
             records.map((record, r) => {
               const isSelected = selected.includes(record.id);
               return (
-                <tr
+                <TableRow
                   key={record.id}
                   aria-rowindex={r + 2}
                   aria-selected={selectable ? isSelected : undefined}
                   className={cx(isSelected && "fg-dh-row-selected")}
                 >
                   {gutter ? (
-                    <td className="fg-dh-gutter">
+                    <TableCell className="fg-dh-gutter">
                       <span className="fg-dh-gutter-in">
                         {selectable ? (
                           <input
@@ -676,14 +630,13 @@ export function RecordGrid({
                           </button>
                         ) : null}
                       </span>
-                    </td>
+                    </TableCell>
                   ) : null}
                   {fields.map((field, c) => {
                     const isActive = r === r0 && c === c0;
                     const isEditing = editing?.record === record.id && editing.field === field.id;
-                    const value = record.values[field.id] ?? null;
                     return (
-                      <td
+                      <TableCell
                         key={field.id}
                         data-cell=""
                         data-active={isActive ? "true" : undefined}
@@ -713,21 +666,21 @@ export function RecordGrid({
                           editorFor(record, field)
                         ) : (
                           <CellView
+                            fields={model}
                             field={field}
-                            value={value}
-                            relations={relations}
+                            record={record}
                             showNull={showNull}
                           />
                         )}
-                      </td>
+                      </TableCell>
                     );
                   })}
-                  {onAddField ? <td className="fg-dh-addcol" /> : null}
-                </tr>
+                  {onAddField ? <TableCell className="fg-dh-addcol" /> : null}
+                </TableRow>
               );
             })
           )}
-        </tbody>
+        </TableBody>
       </table>
       {onAddRecord ? (
         <button type="button" className="fg-dh-addrow" onClick={onAddRecord}>

@@ -1,15 +1,22 @@
 // Links a record to records of another table: a search over the targets in a popup, one or
 // several at once. The trigger shows the linked records as small chips.
 
-import { Combobox } from "@base-ui/react/combobox";
-import { Popover } from "@base-ui/react/popover";
 import { ArrowDown01Icon, Link01Icon, Tick02Icon } from "@forgeron/icons";
 import type { ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
+import {
+  Combobox,
+  ComboboxChipsInput,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+} from "../combobox";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { useDisclosure } from "../hooks/use-disclosure";
 import { Icon } from "../icon";
+import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import type { RelationTarget } from "./datahub-model";
 
 export interface RelationPickerProps {
@@ -76,43 +83,45 @@ export function RelationPicker({
   const list = (
     <>
       <div className="fg-fpop-head">
-        <Combobox.Input
+        <ComboboxChipsInput
           ref={focus}
           className="fg-fpop-input"
           placeholder={`Search ${label.toLowerCase()}…`}
           aria-label={label}
         />
       </div>
-      <Combobox.Empty className="fg-fpop-empty">No record</Combobox.Empty>
-      <Combobox.List className="fg-pop-list">
+      <ComboboxEmpty className="fg-fpop-empty">No record</ComboboxEmpty>
+      <ComboboxList>
         {(id: string) => {
           const target = byId.get(id);
           if (!target) return null;
           return (
-            <Combobox.Item key={id} value={id} className="fg-pop-row">
-              {multiple ? (
-                <span className="fg-check-box" aria-hidden="true">
-                  <Combobox.ItemIndicator>
-                    <Icon icon={Tick02Icon} size={12} variant="mono" />
-                  </Combobox.ItemIndicator>
-                </span>
-              ) : (
-                <Icon icon={Link01Icon} size={12} variant="mono" />
-              )}
-              <span className="fg-pop-label">{target.label}</span>
-              <span className="fg-pop-hint">{target.hint ?? target.id}</span>
-              {multiple ? null : (
-                <Combobox.ItemIndicator className="fg-pop-tick">
-                  <Icon icon={Tick02Icon} size={12} variant="mono" />
-                </Combobox.ItemIndicator>
-              )}
-            </Combobox.Item>
+            <ComboboxItem
+              key={id}
+              value={id}
+              indicator={!multiple}
+              glyph={
+                multiple ? (
+                  <span className="fg-check-box" aria-hidden="true">
+                    <ComboboxItemIndicator>
+                      <Icon icon={Tick02Icon} size={12} variant="mono" />
+                    </ComboboxItemIndicator>
+                  </span>
+                ) : (
+                  <Icon icon={Link01Icon} size={12} variant="mono" />
+                )
+              }
+              hint={target.hint ?? target.id}
+            >
+              {target.label}
+            </ComboboxItem>
           );
         }}
-      </Combobox.List>
+      </ComboboxList>
     </>
   );
-  const common = {
+  // The root's props are the same for one record or several; its types tell the two apart.
+  const rootProps = {
     inline: true,
     open: true,
     autoHighlight: true,
@@ -120,16 +129,30 @@ export function RelationPicker({
     filteredItems: shown,
     itemToStringLabel: (id: string) => byId.get(id)?.label ?? id,
     inputValue: query,
-  } as const;
+    multiple,
+    value: multiple ? [...ids] : (ids[0] ?? null),
+    onValueChange: (next: string[] | string | null) => {
+      if (multiple) {
+        setIds(next as string[]);
+      } else {
+        setIds(next ? [next as string] : []);
+        setOpen(false);
+        setQuery("");
+      }
+    },
+    onInputValueChange: (next: string, details: { isItemPress?: boolean }) => {
+      if (!details.isItemPress) setQuery(next);
+    },
+  };
   return (
-    <Popover.Root
+    <Popover
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) setQuery("");
       }}
     >
-      <Popover.Trigger
+      <PopoverTrigger
         className={cx(
           "fg-selm-trigger fg-dh-relpick",
           variant === "chip" && "fg-selm-chip",
@@ -162,41 +185,15 @@ export function RelationPicker({
             ) : null}
           </>
         )}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner className="fg-pop-positioner" sideOffset={4} align="start">
-          <Popover.Popup className="fg-pop fg-fpop fg-dh-relpop" aria-label={label}>
-            {multiple ? (
-              <Combobox.Root<string, true>
-                {...common}
-                multiple
-                value={[...ids]}
-                onValueChange={(next) => setIds(next)}
-                onInputValueChange={(next, details) => {
-                  if (!details.isItemPress) setQuery(next);
-                }}
-              >
-                {list}
-              </Combobox.Root>
-            ) : (
-              <Combobox.Root<string>
-                {...common}
-                value={ids[0] ?? null}
-                onValueChange={(next) => {
-                  setIds(next ? [next] : []);
-                  setOpen(false);
-                  setQuery("");
-                }}
-                onInputValueChange={(next, details) => {
-                  if (!details.isItemPress) setQuery(next);
-                }}
-              >
-                {list}
-              </Combobox.Root>
-            )}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="fg-fpop fg-dh-relpop"
+        aria-label={label}
+      >
+        <Combobox {...(rootProps as object)}>{list}</Combobox>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -18,7 +18,7 @@ import {
 import { Button } from "../button";
 import { Segmented } from "../controls";
 import { cx } from "../cx";
-import { formatLong, formatShort, parseIso, toIso, WEEKDAYS, weekday } from "../dates";
+import { addDays, formatLong, formatShort, parseIso, toIso, WEEKDAYS, weekday } from "../dates";
 import { useControllableState } from "../hooks/use-controllable";
 import { IconButton } from "../identity";
 import { formatTime } from "../time";
@@ -603,11 +603,7 @@ export function TimeGrid<T>({
     if (e.allDay) {
       if (k !== "ArrowLeft" && k !== "ArrowRight") return;
       const by = k === "ArrowLeft" ? -1 : 1;
-      const shift = (iso: string) => {
-        const d = parseIso(iso);
-        d.setDate(d.getDate() + by);
-        return toIso(d);
-      };
+      const shift = (iso: string) => addDays(iso, by);
       onChange(e.id, {
         date: shift(e.date),
         start: "00:00",

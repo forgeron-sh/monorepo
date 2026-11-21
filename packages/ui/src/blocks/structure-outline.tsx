@@ -7,11 +7,11 @@ import { useEffect, useId, useRef, useState, type MouseEvent, type RefObject } f
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
+import { Tree, TreeGroup, TreeItem, TreeItemContent } from "../tree";
 import {
   structureActiveHeading,
   structureHeadingsFrom,
   structureOutlineTree,
-  structureToggle,
   type StructureHeading,
   type StructureOutlineNode,
 } from "./structure-model";
@@ -184,6 +184,11 @@ export function Outline({
     onSelect?.(id, event);
     if (event.defaultPrevented) return;
     event.preventDefault();
+    reach(id);
+  };
+
+  // A heading reached by click, or by Enter and Space on its row.
+  const reach = (id: string) => {
     setCurrent(id);
     const el = typeof document === "undefined" ? null : document.getElementById(id);
     if (!el) return;
@@ -198,51 +203,47 @@ export function Outline({
   const holds = (node: StructureOutlineNode, id: string | null): boolean =>
     !!id && node.children.some((c) => c.id === id || holds(c, id));
 
-  const renderList = (nodes: ReadonlyArray<StructureOutlineNode>, depth: number) => (
-    <ul className="fg-outline-list" role={depth === 0 ? undefined : "group"}>
-      {nodes.map((node) => {
-        const branch = node.children.length > 0;
-        const fold = collapsible && branch && folded.includes(node.id);
-        return (
-          <li key={node.id} className="fg-outline-item">
-            <div
-              className={cx(
-                "fg-outline-row",
-                current === node.id && "fg-outline-active",
-                fold && holds(node, current) && "fg-outline-within",
-              )}
-              style={{ paddingLeft: `calc(${depth} * var(--fg-outline-indent, 12px))` }}
+  // The Tree keeps what is open; the outline keeps what is folded. Without `collapsible`, all open.
+  const branches: string[] = [];
+  const collect = (nodes: ReadonlyArray<StructureOutlineNode>) => {
+    for (const n of nodes) {
+      if (n.children.length > 0) branches.push(n.id);
+      collect(n.children);
+    }
+  };
+  collect(tree);
+  const expanded = collapsible ? branches.filter((id) => !folded.includes(id)) : branches;
+
+  const renderItems = (nodes: ReadonlyArray<StructureOutlineNode>) =>
+    nodes.map((node) => {
+      const branch = node.children.length > 0;
+      const fold = collapsible && branch && folded.includes(node.id);
+      return (
+        <TreeItem key={node.id} id={node.id} textValue={node.text} className="fg-outline-item">
+          <TreeItemContent
+            indicator={collapsible}
+            className={cx(
+              "fg-outline-row",
+              current === node.id && "fg-outline-active",
+              fold && holds(node, current) && "fg-outline-within",
+            )}
+          >
+            <a
+              href={`#${node.id}`}
+              className="fg-outline-link"
+              tabIndex={-1}
+              {...(current === node.id ? { "aria-current": "location" as const } : {})}
+              onClick={(e) => go(node.id, e)}
             >
-              {collapsible ? (
-                branch ? (
-                  <button
-                    type="button"
-                    className={cx("fg-outline-twisty", !fold && "fg-outline-twisty-open")}
-                    aria-expanded={!fold}
-                    aria-label={`${fold ? "Expand" : "Collapse"} ${node.text}`}
-                    onClick={() => setFolded(structureToggle(folded, node.id))}
-                  >
-                    <Icon icon={ArrowRight01Icon} size={12} variant="mono" />
-                  </button>
-                ) : (
-                  <span className="fg-outline-twisty" aria-hidden="true" />
-                )
-              ) : null}
-              <a
-                href={`#${node.id}`}
-                className="fg-outline-link"
-                {...(current === node.id ? { "aria-current": "location" as const } : {})}
-                onClick={(e) => go(node.id, e)}
-              >
-                {node.text}
-              </a>
-            </div>
-            {branch && !fold ? renderList(node.children, depth + 1) : null}
-          </li>
-        );
-      })}
-    </ul>
-  );
+              {node.text}
+            </a>
+          </TreeItemContent>
+          {branch ? (
+            <TreeGroup className="fg-outline-list">{renderItems(node.children)}</TreeGroup>
+          ) : null}
+        </TreeItem>
+      );
+    });
 
   return (
     <nav aria-label={title} className={cx("fg-outline", className)}>
@@ -266,7 +267,25 @@ export function Outline({
         <p className="fg-outline-head">{title}</p>
       )}
       <div id={panel} hidden={!shown}>
-        {tree.length ? renderList(tree, 0) : <p className="fg-outline-empty">{empty}</p>}
+        {tree.length ? (
+          <Tree
+            className="fg-outline-list"
+            aria-label={title}
+            expanded={expanded}
+            onExpandedChange={(open) => {
+              if (collapsible) setFolded(branches.filter((id) => !open.includes(id)));
+            }}
+            selected={current ? [current] : []}
+            onSelectedChange={(ids) => {
+              if (ids[0] && ids[0] !== current) reach(ids[0]);
+            }}
+            onActivate={reach}
+          >
+            {renderItems(tree)}
+          </Tree>
+        ) : (
+          <p className="fg-outline-empty">{empty}</p>
+        )}
       </div>
     </nav>
   );

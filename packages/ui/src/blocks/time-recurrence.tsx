@@ -7,6 +7,7 @@ import { cx } from "../cx";
 import { formatLong, WEEKDAYS, weekday } from "../dates";
 import { useControllableState } from "../hooks/use-controllable";
 import { NumberInput } from "../numbers";
+import { ToggleGroup, ToggleGroupItem } from "../toggle-group";
 import { DatePicker, SelectMenu } from "../overlays";
 import {
   describeRecurrence,
@@ -109,28 +110,30 @@ export function RecurrenceEditor({
             />
           </div>
           {r.frequency === "weekly" ? (
-            <div className="fg-rec-days" role="group" aria-label="On these days">
-              {WEEK.map((d) => {
-                const pressed = days.includes(d);
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    className="fg-rec-day"
-                    aria-pressed={pressed}
-                    aria-label={WEEKDAYS[d]}
-                    disabled={disabled || (pressed && days.length === 1)}
-                    onClick={() =>
-                      set({
-                        weekdays: pressed ? days.filter((x) => x !== d) : [...days, d].sort(),
-                      })
-                    }
-                  >
-                    {WEEKDAYS[d]!.slice(0, 2)}
-                  </button>
-                );
-              })}
-            </div>
+            <ToggleGroup
+              type="multiple"
+              size="sm"
+              className="fg-rec-days"
+              aria-label="On these days"
+              disabled={disabled}
+              value={days.map(String)}
+              onValueChange={(next) => {
+                // At least one weekday stays on.
+                if (next.length === 0) return;
+                set({ weekdays: next.map(Number).sort() });
+              }}
+            >
+              {WEEK.map((d) => (
+                <ToggleGroupItem
+                  key={d}
+                  value={String(d)}
+                  className="fg-rec-day"
+                  aria-label={WEEKDAYS[d]}
+                >
+                  {WEEKDAYS[d]!.slice(0, 2)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           ) : null}
           <div className="fg-rec-end">
             <Segmented

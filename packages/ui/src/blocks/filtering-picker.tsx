@@ -1,11 +1,18 @@
 // The lists inside the filter popups: the fields first, then the values of one field. Each is a
-// search input over a list (Base UI Combobox, inline), so arrows, Enter and typing work as in the
+// search input over a list (the Combobox parts, inline), so arrows, Enter and typing work as in the
 // pickers. Shared by FilterMenu and the chips of FilterBar.
 
-import { Combobox } from "@base-ui/react/combobox";
 import { ArrowRight01Icon, Tick02Icon } from "@forgeron/icons";
 import type { KeyboardEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
+import {
+  Combobox,
+  ComboboxChipsInput,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+} from "../combobox";
 import { Icon } from "../icon";
 import type { Filter, FilterField, FilterOption } from "./filtering-model";
 
@@ -32,7 +39,7 @@ export function FieldList({ fields, filters, onPick, placeholder = "Filter…" }
   const shown = useMemo(() => byLabel(fields, query), [fields, query]);
   const count = (id: string) => filters.find((f) => f.field === id)?.values.length ?? 0;
   return (
-    <Combobox.Root<string>
+    <Combobox
       inline
       open
       autoHighlight
@@ -40,39 +47,45 @@ export function FieldList({ fields, filters, onPick, placeholder = "Filter…" }
       filteredItems={shown.map((f) => f.id)}
       itemToStringLabel={(id: string) => fields.find((f) => f.id === id)?.label ?? id}
       value={null}
-      onValueChange={(id) => {
+      onValueChange={(id: string | null) => {
         if (id) onPick(id);
       }}
       inputValue={query}
-      onInputValueChange={(next) => setQuery(next)}
+      onInputValueChange={(next: string) => setQuery(next)}
     >
       <div className="fg-fpop-head">
-        <Combobox.Input
+        <ComboboxChipsInput
           ref={focus}
           className="fg-fpop-input"
           placeholder={placeholder}
           aria-label="Field"
         />
       </div>
-      <Combobox.Empty className="fg-fpop-empty">No field</Combobox.Empty>
-      <Combobox.List className="fg-pop-list">
+      <ComboboxEmpty className="fg-fpop-empty">No field</ComboboxEmpty>
+      <ComboboxList>
         {(id: string) => {
           const field = fields.find((f) => f.id === id);
           if (!field) return null;
           const n = count(id);
           return (
-            <Combobox.Item key={id} value={id} className="fg-pop-row">
-              <Icon icon={field.icon} size={12} variant="mono" />
-              <span className="fg-pop-label">{field.label}</span>
-              {n > 0 ? <span className="fg-pop-hint">{n}</span> : null}
-              <span className="fg-fpop-chev" aria-hidden="true">
-                <Icon icon={ArrowRight01Icon} size={12} variant="mono" />
-              </span>
-            </Combobox.Item>
+            <ComboboxItem
+              key={id}
+              value={id}
+              indicator={false}
+              glyph={<Icon icon={field.icon} size={12} variant="mono" />}
+              hint={n > 0 ? n : undefined}
+              trailing={
+                <span className="fg-fpop-chev" aria-hidden="true">
+                  <Icon icon={ArrowRight01Icon} size={12} variant="mono" />
+                </span>
+              }
+            >
+              {field.label}
+            </ComboboxItem>
           );
         }}
-      </Combobox.List>
-    </Combobox.Root>
+      </ComboboxList>
+    </Combobox>
   );
 }
 
@@ -100,7 +113,7 @@ export function ValueList({ field, values, onChange, onBack }: ValueListProps) {
     }
   };
   return (
-    <Combobox.Root<string, true>
+    <Combobox
       inline
       open
       multiple
@@ -109,14 +122,14 @@ export function ValueList({ field, values, onChange, onBack }: ValueListProps) {
       filteredItems={shown.map((o) => o.value)}
       itemToStringLabel={(v: string) => byValue.get(v)?.label ?? v}
       value={[...values]}
-      onValueChange={(next) => onChange(next)}
+      onValueChange={(next: string[]) => onChange(next)}
       inputValue={query}
-      onInputValueChange={(next, details) => {
+      onInputValueChange={(next: string, details: { isItemPress?: boolean }) => {
         if (!details.isItemPress) setQuery(next);
       }}
     >
       <div className="fg-fpop-head">
-        <Combobox.Input
+        <ComboboxChipsInput
           ref={focus}
           className="fg-fpop-input"
           placeholder={`${field.label}…`}
@@ -124,25 +137,33 @@ export function ValueList({ field, values, onChange, onBack }: ValueListProps) {
           onKeyDown={onKeyDown}
         />
       </div>
-      <Combobox.Empty className="fg-fpop-empty">No match</Combobox.Empty>
-      <Combobox.List className="fg-pop-list">
+      <ComboboxEmpty className="fg-fpop-empty">No match</ComboboxEmpty>
+      <ComboboxList>
         {(v: string) => {
           const option: FilterOption | undefined = byValue.get(v);
           if (!option) return null;
           return (
-            <Combobox.Item key={v} value={v} className="fg-pop-row">
-              <span className="fg-check-box" aria-hidden="true">
-                <Combobox.ItemIndicator>
-                  <Icon icon={Tick02Icon} size={12} variant="mono" />
-                </Combobox.ItemIndicator>
-              </span>
-              {option.glyph}
-              <span className="fg-pop-label">{option.label}</span>
-              {option.hint ? <span className="fg-pop-hint">{option.hint}</span> : null}
-            </Combobox.Item>
+            <ComboboxItem
+              key={v}
+              value={v}
+              indicator={false}
+              glyph={
+                <>
+                  <span className="fg-check-box" aria-hidden="true">
+                    <ComboboxItemIndicator>
+                      <Icon icon={Tick02Icon} size={12} variant="mono" />
+                    </ComboboxItemIndicator>
+                  </span>
+                  {option.glyph}
+                </>
+              }
+              hint={option.hint || undefined}
+            >
+              {option.label}
+            </ComboboxItem>
           );
         }}
-      </Combobox.List>
-    </Combobox.Root>
+      </ComboboxList>
+    </Combobox>
   );
 }

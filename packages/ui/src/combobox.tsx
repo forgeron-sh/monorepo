@@ -17,7 +17,9 @@ import { Icon } from "./icon";
 type Part<T> = Omit<T, "className"> & { className?: string };
 
 /** `options` stays undefined: with options, `Combobox` is the props-driven one. */
-export type ComboboxRootProps = ComponentProps<typeof Base.Root> & { options?: undefined };
+export type ComboboxRootProps = ComponentProps<typeof Base.Root<any, any>> & {
+  options?: undefined;
+};
 
 function ComboboxRoot({ options: _options, ...props }: ComboboxRootProps) {
   return <Base.Root {...props} />;
@@ -192,6 +194,8 @@ export type ComboboxItemProps = Part<ComponentProps<typeof Base.Item>> & {
   glyph?: ReactNode;
   /** Mono text at the end of the row. */
   hint?: ReactNode;
+  /** Anything after the hint: a chevron, a count. */
+  trailing?: ReactNode;
   /** The tick of the chosen row. Default `true`. */
   indicator?: boolean;
 };
@@ -200,6 +204,7 @@ export type ComboboxItemProps = Part<ComponentProps<typeof Base.Item>> & {
 export function ComboboxItem({
   glyph,
   hint,
+  trailing,
   indicator = true,
   className,
   children,
@@ -210,6 +215,7 @@ export function ComboboxItem({
       {glyph ?? null}
       <span className="fg-pop-label">{children}</span>
       {hint !== undefined && hint !== null ? <span className="fg-pop-hint">{hint}</span> : null}
+      {trailing ?? null}
       {indicator ? (
         <Base.ItemIndicator className="fg-pop-tick">
           <Icon icon={Tick02Icon} size={12} variant="mono" />
@@ -217,6 +223,11 @@ export function ComboboxItem({
       ) : null}
     </Base.Item>
   );
+}
+
+/** Shows its children only while its row is chosen: a checkbox's tick, in a row's `glyph`. */
+export function ComboboxItemIndicator(props: ComponentProps<typeof Base.ItemIndicator>) {
+  return <Base.ItemIndicator {...props} />;
 }
 
 export function ComboboxGroup(props: ComponentProps<typeof Base.Group>) {

@@ -36,7 +36,7 @@
   color: var(--ink-muted);
 }
 .fg-dh-relchips,
-.fg-dh-chips {
+.fg-rec-chips {
   display: inline-flex;
   flex: 1;
   align-items: center;
@@ -44,9 +44,7 @@
   min-width: 0;
   overflow: hidden;
 }
-.fg-dh-relchip,
-.fg-dh-choicechip,
-.fg-dh-filechip {
+.fg-rec-chip {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -62,12 +60,13 @@
   text-overflow: ellipsis;
 }
 /* A link to another record: dashed, as the foreign key chip. */
-.fg-dh-relchip {
+.fg-rec-rel {
   border-style: dashed;
   font-family: var(--font-mono);
   font-size: 11.5px;
 }
-.fg-dh-relpop {
+.fg-dh-relpop,
+.fg-fpop.fg-dh-relpop.fg-popover {
   width: 300px;
 }
 
@@ -611,7 +610,7 @@ button.fg-dh-th-main:focus-visible {
 .fg-dh-pk {
   color: var(--ink-muted);
 }
-.fg-dh-text {
+.fg-rec-text {
   white-space: nowrap;
 }
 /* The current cell: an ink frame; ember while it has the keyboard. */
@@ -635,10 +634,10 @@ button.fg-dh-th-main:focus-visible {
   border-top: 6px solid var(--accent);
   border-left: 6px solid transparent;
 }
-.fg-dh-bool {
+.fg-rec-bool {
   vertical-align: middle;
 }
-.fg-dh-bool-on {
+.fg-rec-bool-on {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);

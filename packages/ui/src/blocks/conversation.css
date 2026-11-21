@@ -677,19 +677,6 @@ button.fg-conv-mention {
   flex: 1;
   min-width: 0;
 }
-.fg-conv-rcpt-list {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  left: 0;
-  z-index: 20;
-  margin: 2px 0 0;
-  padding: 4px;
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg);
-  box-shadow: var(--shadow-pop);
-  list-style: none;
-}
 .fg-conv-rcpts {
   display: flex;
   flex-direction: column;

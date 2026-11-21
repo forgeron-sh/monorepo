@@ -587,14 +587,21 @@ describe("RecipientInput", () => {
     { id: "2", name: "Design team", members: ["a@x.io", "b@x.io"] },
   ];
   const input = (el: HTMLElement) => el.querySelector<HTMLInputElement>("input")!;
+  // The combobox opens its list on typed text (an input event that names its `inputType`).
+  const typeIn = async (el: HTMLInputElement, value: string) =>
+    act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(el, value);
+      el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText" }));
+    });
   const chips = (el: HTMLElement) =>
     [...el.querySelectorAll(".fg-combo-chip")].map((c) => c.textContent);
 
   it("suggests contacts and adds the one chosen", async () => {
     const onChange = vi.fn<(...args: unknown[]) => void>();
     const el = await mount(h(RecipientInput, { label: "To", contacts, onChange }));
-    await type(input(el), "lé".replace("é", "e"));
-    expect(el.querySelectorAll('[role="option"]')).toHaveLength(1);
+    await typeIn(input(el), "lea");
+    // The suggestions are in a popup, out of the field.
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
     await key(input(el), "Enter");
     expect(onChange).toHaveBeenLastCalledWith(["lea@x.io"]);
   });
@@ -602,7 +609,7 @@ describe("RecipientInput", () => {
   it("expands a group into its members", async () => {
     const onChange = vi.fn<(...args: unknown[]) => void>();
     const el = await mount(h(RecipientInput, { label: "To", contacts, onChange }));
-    await type(input(el), "design");
+    await typeIn(input(el), "design");
     await key(input(el), "Enter");
     expect(onChange).toHaveBeenLastCalledWith(["a@x.io", "b@x.io"]);
   });

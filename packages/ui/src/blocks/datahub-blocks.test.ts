@@ -424,8 +424,8 @@ describe("fieldsFromSchema", () => {
     id: "1",
     values: { name: "Brie", qty: 3, day: "2026-11-02", kind: "a", tags: ["x"] },
   };
-  it("keeps the types that have a kind, by field id", () => {
-    expect(f.keys).toEqual(["name", "qty", "day", "kind", "tags"]);
+  it("gives every type a kind, by field id", () => {
+    expect(f.keys).toEqual(["name", "qty", "due", "day", "kind", "tags", "owner"]);
     expect(f.values(rec, "qty")).toEqual(["3"]);
     expect(f.text(rec, "kind")).toBe("A");
     expect(f.text(rec, "tags")).toBe("X");
@@ -433,5 +433,24 @@ describe("fieldsFromSchema", () => {
   it("writes a change back into the values", () => {
     expect(f.patch("qty", "4", rec)).toEqual({ values: { ...rec.values, qty: 4 } });
     expect(f.patch("kind", null, rec)).toEqual({ values: { ...rec.values, kind: null } });
+  });
+  it("reads booleans, relations, files and JSON as their kinds", () => {
+    const wide: DataField[] = [
+      { id: "ok", name: "Ok", type: "boolean" },
+      { id: "co", name: "Company", type: "relation", relation: { table: "companies" } },
+      { id: "doc", name: "Docs", type: "file" },
+      { id: "raw", name: "Raw", type: "json" },
+    ];
+    const g = fieldsFromSchema(wide, { companies: [{ id: "c1", label: "Acme" }] });
+    const r: DataRecord = {
+      id: "1",
+      values: { ok: false, co: ["c1"], doc: ["a.pdf", "b.pdf"], raw: '{"a":1}' },
+    };
+    expect(wide.map((x) => g.def(x.id).kind)).toEqual(["boolean", "relation", "file", "json"]);
+    expect(g.text(r, "ok")).toBe("No");
+    expect(g.isEmpty(r, "ok")).toBe(false);
+    expect(g.text(r, "co")).toBe("Acme");
+    expect(g.values(r, "doc")).toEqual(["a.pdf", "b.pdf"]);
+    expect(g.patch("ok", "true", r)).toEqual({ values: { ...r.values, ok: true } });
   });
 });

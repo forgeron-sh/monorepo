@@ -29,10 +29,18 @@ export type RecordFieldKind =
   | "date"
   | "text"
   | "number"
-  | "quarter";
+  | "quarter"
+  /** A yes or no; `false` is a value, only null and undefined are unset. */
+  | "boolean"
+  /** Records of another collection, by key; the choices (`options`) give their names. */
+  | "relation"
+  /** File names (a list); the names are all that is read. */
+  | "file"
+  /** Raw data, read as the JSON text; written in mono, never ordered or grouped. */
+  | "json";
 
 /** The value a field reads from a record: a key, a list of keys (labels), a number, or nothing. */
-export type RecordFieldValue = string | number | ReadonlyArray<string> | null | undefined;
+export type RecordFieldValue = string | number | boolean | ReadonlyArray<string> | null | undefined;
 
 /** One value a field can take, as a picker and a filter list it. */
 export interface RecordFieldChoice {
@@ -129,6 +137,7 @@ const GROUPABLE: ReadonlySet<RecordFieldKind> = new Set([
   "person",
   "quarter",
   "date",
+  "boolean",
 ]);
 const FILTERABLE: ReadonlySet<RecordFieldKind> = new Set([
   "status",
@@ -137,7 +146,17 @@ const FILTERABLE: ReadonlySet<RecordFieldKind> = new Set([
   "people",
   "labels",
   "quarter",
+  "boolean",
+  "relation",
 ]);
+/** Kinds that hold a list, or text with no order of its own, so are not ordered by default. */
+const UNSORTABLE: ReadonlySet<RecordFieldKind> = new Set(["labels", "people", "file", "json"]);
+
+/** The two choices of a `boolean` field when it gives none: Yes (`true`) then No (`false`). */
+export const RECORD_BOOLEAN_CHOICES: ReadonlyArray<RecordFieldChoice> = [
+  { value: "true", label: "Yes" },
+  { value: "false", label: "No" },
+];
 
 /** The unset key: what `matchesFilters` reads for a record without a value, and the "No …" group. */
 export const RECORD_NONE = "_";
@@ -173,7 +192,7 @@ export interface RecordFields<R> {
 
 const asKeys = (value: RecordFieldValue): string[] | null => {
   if (value === null || value === undefined || value === "") return null;
-  if (typeof value === "number") return [String(value)];
+  if (typeof value === "number" || typeof value === "boolean") return [String(value)];
   if (typeof value === "string") return [value];
   return value.length > 0 ? [...value] : null;
 };
@@ -189,7 +208,7 @@ export function defineFields<R>(defs: RecordFieldDefs<R>): RecordFields<R> {
   const where = (test: (d: RecordFieldDef<R>) => boolean) => keys.filter((k) => test(defs[k]!));
   const groupable = where((d) => d.groupable ?? GROUPABLE.has(d.kind));
   const filterable = where((d) => d.filterable ?? FILTERABLE.has(d.kind));
-  const sortable = where((d) => d.sortable ?? (d.kind !== "labels" && d.kind !== "people"));
+  const sortable = where((d) => d.sortable ?? !UNSORTABLE.has(d.kind));
 
   const values: RecordFields<R>["values"] = (record, key) => asKeys(def(key).get(record));
   const isEmpty: RecordFields<R>["isEmpty"] = (record, key) => {
@@ -212,6 +231,7 @@ export function defineFields<R>(defs: RecordFieldDefs<R>): RecordFields<R> {
         ...(p.src ? { src: p.src } : {}),
       }));
     }
+    if (d.kind === "boolean") return [...RECORD_BOOLEAN_CHOICES];
     if (d.kind === "labels") {
       return (context.labels ?? []).map((l) => ({
         value: l.value,
@@ -233,7 +253,8 @@ export function defineFields<R>(defs: RecordFieldDefs<R>): RecordFields<R> {
     const v = values(record, key);
     if (v === null) return "";
     const d = def(key);
-    const byValue = d.options !== undefined || d.kind === "person" || d.kind === "labels";
+    const byValue =
+      d.options !== undefined || d.kind === "person" || d.kind === "labels" || d.kind === "boolean";
     return v.map((x) => (byValue ? (choice(key, x, context)?.label ?? x) : x)).join(", ");
   };
 
@@ -286,7 +307,9 @@ export function defineFields<R>(defs: RecordFieldDefs<R>): RecordFields<R> {
           : undefined
         : d.kind === "number"
           ? Number(value)
-          : value;
+          : d.kind === "boolean"
+            ? value === "true"
+            : value;
     return { [key]: next } as Partial<R>;
   };
 

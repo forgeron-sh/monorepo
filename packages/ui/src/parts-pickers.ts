@@ -13,6 +13,7 @@ export {
   ComboboxInput,
   ComboboxInputGroup,
   ComboboxItem,
+  ComboboxItemIndicator,
   ComboboxLabel,
   ComboboxList,
   ComboboxSeparator,

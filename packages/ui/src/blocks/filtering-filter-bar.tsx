@@ -1,13 +1,13 @@
 // The filters of a list view: a "Filter" button that adds one (a field, then its values), and the
 // bar of chips that says them: "Status is any of Todo, In Progress ×". After the Tasks prototype.
 
-import { Popover } from "@base-ui/react/popover";
 import { Cancel01Icon, FilterIcon, PlusSignIcon } from "@forgeron/icons";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { cx } from "../cx";
 import { useDisclosure } from "../hooks/use-disclosure";
 import { Icon } from "../icon";
+import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import {
   operatorText,
   setFilterValues,
@@ -53,14 +53,14 @@ export function FilterMenu({
   const field = step ? fields.find((f) => f.id === step) : undefined;
   const values = field ? (value.find((f) => f.field === field.id)?.values ?? []) : [];
   return (
-    <Popover.Root
+    <Popover
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) setStep(null);
       }}
     >
-      <Popover.Trigger
+      <PopoverTrigger
         className={cx(
           variant === "icon" ? "fg-iconbtn fg-iconbtn-sm" : "fg-btn fg-btn-sm fg-btn-ghost",
           "fg-filters-trigger",
@@ -70,25 +70,26 @@ export function FilterMenu({
       >
         <Icon icon={variant === "icon" ? PlusSignIcon : FilterIcon} size={12} variant="mono" />
         {variant === "icon" ? null : <span className="fg-filters-trigger-text">{label}</span>}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner className="fg-pop-positioner" sideOffset={4} align="start">
-          <Popover.Popup className="fg-pop fg-fpop" aria-label={field ? field.label : "Filter by"}>
-            {field ? (
-              <ValueList
-                key={field.id}
-                field={field}
-                values={values}
-                onChange={(next) => onChange(setFilterValues(value, field.id, next))}
-                onBack={() => setStep(null)}
-              />
-            ) : (
-              <FieldList fields={fields} filters={value} onPick={setStep} />
-            )}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="fg-fpop"
+        aria-label={field ? field.label : "Filter by"}
+      >
+        {field ? (
+          <ValueList
+            key={field.id}
+            field={field}
+            values={values}
+            onChange={(next) => onChange(setFilterValues(value, field.id, next))}
+            onBack={() => setStep(null)}
+          />
+        ) : (
+          <FieldList fields={fields} filters={value} onPick={setStep} />
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -121,8 +122,8 @@ function FilterChip({ field, filter, filters, onChange }: FilterChipProps) {
       >
         {op}
       </button>
-      <Popover.Root>
-        <Popover.Trigger className="fg-filter-values" aria-label={`${field.label}: ${names}`}>
+      <Popover>
+        <PopoverTrigger className="fg-filter-values" aria-label={`${field.label}: ${names}`}>
           {chosen.slice(0, 3).map((o) =>
             "glyph" in o && o.glyph ? (
               <span key={o.value} className="fg-filter-mark">
@@ -131,19 +132,15 @@ function FilterChip({ field, filter, filters, onChange }: FilterChipProps) {
             ) : null,
           )}
           <span className="fg-filter-names">{summary}</span>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Positioner className="fg-pop-positioner" sideOffset={4} align="start">
-            <Popover.Popup className="fg-pop fg-fpop" aria-label={field.label}>
-              <ValueList
-                field={field}
-                values={filter.values}
-                onChange={(next) => onChange(setFilterValues(filters, field.id, next))}
-              />
-            </Popover.Popup>
-          </Popover.Positioner>
-        </Popover.Portal>
-      </Popover.Root>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={4} className="fg-fpop" aria-label={field.label}>
+          <ValueList
+            field={field}
+            values={filter.values}
+            onChange={(next) => onChange(setFilterValues(filters, field.id, next))}
+          />
+        </PopoverContent>
+      </Popover>
       <button
         type="button"
         className="fg-filter-x"

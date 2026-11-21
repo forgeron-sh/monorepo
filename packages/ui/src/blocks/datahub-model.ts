@@ -509,22 +509,30 @@ export function guessMapping(
 
 /**
  * The fields of a table as `RecordFields` of its records, so the list, board, calendar and
- * timeline of the records model can show a Data hub table: `fieldsFromSchema(schema)` and
+ * timeline of the records model, and the record grid, can show a Data hub table:
+ * `fieldsFromSchema(schema, relations)` and
  * `<CalendarView fields={…} records={records} dateField="due" />`. Keys are the field ids.
  *
- * Only the types the model has a kind for come across: text, long text, email, url (text),
- * number, date, select (enum) and multi-select (labels). Booleans, date-times, relations, files
- * and JSON have no kind there (no mark, no ordering, no grouping that would mean the same), so
- * they are left out; the grid and the form keep drawing and editing every type themselves.
+ * Every type has a kind: text, long text, email, url and date-time are text; then number, date,
+ * select (enum), multi-select (labels), checkbox (boolean), relation (its choices are the
+ * `relations` of the table it points at), file and JSON.
  */
-export function fieldsFromSchema(schema: ReadonlyArray<DataField>): RecordFields<DataRecord> {
+export function fieldsFromSchema(
+  schema: ReadonlyArray<DataField>,
+  relations?: RelationSources,
+): RecordFields<DataRecord> {
   const defs: Record<string, RecordFieldDef<DataRecord>> = {};
   for (const f of schema) {
     const read = (r: DataRecord): CellValue => r.values[f.id] ?? null;
     const write = (value: string | string[] | null, r: DataRecord) => ({
       values: {
         ...r.values,
-        [f.id]: f.type === "number" && value !== null ? Number(value) : value,
+        [f.id]:
+          f.type === "number" && value !== null
+            ? Number(value)
+            : f.type === "boolean" && value !== null
+              ? value === "true"
+              : value,
       },
     });
     const base = { label: f.name, set: write, ...(f.readOnly ? { readOnly: true } : {}) };
@@ -547,9 +555,13 @@ export function fieldsFromSchema(schema: ReadonlyArray<DataField>): RecordFields
           mono: true,
           get: (r) => {
             const v = read(r);
-            return typeof v === "number" || typeof v === "string" ? v : null;
+            if (typeof v === "number") return f.decimals === undefined ? v : v.toFixed(f.decimals);
+            return typeof v === "string" ? v : null;
           },
         };
+        break;
+      case "datetime":
+        defs[f.id] = { ...base, kind: "text", mono: true, get: (r) => listOf(read(r)).join(", ") };
         break;
       case "date":
         defs[f.id] = {
@@ -567,7 +579,40 @@ export function fieldsFromSchema(schema: ReadonlyArray<DataField>): RecordFields
       case "multiSelect":
         defs[f.id] = { ...base, kind: "labels", options, get: (r) => listOf(read(r)) };
         break;
-      default:
+      case "boolean":
+        defs[f.id] = {
+          ...base,
+          kind: "boolean",
+          get: (r) => {
+            const v = read(r);
+            return typeof v === "boolean" ? v : null;
+          },
+        };
+        break;
+      case "relation":
+        defs[f.id] = {
+          ...base,
+          kind: "relation",
+          options: (relations?.[f.relation?.table ?? ""] ?? []).map((t) => ({
+            value: t.id,
+            label: t.label,
+          })),
+          get: (r) => listOf(read(r)),
+        };
+        break;
+      case "file":
+        defs[f.id] = { ...base, kind: "file", get: (r) => listOf(read(r)) };
+        break;
+      case "json":
+        defs[f.id] = {
+          ...base,
+          kind: "json",
+          mono: true,
+          get: (r) => {
+            const v = read(r);
+            return typeof v === "string" ? v : null;
+          },
+        };
         break;
     }
   }

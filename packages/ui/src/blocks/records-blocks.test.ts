@@ -2,10 +2,12 @@ import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  defineFields,
   filterFields,
   issueFields,
   projectFields,
   RecordBoard,
+  RecordFieldMark,
   RecordList,
   recordGroups,
   type IssueItem,
@@ -81,5 +83,75 @@ describe("a second preset", () => {
       }),
     );
     expect(board.match(/class="fg-iboard-col"/g)).toHaveLength(5);
+  });
+});
+
+describe("the boolean, relation, file and json kinds", () => {
+  interface Doc {
+    id: string;
+    ok?: boolean | null;
+    owner?: string[];
+    files?: string[];
+    meta?: string | null;
+  }
+  const fields = defineFields<Doc>({
+    ok: { label: "Signed", kind: "boolean", get: (r) => r.ok },
+    owner: {
+      label: "Owner",
+      kind: "relation",
+      get: (r) => r.owner,
+      options: [
+        { value: "c1", label: "Acme" },
+        { value: "c2", label: "Bolt" },
+      ],
+    },
+    files: { label: "Files", kind: "file", get: (r) => r.files },
+    meta: { label: "Meta", kind: "json", get: (r) => r.meta },
+  });
+  const docs: Doc[] = [
+    { id: "1", ok: true, owner: ["c1"], files: ["a.pdf"], meta: '{"a":1}' },
+    { id: "2", ok: false, owner: ["c2", "c1"] },
+    { id: "3" },
+  ];
+
+  it("has defaults for grouping, filtering and ordering", () => {
+    expect(fields.groupable).toEqual(["ok"]);
+    expect(fields.filterable).toEqual(["ok", "owner"]);
+    expect(fields.sortable).toEqual(["ok", "owner"]);
+  });
+  it("treats false as a value and reads yes and no", () => {
+    expect(fields.isEmpty(docs[1]!, "ok")).toBe(false);
+    expect(fields.isEmpty(docs[2]!, "ok")).toBe(true);
+    expect(fields.text(docs[0]!, "ok")).toBe("Yes");
+    expect(fields.text(docs[1]!, "ok")).toBe("No");
+    expect(fields.patch("ok", "true", docs[2]!)).toEqual({ ok: true });
+    expect(fields.patch("ok", "false", docs[0]!)).toEqual({ ok: false });
+    const groups = recordGroups(fields, docs, "ok");
+    expect(groups.map((g) => [g.name, g.records.length])).toEqual([
+      ["Yes", 1],
+      ["No", 1],
+      ["No signed", 1],
+    ]);
+    expect([...docs].sort(fields.compare("ok")).map((d) => d.id)).toEqual(["2", "1", "3"]);
+  });
+  it("names the records of a relation by their choices", () => {
+    expect(fields.text(docs[1]!, "owner")).toBe("Bolt, Acme");
+    expect(
+      filterFields(fields)
+        .find((f) => f.id === "owner")!
+        .options.map((o) => o.label),
+    ).toEqual(["Acme", "Bolt"]);
+  });
+  const mark = (record: Doc, name: string, view: "row" | "card" | "cell") =>
+    html(h(RecordFieldMark as never, { fields, name, record, context: {}, view }));
+  it("draws each kind in a row, a card and a cell", () => {
+    for (const view of ["row", "card", "cell"] as const) {
+      expect(mark(docs[0]!, "ok", view)).toContain("fg-rec-bool-on");
+      expect(mark(docs[1]!, "ok", view)).not.toContain("fg-rec-bool-on");
+      expect(mark(docs[1]!, "owner", view)).toContain("Bolt");
+      expect(mark(docs[0]!, "files", view)).toContain("a.pdf");
+    }
+    expect(mark(docs[0]!, "meta", "row")).toContain("{&quot;a&quot;:1}");
+    expect(mark(docs[0]!, "meta", "cell")).toContain("fg-rec-text");
   });
 });
